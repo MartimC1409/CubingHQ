@@ -1,0 +1,2251 @@
+/* ============================================================
+   SimulateCubing — Application Logic (WCA API Integrated)
+   ============================================================ */
+
+(function () {
+    'use strict';
+
+    // ========== CONSTANTS ==========
+    const WCA_API = 'https://www.worldcubeassociation.org/api/v0';
+
+    const EVENT_NAMES = {
+        '333': '3x3x3', '222': '2x2x2', '444': '4x4x4', '555': '5x5x5',
+        '666': '6x6x6', '777': '7x7x7', '333oh': '3x3 OH', '333bf': '3x3 BLD',
+        '333fm': '3x3 FMC', '333mbf': '3x3 Multi-BLD',
+        'pyram': 'Pyraminx', 'skewb': 'Skewb', 'sq1': 'Square-1',
+        'minx': 'Megaminx', 'clock': 'Clock',
+        '444bf': '4x4 BLD', '555bf': '5x5 BLD'
+    };
+
+    const ROUND_NAMES = { 1: 'Round 1', 2: 'Round 2', 3: 'Semi-Final', 4: 'Final' };
+
+    // Events that use Mean of 3 (instead of Average of 5)
+    const MEAN_OF_3_EVENTS = ['666', '777', '333bf', '444bf', '555bf', '333fm', '333mbf'];
+
+    // First names and last names for realistic competitor generation
+    const FIRST_NAMES = [
+        'Max', 'Feliks', 'Tymon', 'Yiheng', 'Luke', 'Matty', 'Ruihang', 'Patrick',
+        'Leo', 'Martin', 'Seung', 'Antoine', 'Chris', 'Dana', 'Juliette', 'Ming',
+        'Kevin', 'Sebastian', 'Tommy', 'Jayden', 'Ava', 'Chloe', 'Diego', 'Elijah',
+        'Fiona', 'Gael', 'Hannah', 'Ivan', 'Jun', 'Kai', 'Liam', 'Mia', 'Nina',
+        'Oscar', 'Priya', 'Quinn', 'Ravi', 'Sofia', 'Tomas', 'Uma', 'Victor',
+        'Wen', 'Xander', 'Yuki', 'Zara', 'Aiden', 'Bella', 'Carlos', 'Daria',
+        'Erik', 'Flora', 'Gustav', 'Hana', 'Igor', 'Jade', 'Lars', 'Marta'
+    ];
+
+    const LAST_NAMES = [
+        'Park', 'Zemdegs', 'Kolasinski', 'Wang', 'Garrett', 'Intan', 'Xu', 'Ponce',
+        'Borber', 'Egdal', 'Hyun', 'Cantin', 'Olson', 'Yi', 'Chen', 'Zhang',
+        'Lee', 'Kim', 'Mueller', 'Richter', 'Garcia', 'Silva', 'Santos', 'Taylor',
+        'Wilson', 'Brown', 'Miller', 'Anderson', 'Thomas', 'Martinez', 'Robinson',
+        'Clark', 'Lewis', 'Hall', 'Allen', 'Young', 'King', 'Wright', 'Hill',
+        'Scott', 'Green', 'Adams', 'Baker', 'Nelson', 'Carter', 'Mitchell', 'Roberts',
+        'Turner', 'Phillips', 'Campbell', 'Evans', 'Edwards', 'Collins', 'Stewart'
+    ];
+
+    // Scramble move sets
+    const MOVES = {
+        '333': { faces: ['U', 'D', 'R', 'L', 'F', 'B'], modifiers: ['', "'", '2'], length: 20 },
+        '222': { faces: ['U', 'R', 'F'], modifiers: ['', "'", '2'], length: 11 },
+        '444': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw'], modifiers: ['', "'", '2'], length: 44 },
+        '555': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw', 'Dw', 'Lw', 'Bw'], modifiers: ['', "'", '2'], length: 60 },
+        '666': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw', '3Uw', '3Rw', '3Fw'], modifiers: ['', "'", '2'], length: 80 },
+        '777': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw', '3Uw', '3Rw', '3Fw'], modifiers: ['', "'", '2'], length: 100 },
+        '333oh': { faces: ['U', 'D', 'R', 'L', 'F', 'B'], modifiers: ['', "'", '2'], length: 20 },
+        '333bf': { faces: ['U', 'D', 'R', 'L', 'F', 'B'], modifiers: ['', "'", '2'], length: 20 },
+        'pyram': { faces: ['U', 'R', 'L', 'B', 'u', 'r', 'l', 'b'], modifiers: ['', "'"], length: 11 },
+        'skewb': { faces: ['U', 'R', 'L', 'B'], modifiers: ['', "'"], length: 11 },
+        'sq1': null,
+        'minx': { faces: ['U', 'R', 'D', 'L', 'F'], modifiers: ['++', '--'], length: 77 },
+        'clock': null
+    };
+
+    // Average variations by event
+    const EVENT_VARIATION = {
+        '333': 0.12, '222': 0.18, '444': 0.10, '555': 0.08,
+        '666': 0.07, '777': 0.06, '333oh': 0.13, '333bf': 0.15,
+        'pyram': 0.20, 'skewb': 0.20, 'sq1': 0.18,
+        'minx': 0.08, 'clock': 0.15
+    };
+
+    // Country ISO2 to flag image (works on Windows unlike emoji flags)
+    function countryFlagImg(iso2, size = 20) {
+        if (!iso2 || iso2.length !== 2) return '<span class="flag-placeholder">🌍</span>';
+        const code = iso2.toLowerCase();
+        const h = Math.round(size * 0.75);
+        return `<img src="https://flagcdn.com/w40/${code}.png" alt="${iso2}" class="country-flag" width="${size}" height="${h}" loading="lazy" onerror="this.outerHTML='🌍'">`;
+    }
+
+    // Keep text-only version for non-HTML contexts
+    function countryFlag(iso2) {
+        if (!iso2 || iso2.length !== 2) return '🌍';
+        const codePoints = [...iso2.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65);
+        return String.fromCodePoint(...codePoints);
+    }
+
+    // Hardcoded WCA World Records (verified July 2026)
+    const WORLD_RECORDS = {
+        '333': {
+            single: { time: 2.76, holder: 'Teodor Zajder', country: 'PL', competition: 'GLS Big Cubes Gdańsk 2026' },
+            average: { time: 3.51, holder: 'Yiheng Wang', country: 'CN', competition: 'Hefei Cubing League 3x3 III 2026' }
+        },
+        '222': {
+            single: { time: 0.39, holder: 'Ziyu Ye', country: 'CN', competition: 'Hefei Open 2025' },
+            average: { time: 0.86, holder: 'Sujan Feist', country: 'US', competition: 'Kids America Christmas Clash OH 2025' }
+        },
+        '444': {
+            single: { time: 15.18, holder: 'Tymon Kolasiński', country: 'PL', competition: 'Spanish Championship 2025' },
+            average: { time: 18.56, holder: 'Tymon Kolasiński', country: 'PL', competition: 'Seoul Winter 2026' }
+        },
+        '555': {
+            single: { time: 29.49, holder: 'Tymon Kolasiński', country: 'PL', competition: 'All Rounders Katowice I 2026' },
+            average: { time: 33.73, holder: 'Tymon Kolasiński', country: 'PL', competition: 'All Rounders Katowice I 2026' }
+        },
+        '666': {
+            single: { time: 57.69, holder: 'Max Park', country: 'US', competition: 'Burbank Big Cubes 2025' },
+            average: { time: 64.94, holder: 'Lim Hung', country: 'MY', competition: 'UniKL MIAT Cube Open 2026' }
+        },
+        '777': {
+            single: { time: 92.07, holder: 'Max Park', country: 'US', competition: 'West Coast Cubing Western Championship 2026' },
+            average: { time: 96.86, holder: 'Max Park', country: 'US', competition: 'Nub Open Trabuco Hills Fall 2025' }
+        },
+        '333oh': {
+            single: { time: 5.66, holder: 'Dhruva Sai Meruva', country: 'IN', competition: 'Swiss Nationals 2024' },
+            average: { time: 7.72, holder: 'Luke Garrett', country: 'US', competition: 'Chicagoland Newcomers 2025' }
+        },
+        '333bf': {
+            single: { time: 11.67, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' },
+            average: { time: 14.05, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' }
+        },
+        '333fm': {
+            single: { time: 16, holder: 'Sebastiano Tronto', country: 'IT', competition: 'FMC 2019', isMoves: true },
+            average: { time: 19.00, holder: 'Brian Johnson', country: 'US', competition: 'Evanston FMC Spring 2026', isMoves: true }
+        },
+        '333mbf': {
+            single: { time: '63/65 58:23', holder: 'Graham Siggins', country: 'US', competition: 'Cubing in a Corn Maze 2025', isMulti: true },
+            average: null
+        },
+        'pyram': {
+            single: { time: 0.73, holder: 'Simon Kellum', country: 'US', competition: 'Middleton Meetup Thursday 2023' },
+            average: { time: 1.14, holder: 'Lingkun Jiang', country: 'CN', competition: 'Zhengzhou Zest 2025' }
+        },
+        'skewb': {
+            single: { time: 0.73, holder: 'Vojtěch Grohmann', country: 'CZ', competition: 'Głuszyca Open 2026' },
+            average: { time: 1.52, holder: 'Carter Kucala', country: 'US', competition: 'CubingUSA Heartland Championship 2024' }
+        },
+        'sq1': {
+            single: { time: 2.85, holder: 'Brian Johnson', country: 'US', competition: 'Evanston Qualifier 2026' },
+            average: { time: 4.63, holder: 'Sameer Aggarwal', country: 'US', competition: 'Cubing in Southern Oregon 2025' }
+        },
+        'minx': {
+            single: { time: 21.85, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Start of Summer Beijing 2026' },
+            average: { time: 24.38, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Tashkent Open 2025' }
+        },
+        'clock': {
+            single: { time: 1.53, holder: 'Lachlan Gibson', country: 'AU', competition: 'Shepplife Open 2025' },
+            average: { time: 2.26, holder: 'Lachie Gibson', country: 'AU', competition: 'Lachie Gibson Clock Average 2025' }
+        },
+        '444bf': {
+            single: { time: 51.96, holder: 'Stanley Chapel', country: 'US', competition: '4BLD in a Madison Hall 2023' },
+            average: { time: 59.39, holder: 'Stanley Chapel', country: 'US', competition: 'New York Multimate PBQ II 2025' }
+        },
+        '555bf': {
+            single: { time: 118.59, holder: 'Stanley Chapel', country: 'US', competition: 'Multi Mayhem VA 2026' },
+            average: { time: 147.63, holder: 'Stanley Chapel', country: 'US', competition: 'Michigan Cubing Club Epsilon 2019' }
+        }
+    };
+
+    // ========== STATE ==========
+    const state = {
+        // Config
+        compId: '',
+        compName: '',
+        compData: null,     // Full competition API data
+        wcifData: null,     // WCIF data
+        worldRecords: null, // Cached WCA world records
+        event: '333',
+        numSolves: 5,
+        round: 1,
+        numCompetitors: 30,
+        playerName: '',
+        playerWcaId: '',
+        playerData: null,   // Full WCA person data
+        playerAvg: 12,      // From PR
+        goalTime: null,
+        timeLimit: 600,
+        cutoff: 0,
+        soundEnabled: true,
+        liveMode: false,
+
+        // Runtime
+        currentSolve: 0,
+        scrambles: [],
+        solves: [],
+        competitors: [],
+        timerState: 'idle',
+        timerStart: 0,
+        timerValue: 0,
+        inspectionStart: 0,
+        inspectionValue: 15,
+        timerInterval: null,
+        inspectionInterval: null,
+        selectedPenalty: 'none',
+        currentView: 'home',
+        history: [],
+        spaceHeld: false,
+        holdTimeout: null,
+    };
+
+    // ========== DOM REFERENCES ==========
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    // ========== INITIALIZATION ==========
+    function init() {
+        loadTheme();
+        loadHistory();
+        bindEvents();
+        updateEventFormatHint();
+        initActivityTracker();
+
+        if (tryRestoreSimState()) {
+            // State was restored, dashboard is shown
+        } else {
+            handleHashRoute();
+        }
+
+        window.addEventListener('hashchange', handleHashRoute);
+    }
+
+    // ========== THEME ==========
+    function loadTheme() {
+        const saved = localStorage.getItem('sc-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', saved);
+    }
+
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('sc-theme', next);
+    }
+
+    // ========== NAVIGATION (Hash-based Routing) ==========
+    const VIEW_TO_HASH = {
+        'home': '#home', 'setup': '#simulation', 'dashboard': '#simulation',
+        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms'
+    };
+    const HASH_TO_VIEW = {
+        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '': 'home'
+    };
+
+    function switchView(viewName, updateHash = true) {
+        $$('.view').forEach(v => v.classList.remove('active'));
+        $(`#${viewName}-view`).classList.add('active');
+        state.currentView = viewName;
+
+        $$('.nav-btn').forEach(b => b.classList.remove('active'));
+        if (viewName === 'setup' || viewName === 'dashboard') {
+            $('#nav-simulation-btn').classList.add('active');
+        } else if (viewName === 'home') {
+            $('#nav-home-btn').classList.add('active');
+        } else if (viewName === 'statistics') {
+            $('#nav-stats-btn').classList.add('active');
+        } else if (viewName === 'records') {
+            $('#nav-records-btn').classList.add('active');
+        } else if (viewName === 'history') {
+            $('#nav-history-btn').classList.add('active');
+        } else if (viewName === 'competitions') {
+            $('#nav-competitions-btn').classList.add('active');
+        } else if (viewName === 'algorithms') {
+            $('#nav-algorithms-btn').classList.add('active');
+        }
+
+        // Update URL hash
+        if (updateHash) {
+            const hash = VIEW_TO_HASH[viewName] || '#home';
+            if (window.location.hash !== hash) {
+                window.location.hash = hash;
+            }
+        }
+    }
+
+    function handleHashRoute() {
+        const hash = window.location.hash || '#home';
+        const targetView = HASH_TO_VIEW[hash] || 'setup';
+
+        // If navigating to #home and simulation is active, show dashboard
+        if (targetView === 'setup' && isSimulationActive()) {
+            switchView('dashboard', false);
+        } else {
+            switchView(targetView, false);
+            if (targetView === 'history') renderHistory();
+            if (targetView === 'records') loadWorldRecords();
+            if (targetView === 'competitions' && !state.upcomingCompsFetched) fetchUpcomingCompetitions();
+        }
+    }
+
+    function isSimulationActive() {
+        return state.scrambles.length > 0 && state.currentSolve < state.numSolves;
+    }
+
+    // ========== EVENT BINDINGS ==========
+    function bindEvents() {
+        // Theme
+        $('#theme-toggle').addEventListener('click', toggleTheme);
+
+        // Nav
+        $('#nav-logo').addEventListener('click', () => {
+            switchView('home');
+        });
+        $('#nav-home-btn').addEventListener('click', () => {
+            switchView('home');
+        });
+        $('#nav-simulation-btn').addEventListener('click', () => {
+            if (state.currentView === 'dashboard' || isSimulationActive()) {
+                switchView('dashboard');
+            } else {
+                switchView('setup');
+            }
+        });
+        $('#nav-history-btn').addEventListener('click', () => {
+            renderHistory();
+            switchView('history');
+        });
+        $('#nav-stats-btn').addEventListener('click', () => {
+            switchView('statistics');
+        });
+        $('#nav-records-btn').addEventListener('click', () => {
+            switchView('records');
+            loadWorldRecords();
+        });
+        $('#nav-competitions-btn').addEventListener('click', () => {
+            switchView('competitions');
+            if (!state.upcomingCompsFetched) fetchUpcomingCompetitions();
+        });
+        $('#nav-algorithms-btn').addEventListener('click', () => {
+            switchView('algorithms');
+            initializeAlgorithmsUI();
+        });
+
+        // Algorithms View Logic (Native + TwistyPlayer)
+        const algEventSelect = $('#alg-event-select');
+        const algSubsetContainer = $('#alg-subset-container');
+        const algSubgroupSelect = $('#alg-subgroup-select');
+
+        function initializeAlgorithmsUI() {
+            if (typeof ALGORITHMS === 'undefined') return;
+            const currentEvent = algEventSelect.value;
+            const subsets = Object.keys(ALGORITHMS[currentEvent] || {});
+            
+            algSubsetContainer.innerHTML = '';
+            algSubgroupSelect.style.display = 'none';
+            
+            subsets.forEach((subset, index) => {
+                const btn = document.createElement('button');
+                btn.className = `btn btn-secondary alg-cat-btn ${index === 0 ? 'active' : ''}`;
+                btn.textContent = subset;
+                btn.dataset.category = subset;
+                btn.addEventListener('click', (e) => {
+                    $$('.alg-cat-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    handleSubsetSelection(currentEvent, subset);
+                });
+                algSubsetContainer.appendChild(btn);
+            });
+
+            if (subsets.length > 0) {
+                handleSubsetSelection(currentEvent, subsets[0]);
+            } else {
+                $('#algorithms-grid').innerHTML = '<p style="color: var(--clr-text-muted);">No algorithms found for this event.</p>';
+            }
+        }
+
+        function handleSubsetSelection(event, subset) {
+            const data = ALGORITHMS[event][subset];
+            if (!data) return;
+
+            if (Array.isArray(data)) {
+                algSubgroupSelect.style.display = 'none';
+                renderAlgorithms(event, subset, null);
+            } else {
+                algSubgroupSelect.style.display = 'block';
+                algSubgroupSelect.innerHTML = '';
+                const subgroups = Object.keys(data);
+                
+                subgroups.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.textContent = `${subset} ${sub}`;
+                    algSubgroupSelect.appendChild(opt);
+                });
+
+                // Update listener safely
+                algSubgroupSelect.onchange = (e) => {
+                    renderAlgorithms(event, subset, e.target.value);
+                };
+
+                renderAlgorithms(event, subset, subgroups[0]);
+            }
+        }
+
+        if (algEventSelect) {
+            algEventSelect.addEventListener('change', initializeAlgorithmsUI);
+        }
+
+        // Render logic
+        function renderAlgorithms(event, subset, subgroup) {
+            const grid = $('#algorithms-grid');
+            if (!grid || typeof ALGORITHMS === 'undefined') return;
+
+            grid.innerHTML = '';
+            let algs = [];
+            
+            if (subgroup) {
+                algs = ALGORITHMS[event][subset][subgroup] || [];
+            } else {
+                algs = ALGORITHMS[event][subset] || [];
+            }
+
+            algs.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'setup-card';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.alignItems = 'center';
+                card.style.padding = '1.5rem';
+                card.style.textAlign = 'center';
+
+                // Map event to twisty-player puzzle name
+                let puzzleName = "3x3x3";
+                if (event === "2x2") puzzleName = "2x2x2";
+                if (event === "4x4") puzzleName = "4x4x4";
+                if (event === "5x5") puzzleName = "5x5x5";
+                if (event === "Pyraminx") puzzleName = "pyraminx";
+                if (event === "Megaminx") puzzleName = "megaminx";
+
+                card.innerHTML = `
+                    <div style="width: 140px; height: 140px; margin-bottom: 1rem; position: relative;">
+                        <twisty-player 
+                            puzzle="${puzzleName}" 
+                            alg="${item.alg}" 
+                            visualization="2D" 
+                            background="none" 
+                            control-panel="none" 
+                            viewer-link="none"
+                            style="width: 100%; height: 100%;">
+                        </twisty-player>
+                    </div>
+                    <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--clr-text);">${item.name}</h3>
+                    <code style="display: block; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--clr-primary); font-family: var(--font-mono); letter-spacing: 0.5px; width: 100%; overflow-wrap: anywhere;">${item.alg}</code>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+
+        // Event chips
+        $$('.event-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (chip.classList.contains('disabled')) return;
+                $$('.event-chip').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+                state.event = chip.dataset.event;
+                updateEventFormatHint();
+                updatePRDisplay();
+                updateEventCompInfo();
+            });
+        });
+
+        // WCA API lookups
+        $('#search-comp-btn').addEventListener('click', lookupCompetition);
+        $('#search-wca-btn').addEventListener('click', lookupWCAProfile);
+        
+        // Past competitions lookup
+        $('#search-past-comps-btn').addEventListener('click', fetchPastCompetitions);
+
+        // Also trigger on Enter key
+        $('#comp-id').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookupCompetition(); } });
+        $('#wca-id').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookupWCAProfile(); } });
+        $('#past-comp-wca-id').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fetchPastCompetitions(); } });
+
+        // Setup form
+        $('#setup-form').addEventListener('submit', handleSetupSubmit);
+
+        // Dashboard buttons
+        $('#back-to-setup-btn').addEventListener('click', () => { clearSimState(); switchView('setup'); });
+        $('#fullscreen-btn').addEventListener('click', toggleFullscreen);
+        
+        // Toggle scramble colors
+        const toggleColorsBtn = $('#toggle-scramble-colors-btn');
+        if (toggleColorsBtn) {
+            toggleColorsBtn.addEventListener('click', () => {
+                const visual = $('#scramble-visual');
+                if (visual) visual.classList.toggle('show-colors');
+            });
+        }
+
+        // Penalty buttons
+        $$('.penalty-btn').forEach(btn => {
+            btn.addEventListener('click', () => selectPenalty(btn.dataset.penalty));
+        });
+
+        // Submit solve
+        $('#submit-solve-btn').addEventListener('click', submitSolve);
+
+        // Manual input
+        const timeInput = $('#manual-time-input');
+        if (timeInput) {
+            timeInput.addEventListener('input', (e) => {
+                let val = e.target.value.replace(/\D/g, '');
+                if (!val) {
+                    e.target.value = '';
+                    return;
+                }
+                const num = parseInt(val, 10);
+                e.target.value = (num / 100).toFixed(2);
+            });
+            timeInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    $('#submit-solve-btn').click();
+                }
+            });
+        }
+
+        // Round end
+        $('#next-round-btn').addEventListener('click', startNextRound);
+        $('#new-sim-btn').addEventListener('click', () => {
+            clearSimState();
+            $('#round-end-overlay').style.display = 'none';
+            switchView('setup');
+        });
+        $('#copy-results-btn').addEventListener('click', copyResults);
+
+        // History
+        $('#clear-history-btn').addEventListener('click', clearHistory);
+    }
+
+    // ========== WCA API: COMPETITION LOOKUP ==========
+    async function lookupCompetition() {
+        const compId = $('#comp-id').value.trim();
+        if (!compId) { showToast('Please enter a competition ID', 'error'); return; }
+
+        // Show loading
+        $('#comp-info-display').style.display = 'none';
+        $('#comp-error-display').style.display = 'none';
+        $('#comp-loading').style.display = 'flex';
+        $('#search-comp-btn').classList.add('loading');
+
+        try {
+            const res = await fetch(`${WCA_API}/competitions/${compId}`);
+            if (!res.ok) throw new Error('Not found');
+            const data = await res.json();
+
+            state.compData = data;
+            state.compId = data.id;
+            state.compName = data.name;
+            state.numCompetitors = data.competitor_limit || 30;
+
+            // Display info
+            $('#comp-display-name').textContent = data.name;
+            $('#comp-display-date').textContent = `${data.start_date}${data.end_date !== data.start_date ? ' → ' + data.end_date : ''}`;
+
+            // Parse venue from markdown link if needed
+            let venue = data.venue || '';
+            const venueMatch = venue.match(/\[([^\]]+)\]/);
+            if (venueMatch) venue = venueMatch[1];
+            $('#comp-display-venue').textContent = venue || 'N/A';
+
+            $('#comp-display-city').textContent = `${data.city || ''}, ${data.country_iso2 || ''}`;
+            $('#comp-display-limit').textContent = `Competitor limit: ${data.competitor_limit || 'None'}`;
+            $('#comp-display-events').textContent = `Events: ${(data.event_ids || []).map(e => EVENT_NAMES[e] || e).join(', ')}`;
+
+            // Update event chips - enable only events at this comp
+            if (data.event_ids) {
+                updateAvailableEvents(data.event_ids);
+            }
+
+            // Fetch WCIF for round/cutoff/time-limit data
+            fetchWCIF(compId);
+
+            $('#comp-info-display').style.display = 'block';
+            $('#comp-error-display').style.display = 'none';
+            showToast(`✅ Found: ${data.short_name || data.name}`, 'success');
+
+        } catch (err) {
+            console.error('Error fetching competition:', err);
+            state.compData = null;
+            $('#comp-info-display').style.display = 'none';
+            $('#comp-error-display').style.display = 'flex';
+            $('#comp-error-text').textContent = `Competition "${compId}" not found. Error: ${err.message}`;
+        } finally {
+            $('#comp-loading').style.display = 'none';
+            $('#search-comp-btn').classList.remove('loading');
+        }
+    }
+
+    async function fetchWCIF(compId) {
+        try {
+            const res = await fetch(`${WCA_API}/competitions/${compId}/wcif/public`);
+            if (!res.ok) return;
+            const data = await res.json();
+            state.wcifData = data;
+
+            // Count actual competitors for this event
+            updateEventCompInfo();
+
+        } catch (err) {
+            // WCIF not available for all competitions, that's okay
+            state.wcifData = null;
+        }
+    }
+
+    function updateAvailableEvents(eventIds) {
+        $$('.event-chip').forEach(chip => {
+            const event = chip.dataset.event;
+            if (eventIds.includes(event)) {
+                chip.classList.remove('disabled');
+            } else {
+                chip.classList.add('disabled');
+                chip.classList.remove('selected');
+            }
+        });
+
+        // If currently selected event isn't available, select the first available
+        const selectedChip = $('.event-chip.selected');
+        if (!selectedChip || selectedChip.classList.contains('disabled')) {
+            const firstAvailable = $(`.event-chip:not(.disabled)`);
+            if (firstAvailable) {
+                firstAvailable.classList.add('selected');
+                firstAvailable.querySelector('input').checked = true;
+                state.event = firstAvailable.dataset.event;
+                updateEventFormatHint();
+                updatePRDisplay();
+            }
+        }
+    }
+
+    function updateEventCompInfo() {
+        const infoPanel = $('#event-comp-info');
+
+        if (!state.wcifData) {
+            infoPanel.style.display = 'none';
+            return;
+        }
+
+        // Find the selected event in WCIF
+        const eventData = (state.wcifData.events || []).find(e => e.id === state.event);
+        if (!eventData) {
+            infoPanel.style.display = 'none';
+            return;
+        }
+
+        const round1 = eventData.rounds && eventData.rounds[0];
+        if (!round1) {
+            infoPanel.style.display = 'none';
+            return;
+        }
+
+        // Time limit
+        const timeLimit = round1.timeLimit;
+        if (timeLimit) {
+            const tlSeconds = timeLimit.centiseconds / 100;
+            state.timeLimit = tlSeconds;
+            $('#event-time-limit').textContent = formatTime(tlSeconds);
+        } else {
+            $('#event-time-limit').textContent = '10:00';
+            state.timeLimit = 600;
+        }
+
+        // Cutoff
+        const cutoff = round1.cutoff;
+        if (cutoff) {
+            const cutSeconds = cutoff.attemptResult / 100;
+            state.cutoff = cutSeconds;
+            $('#event-cutoff').textContent = formatTime(cutSeconds) + ` (best of ${cutoff.numberOfAttempts})`;
+        } else {
+            state.cutoff = 0;
+            $('#event-cutoff').textContent = 'None';
+        }
+
+        // Number of rounds for this event
+        $('#event-rounds-count').textContent = `${eventData.rounds.length} round${eventData.rounds.length > 1 ? 's' : ''}`;
+
+        // Count competitors registered for this event
+        const registeredForEvent = (state.wcifData.persons || []).filter(p =>
+            p.registration && p.registration.status === 'accepted' &&
+            p.registration.eventIds && p.registration.eventIds.includes(state.event)
+        ).length;
+        state.numCompetitors = Math.max(registeredForEvent, 2);
+        $('#event-competitor-count').textContent = `${registeredForEvent} registered`;
+
+        infoPanel.style.display = 'block';
+    }
+
+    // ========== WCA API: RECORDS ==========
+    let activeRecordEvent = null;
+
+    function loadWorldRecords() {
+        renderRecordsTable();
+        fetchUpcomingCompetitions();
+    }
+
+    function renderRecordsTable() {
+        // Render the table
+        const tbody = $('#records-table-body');
+        tbody.innerHTML = '';
+
+        const wcaOrder = [
+            '333', '222', '444', '555', '666', '777',
+            '333bf', '333fm', '333oh', 'clock', 'minx',
+            'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'
+        ];
+
+        wcaOrder.forEach(eventId => {
+            const rec = WORLD_RECORDS[eventId];
+            if (!rec || !EVENT_NAMES[eventId]) return;
+
+            const tr = document.createElement('tr');
+            tr.className = 'records-row';
+            tr.dataset.event = eventId;
+
+            let singleStr, singleHolder, avgStr, avgHolder;
+
+            // Format single
+            if (rec.single) {
+                if (rec.single.isMulti) {
+                    singleStr = rec.single.time;
+                } else if (rec.single.isMoves) {
+                    singleStr = String(rec.single.time);
+                } else {
+                    singleStr = formatTime(rec.single.time);
+                }
+                singleHolder = `${countryFlagImg(rec.single.country)} ${rec.single.holder}`;
+            } else {
+                singleStr = '—';
+                singleHolder = '—';
+            }
+
+            // Format average
+            if (rec.average) {
+                if (rec.average.isMoves) {
+                    avgStr = rec.average.time.toFixed(2);
+                } else {
+                    avgStr = formatTime(rec.average.time);
+                }
+                avgHolder = `${countryFlagImg(rec.average.country)} ${rec.average.holder}`;
+            } else {
+                avgStr = '—';
+                avgHolder = '—';
+            }
+
+            tr.innerHTML = `
+                <td class="rec-event">
+                    <span class="rec-event-name">${EVENT_NAMES[eventId]}</span>
+                </td>
+                <td class="rec-time rec-single">${singleStr}</td>
+                <td class="rec-holder">${singleHolder}</td>
+                <td class="rec-time rec-average">${avgStr}</td>
+                <td class="rec-holder">${avgHolder}</td>
+                <td class="rec-expand-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></td>
+            `;
+
+            tr.addEventListener('click', () => toggleRecordDetail(eventId, tr));
+            tbody.appendChild(tr);
+        });
+
+        $('#records-loading').style.display = 'none';
+        $('#records-table').style.display = 'table';
+    }
+
+
+
+    async function fetchUpcomingCompetitions() {
+        const listContainer = $('#upcoming-comps-list');
+        if (!listContainer) return;
+
+        listContainer.innerHTML = '<div class="upcoming-comps-loading"><div class="spinner"></div><span>Loading upcoming competitions...</span></div>';
+
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const res = await fetch(`${WCA_API}/competitions?start=${today}&sort=start_date&per_page=20`);
+            if (!res.ok) throw new Error('Failed to fetch');
+            const comps = await res.json();
+
+            if (comps.length === 0) {
+                listContainer.innerHTML = '<div class="upcoming-comps-empty">No upcoming competitions found.</div>';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+
+            comps.forEach(comp => {
+                const countryCode = comp.country_iso2 || '';
+                const city = comp.city || 'Unknown';
+                const limit = comp.competitor_limit || '—';
+                const startDate = comp.start_date || '';
+                const endDate = comp.end_date || '';
+                const dateStr = startDate === endDate ? startDate : `${startDate} → ${endDate}`;
+                const shortName = comp.short_name || comp.name || 'Competition';
+                const compUrl = `https://www.worldcubeassociation.org/competitions/${comp.id}`;
+
+                const card = document.createElement('a');
+                card.className = 'upcoming-comp-item';
+                card.href = compUrl;
+                card.target = '_blank';
+                card.rel = 'noopener noreferrer';
+                card.innerHTML = `
+                    <div class="upcoming-comp-info">
+                        <span class="upcoming-comp-name">${shortName}</span>
+                        <span class="upcoming-comp-meta">${countryFlagImg(countryCode, 14)} ${city} · 👥 ${limit}</span>
+                    </div>
+                    <span class="upcoming-comp-date">${dateStr}</span>
+                `;
+                listContainer.appendChild(card);
+            });
+        } catch (err) {
+            console.error('Error fetching upcoming competitions:', err);
+            listContainer.innerHTML = '<div class="upcoming-comps-empty">Failed to load upcoming competitions.</div>';
+        }
+    }
+
+    function toggleRecordDetail(eventId, rowEl) {
+        // Close any existing detail row
+        const existing = document.querySelector('.record-detail-row');
+        const wasActive = existing && existing.dataset.event === eventId;
+
+        if (existing) {
+            existing.classList.add('closing');
+            setTimeout(() => existing.remove(), 300);
+            document.querySelectorAll('.records-row.active').forEach(r => r.classList.remove('active'));
+        }
+
+        if (wasActive) {
+            activeRecordEvent = null;
+            return;
+        }
+
+        activeRecordEvent = eventId;
+        rowEl.classList.add('active');
+
+        const rec = WORLD_RECORDS[eventId];
+        if (!rec) return;
+
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'record-detail-row';
+        detailRow.dataset.event = eventId;
+
+        let singleCard = '';
+        if (rec.single) {
+            let timeDisplay;
+            if (rec.single.isMulti) timeDisplay = rec.single.time;
+            else if (rec.single.isMoves) timeDisplay = `${rec.single.time} moves`;
+            else timeDisplay = formatTime(rec.single.time);
+
+            singleCard = `
+                <div class="record-detail-card record-detail-single">
+                    <div class="record-detail-badge">WR SINGLE</div>
+                    <div class="record-detail-time">${timeDisplay}</div>
+                    <div class="record-detail-holder">
+                        <span class="record-detail-flag">${countryFlagImg(rec.single.country, 28)}</span>
+                        <span class="record-detail-name">${rec.single.holder}</span>
+                    </div>
+                    <div class="record-detail-comp">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        ${rec.single.competition}
+                    </div>
+                </div>
+            `;
+        }
+
+        let avgCard = '';
+        if (rec.average) {
+            let timeDisplay;
+            if (rec.average.isMoves) timeDisplay = `${rec.average.time.toFixed(2)} moves`;
+            else timeDisplay = formatTime(rec.average.time);
+
+            avgCard = `
+                <div class="record-detail-card record-detail-average">
+                    <div class="record-detail-badge avg-badge">WR AVERAGE</div>
+                    <div class="record-detail-time">${timeDisplay}</div>
+                    <div class="record-detail-holder">
+                        <span class="record-detail-flag">${countryFlagImg(rec.average.country, 28)}</span>
+                        <span class="record-detail-name">${rec.average.holder}</span>
+                    </div>
+                    <div class="record-detail-comp">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        ${rec.average.competition}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Comparison bar (only for timed events with both records)
+        let comparisonBar = '';
+        if (rec.single && rec.average && !rec.single.isMulti && !rec.single.isMoves) {
+            const ratio = Math.min((rec.single.time / rec.average.time) * 100, 100);
+            comparisonBar = `
+                <div class="record-comparison">
+                    <div class="comparison-label">Single vs Average</div>
+                    <div class="comparison-bar-wrap">
+                        <div class="comparison-bar-fill" style="width: ${ratio}%"></div>
+                    </div>
+                    <div class="comparison-values">
+                        <span>${formatTime(rec.single.time)}</span>
+                        <span class="comparison-diff">Δ ${formatTime(rec.average.time - rec.single.time)}</span>
+                        <span>${formatTime(rec.average.time)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        detailRow.innerHTML = `
+            <td colspan="6">
+                <div class="record-detail-content">
+                    <div class="record-detail-cards">
+                        ${singleCard}
+                        ${avgCard}
+                    </div>
+                    ${comparisonBar}
+                </div>
+            </td>
+        `;
+
+        rowEl.after(detailRow);
+        // Force reflow for animation
+        detailRow.offsetHeight;
+        detailRow.classList.add('open');
+    }
+
+    function decodeMBLD(value) {
+        if (!value || value <= 0) return '—';
+        const str = String(value).padStart(9, '0');
+        const difference = 99 - parseInt(str.slice(0, 2), 10);
+        const timeInSeconds = parseInt(str.slice(2, 7), 10);
+        const missed = parseInt(str.slice(7, 9), 10);
+        const solved = difference + missed;
+        const attempted = solved + missed;
+        
+        const mins = Math.floor(timeInSeconds / 60);
+        const secs = timeInSeconds % 60;
+        return `${solved}/${attempted} ${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // ========== WCA API: PERSON LOOKUP ==========
+    async function lookupWCAProfile() {
+        const wcaId = $('#wca-id').value.trim().toUpperCase();
+        if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
+
+        // Show loading
+        $('#wca-info-display').style.display = 'none';
+        $('#wca-error-display').style.display = 'none';
+        $('#wca-loading').style.display = 'flex';
+        $('#search-wca-btn').classList.add('loading');
+
+        try {
+            const res = await fetch(`${WCA_API}/persons/${wcaId}`);
+            if (!res.ok) throw new Error('Not found');
+            const data = await res.json();
+
+            state.playerData = data;
+            state.playerWcaId = data.person.wca_id;
+            state.playerName = data.person.name;
+
+            // Display info
+            $('#wca-display-name').textContent = data.person.name;
+            $('#wca-display-country').textContent = data.person.country ? data.person.country.name : 'N/A';
+            $('#wca-display-medals').textContent = `🥇${data.medals.gold} 🥈${data.medals.silver} 🥉${data.medals.bronze}`;
+            $('#wca-display-comps').textContent = `${data.competition_count} competitions`;
+
+            // Avatar
+            const avatar = data.person.avatar;
+            if (avatar && !avatar.is_default && avatar.thumb_url) {
+                $('#wca-avatar').src = avatar.thumb_url;
+                $('#wca-avatar').style.display = 'block';
+                $('#stats-avatar').src = avatar.thumb_url;
+                $('#stats-avatar').style.display = 'block';
+            } else {
+                $('#wca-avatar').style.display = 'none';
+                $('#stats-avatar').style.display = 'none';
+            }
+
+            // Populate Statistics Tab
+            $('#stats-placeholder').style.display = 'none';
+            $('#stats-content').style.display = 'block';
+            $('#stats-name').textContent = data.person.name;
+            $('#stats-country').textContent = data.person.country ? data.person.country.name : 'N/A';
+            $('#stat-comps-count').textContent = data.competition_count;
+            $('#stat-gold').textContent = data.medals.gold;
+            $('#stat-silver').textContent = data.medals.silver;
+            $('#stat-bronze').textContent = data.medals.bronze;
+            $('#stats-wcaid').textContent = data.person.wca_id;
+
+            const genderMap = { 'm': 'Male', 'f': 'Female', 'o': 'Other' };
+            if (data.person.gender && genderMap[data.person.gender]) {
+                $('#stats-gender').textContent = genderMap[data.person.gender];
+                $('#stats-gender-badge').style.display = 'inline-block';
+            } else {
+                $('#stats-gender-badge').style.display = 'none';
+            }
+
+            const totalEvents = Object.keys(data.personal_records).length;
+            const totalMedals = data.medals.gold + data.medals.silver + data.medals.bronze;
+            $('#stats-total-events').textContent = totalEvents;
+            $('#stats-total-medals').textContent = totalMedals;
+
+            // Populate PR Table
+            const prBody = $('#stats-pr-body');
+            prBody.innerHTML = '';
+            
+            const prEvents = Object.keys(data.personal_records);
+            const wcaOrderFull = [
+                '333', '222', '444', '555', '666', '777', 
+                '333bf', '333fm', '333oh', 'clock', 'minx', 
+                'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'
+            ];
+            prEvents.sort((a, b) => {
+                let idxA = wcaOrderFull.indexOf(a);
+                let idxB = wcaOrderFull.indexOf(b);
+                if (idxA === -1) idxA = 999;
+                if (idxB === -1) idxB = 999;
+                return idxA - idxB;
+            });
+
+            prEvents.forEach(eventId => {
+                const pr = data.personal_records[eventId];
+                const tr = document.createElement('tr');
+                
+                let singleStr = '—';
+                let avgStr = '—';
+                let worldRank = '—';
+
+                if (pr.single) {
+                    if (eventId === '333fm') singleStr = String(pr.single.best);
+                    else if (eventId === '333mbf') singleStr = decodeMBLD(pr.single.best);
+                    else singleStr = formatTime(pr.single.best / 100);
+                    worldRank = pr.single.world_rank;
+                }
+                
+                if (pr.average) {
+                    if (eventId === '333fm') avgStr = (pr.average.best / 100).toFixed(2);
+                    else avgStr = formatTime(pr.average.best / 100);
+                    if (!pr.single || (pr.average.world_rank < pr.single.world_rank)) {
+                        worldRank = pr.average.world_rank;
+                    }
+                }
+
+                tr.innerHTML = `
+                    <td class="lb-name" style="font-weight: 600;">${EVENT_NAMES[eventId] || eventId}</td>
+                    <td class="lb-best" style="font-family: var(--font-mono);">${singleStr}</td>
+                    <td class="lb-avg" style="font-family: var(--font-mono);">${avgStr}</td>
+                    <td style="font-family: var(--font-mono); color: var(--clr-primary);">#${worldRank}</td>
+                `;
+                prBody.appendChild(tr);
+            });
+
+            // Update PR display for selected event
+            updatePRDisplay();
+
+            $('#wca-info-display').style.display = 'block';
+            $('#wca-error-display').style.display = 'none';
+            showToast(`✅ Found: ${data.person.name}`, 'success');
+
+        } catch (err) {
+            console.error('Error fetching WCA profile:', err);
+            state.playerData = null;
+            $('#wca-info-display').style.display = 'none';
+            $('#wca-error-display').style.display = 'flex';
+            $('#wca-error-text').textContent = `WCA ID "${wcaId}" not found. Error: ${err.message}`;
+        } finally {
+            $('#wca-loading').style.display = 'none';
+            $('#search-wca-btn').classList.remove('loading');
+        }
+    }
+
+    // ========== WCA API: PAST COMPETITIONS LOOKUP ==========
+    async function fetchPastCompetitions() {
+        const wcaId = $('#past-comp-wca-id').value.trim().toUpperCase();
+        if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
+
+        const loadingDiv = $('#past-comps-loading');
+        const errorDiv = $('#past-comps-error');
+        const resultsDiv = $('#past-comps-results');
+        const errorText = $('#past-comps-error-text');
+        const btn = $('#search-past-comps-btn');
+
+        loadingDiv.style.display = 'flex';
+        errorDiv.style.display = 'none';
+        resultsDiv.style.display = 'none';
+        btn.classList.add('loading');
+        resultsDiv.innerHTML = '';
+
+        try {
+            // Check if person exists first to get a clean 404
+            const personRes = await fetch(`${WCA_API}/persons/${wcaId}`);
+            if (!personRes.ok) throw new Error(`WCA ID ${wcaId} not found.`);
+            
+            const resultsRes = await fetch(`${WCA_API}/persons/${wcaId}/results`);
+            if (!resultsRes.ok) throw new Error('Could not fetch results.');
+            
+            const resultsData = await resultsRes.json();
+            
+            if (!resultsData || resultsData.length === 0) {
+                resultsDiv.innerHTML = `<div class="comp-info-state">No competitions found for ${wcaId}.</div>`;
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Extract unique competition IDs in chronological order (WCA API natural order)
+            const uniqueComps = new Set();
+            resultsData.forEach(r => uniqueComps.add(r.competition_id));
+            
+            // Reverse to get latest to oldest
+            const compsList = Array.from(uniqueComps).reverse();
+
+            resultsDiv.innerHTML = `<div class="upcoming-comps-title" style="margin-bottom: var(--space-sm); text-align: left;">Past Competitions (${compsList.length})</div>`;
+            
+            const compListContainer = document.createElement('div');
+            compListContainer.style.display = 'flex';
+            compListContainer.style.flexDirection = 'column';
+            compListContainer.style.gap = '8px';
+            compListContainer.style.textAlign = 'left';
+            
+            compsList.forEach(compId => {
+                const link = document.createElement('a');
+                link.href = `https://www.worldcubeassociation.org/competitions/${compId}`;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.className = "upcoming-comp-item";
+                link.style.textDecoration = 'none';
+                link.innerHTML = `
+                    <div style="flex: 1;">
+                        <div class="upcoming-comp-name">${compId}</div>
+                        <div class="upcoming-comp-date">View on WCA →</div>
+                    </div>
+                `;
+                compListContainer.appendChild(link);
+            });
+            
+            resultsDiv.appendChild(compListContainer);
+            resultsDiv.style.display = 'block';
+
+        } catch (err) {
+            console.error('Error fetching past competitions:', err);
+            errorText.textContent = err.message;
+            errorDiv.style.display = 'flex';
+        } finally {
+            loadingDiv.style.display = 'none';
+            btn.classList.remove('loading');
+        }
+    }
+
+    function updatePRDisplay() {
+        if (!state.playerData) return;
+
+        const event = state.event;
+        const prs = state.playerData.personal_records;
+        const eventPR = prs[event];
+
+        $('#pr-event-name').textContent = EVENT_NAMES[event] || event;
+
+        if (eventPR) {
+            // Single PR - values are in centiseconds
+            if (eventPR.single) {
+                const singleSec = eventPR.single.best / 100;
+                state.playerAvg = singleSec; // fallback
+                $('#pr-single').textContent = formatTime(singleSec);
+                $('#pr-single-rank').textContent = `WR #${eventPR.single.world_rank} | NR #${eventPR.single.country_rank}`;
+            } else {
+                $('#pr-single').textContent = '—';
+                $('#pr-single-rank').textContent = '';
+            }
+
+            // Average PR
+            if (eventPR.average) {
+                const avgSec = eventPR.average.best / 100;
+                state.playerAvg = avgSec; // Use PR average as player average
+                $('#pr-average').textContent = formatTime(avgSec);
+                $('#pr-average-rank').textContent = `WR #${eventPR.average.world_rank} | NR #${eventPR.average.country_rank}`;
+            } else {
+                $('#pr-average').textContent = '—';
+                $('#pr-average-rank').textContent = '';
+            }
+        } else {
+            $('#pr-single').textContent = 'No PR';
+            $('#pr-single-rank').textContent = '';
+            $('#pr-average').textContent = 'No PR';
+            $('#pr-average-rank').textContent = '';
+            state.playerAvg = 15; // default fallback
+        }
+
+        $('#pr-display').style.display = 'block';
+    }
+
+    function updateEventFormatHint() {
+        const event = state.event || document.querySelector('input[name="event"]:checked')?.value || '333';
+        const isMo3 = MEAN_OF_3_EVENTS.includes(event);
+        state.numSolves = isMo3 ? 3 : 5;
+        const hint = $('#event-format-hint');
+        if (hint) {
+            hint.textContent = isMo3 ? 'Mean of 3' : 'Average of 5';
+        }
+    }
+
+    // ========== SETUP ==========
+    function handleSetupSubmit(e) {
+        e.preventDefault();
+
+        // Validate WCA ID was looked up
+        if (!state.playerData) {
+            showToast('⚠️ Please look up your WCA ID first', 'error');
+            return;
+        }
+
+        // Collect config
+        state.event = document.querySelector('input[name="event"]:checked').value;
+        
+        // Validate registration if comp is loaded
+        if (state.compId && state.wcifData) {
+            const isRegistered = (state.wcifData.persons || []).some(p =>
+                p.wcaId === state.playerWcaId &&
+                p.registration && p.registration.status === 'accepted' &&
+                p.registration.eventIds && p.registration.eventIds.includes(state.event)
+            );
+            if (!isRegistered) {
+                showToast(`⚠️ You are not registered for ${EVENT_NAMES[state.event] || state.event} at this competition!`, 'error');
+                return;
+            }
+        }
+        state.round = parseInt($('#round-select').value);
+        state.goalTime = $('#goal-time').value ? parseFloat($('#goal-time').value) : null;
+        state.soundEnabled = $('#sound-toggle').checked;
+        state.liveMode = $('#live-mode-toggle').checked;
+
+        // Determine numSolves from event
+        state.numSolves = MEAN_OF_3_EVENTS.includes(state.event) ? 3 : 5;
+
+        // Use competition name if available, otherwise use ID
+        if (!state.compName && state.compId) {
+            state.compName = state.compId;
+        } else if (!state.compName) {
+            state.compName = 'Custom Competition';
+        }
+
+        // Ensure we have a valid numCompetitors
+        if (!state.numCompetitors || state.numCompetitors < 2) {
+            state.numCompetitors = 30;
+        }
+
+        startSimulation();
+    }
+
+    // ========== SIMULATION ==========
+    function startSimulation() {
+        state.currentSolve = 0;
+        state.solves = [];
+        state.selectedPenalty = 'none';
+
+        // Generate scrambles
+        state.scrambles = [];
+        for (let i = 0; i < state.numSolves; i++) {
+            state.scrambles.push(generateScramble(state.event));
+        }
+
+        // Generate competitors
+        generateCompetitors();
+
+        // Update UI
+        updateDashboardHeader();
+        renderScorecardTemplate();
+        updateScrambleDisplay();
+        updateGoalTracker();
+        renderLeaderboard();
+        resetTimer();
+
+        switchView('dashboard');
+        showToast(`🏁 Simulation started! ${EVENT_NAMES[state.event]} - ${ROUND_NAMES[state.round]}`, 'info');
+        saveSimState();
+    }
+
+    // ========== SCRAMBLE GENERATION ==========
+    function generateScramble(event) {
+        if (event === 'sq1') return generateSQ1Scramble();
+        if (event === 'clock') return generateClockScramble();
+
+        const config = MOVES[event] || MOVES['333'];
+        const moves = [];
+        let lastFace = '';
+        let secondLastFace = '';
+
+        for (let i = 0; i < config.length; i++) {
+            let face;
+            do {
+                face = config.faces[Math.floor(Math.random() * config.faces.length)];
+            } while (
+                face === lastFace ||
+                (face === secondLastFace && isOppositeFace(face, lastFace))
+            );
+
+            const modifier = config.modifiers[Math.floor(Math.random() * config.modifiers.length)];
+            moves.push(face + modifier);
+
+            secondLastFace = lastFace;
+            lastFace = face;
+        }
+
+        return moves.join(' ');
+    }
+
+    function isOppositeFace(a, b) {
+        const opposites = { 'U': 'D', 'D': 'U', 'R': 'L', 'L': 'R', 'F': 'B', 'B': 'F' };
+        return opposites[a] === b;
+    }
+
+    function generateSQ1Scramble() {
+        const moves = [];
+        for (let i = 0; i < 13; i++) {
+            const top = Math.floor(Math.random() * 12) - 5;
+            const bot = Math.floor(Math.random() * 12) - 5;
+            moves.push(`(${top},${bot})`);
+            if (i < 12) moves.push('/');
+        }
+        return moves.join(' ');
+    }
+
+    function generateClockScramble() {
+        const pins = ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'];
+        const moves = [];
+        pins.forEach(pin => {
+            const val = Math.floor(Math.random() * 12) - 5;
+            moves.push(`${pin}${val >= 0 ? val + '+' : Math.abs(val) + '-'}`);
+        });
+        moves.push('y2');
+        pins.forEach(pin => {
+            const val = Math.floor(Math.random() * 12) - 5;
+            moves.push(`${pin}${val >= 0 ? val + '+' : Math.abs(val) + '-'}`);
+        });
+        return moves.join(' ');
+    }
+
+    // ========== COMPETITOR GENERATION ==========
+    function generateCompetitors() {
+        state.competitors = [];
+
+        let wcifCompetitors = [];
+        if (state.wcifData && state.wcifData.persons) {
+            wcifCompetitors = state.wcifData.persons.filter(p =>
+                p.registration && p.registration.status === 'accepted' &&
+                p.registration.eventIds && p.registration.eventIds.includes(state.event) &&
+                p.wcaId !== state.playerWcaId
+            );
+        }
+
+        if (wcifCompetitors.length > 0) {
+            const toAdd = wcifCompetitors.slice(0, state.numCompetitors - 1);
+            
+            for (const p of toAdd) {
+                let prAvg = null;
+                let prSingle = null;
+                if (p.personalBests) {
+                    const avgObj = p.personalBests.find(pb => pb.eventId === state.event && pb.type === 'average');
+                    const singleObj = p.personalBests.find(pb => pb.eventId === state.event && pb.type === 'single');
+                    if (avgObj) prAvg = avgObj.best / 100;
+                    if (singleObj) prSingle = singleObj.best / 100;
+                }
+                
+                let compAvg = prAvg || (prSingle ? prSingle * 1.2 : state.playerAvg + (Math.random() * 5));
+                compAvg = Math.max(compAvg, 0.5);
+
+                // Don't generate solves yet — they are added progressively
+                state.competitors.push({
+                    name: p.name,
+                    wcaId: p.wcaId || null,
+                    country: p.countryIso2 || '',
+                    prSingle: prSingle,
+                    prAvg: prAvg,
+                    avg: compAvg,
+                    solves: [],
+                    best: Infinity,
+                    average: Infinity
+                });
+            }
+            
+            state.numCompetitors = state.competitors.length + 1;
+        } else {
+            const usedNames = new Set();
+            for (let i = 0; i < state.numCompetitors - 1; i++) {
+                let name;
+                do {
+                    const first = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+                    const last = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+                    name = `${first} ${last}`;
+                } while (usedNames.has(name));
+                usedNames.add(name);
+
+                const spread = state.playerAvg * 0.6;
+                const compAvg = state.playerAvg + (Math.random() * spread * 2 - spread);
+                const clampedAvg = Math.max(compAvg, state.playerAvg * 0.3);
+
+                // Don't generate solves yet — they are added progressively
+                state.competitors.push({
+                    name,
+                    wcaId: null,
+                    country: '',
+                    prSingle: null,
+                    prAvg: clampedAvg,
+                    avg: clampedAvg,
+                    solves: [],
+                    best: Infinity,
+                    average: Infinity
+                });
+            }
+        }
+    }
+
+    // Generate one solve for all competitors (called each time the user submits)
+    function generateCompetitorSolveForAll() {
+        const variation = EVENT_VARIATION[state.event] || 0.12;
+        state.competitors.forEach(comp => {
+            if (comp.solves.length >= state.numSolves) return;
+
+            const solveVariation = comp.avg * variation;
+            let time = comp.avg + (Math.random() * solveVariation * 2 - solveVariation);
+            time = Math.max(0.5, time);
+            const isDNF = Math.random() < 0.03;
+            const isPlus2 = !isDNF && Math.random() < 0.05;
+
+            comp.solves.push({
+                time: Math.round(time * 100) / 100,
+                penalty: isDNF ? 'dnf' : (isPlus2 ? '+2' : 'none'),
+                result: isDNF ? Infinity : (isPlus2 ? Math.round((time + 2) * 100) / 100 : Math.round(time * 100) / 100)
+            });
+
+            comp.best = getCompBest(comp.solves);
+            comp.average = comp.solves.length === state.numSolves ? calculateAverage(comp.solves) : Infinity;
+        });
+    }
+
+    function getCompBest(solves) {
+        const valid = solves.filter(s => s.penalty !== 'dnf');
+        if (valid.length === 0) return Infinity;
+        return Math.min(...valid.map(s => s.result));
+    }
+
+    function calculateAverage(solves) {
+        if (solves.length === 3) {
+            const dnfCount = solves.filter(s => s.penalty === 'dnf').length;
+            if (dnfCount > 0) return Infinity;
+            const sum = solves.reduce((a, s) => a + s.result, 0);
+            return Math.round((sum / 3) * 100) / 100;
+        }
+
+        if (solves.length === 5) {
+            const dnfCount = solves.filter(s => s.penalty === 'dnf').length;
+            if (dnfCount >= 2) return Infinity;
+            const results = solves.map(s => s.penalty === 'dnf' ? Infinity : s.result);
+            const sorted = [...results].sort((a, b) => a - b);
+            const middle = sorted.slice(1, -1);
+            const sum = middle.reduce((a, b) => a + b, 0);
+            return Math.round((sum / 3) * 100) / 100;
+        }
+
+        return Infinity;
+    }
+
+    // ========== MANUAL TIMER STATE ==========
+    function resetTimer() {
+        state.timerState = 'stopped';
+        const input = $('#manual-time-input');
+        if (input) {
+            input.value = '';
+            setTimeout(() => input.focus(), 50);
+        }
+        $('#submit-solve-btn').disabled = false;
+        selectPenalty('none');
+    }
+
+    // ========== PENALTIES ==========
+    function selectPenalty(penalty) {
+        state.selectedPenalty = penalty;
+        $$('.penalty-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.penalty === penalty);
+        });
+    }
+
+    // ========== SOLVE SUBMISSION ==========
+    function submitSolve() {
+        if (state.currentSolve >= state.numSolves) return;
+
+        const val = $('#manual-time-input').value;
+        const penalty = state.selectedPenalty;
+
+        if (!val && penalty !== 'dnf') {
+            showToast('Please enter a valid time', 'error');
+            return;
+        }
+
+        const time = parseFloat(val) || 0;
+        let result;
+
+        if (penalty === 'dnf') {
+            result = Infinity;
+        } else if (penalty === '+2') {
+            result = Math.round((time + 2) * 100) / 100;
+        } else {
+            result = Math.round(time * 100) / 100;
+        }
+
+        state.solves.push({
+            time: Math.round(time * 100) / 100,
+            penalty, result,
+            scramble: state.scrambles[state.currentSolve]
+        });
+
+        // Play submit sound
+        if (state.soundEnabled) playBeep(880, 80);
+
+        state.currentSolve++;
+
+        // Generate one solve for all competitors to match the user's pace
+        generateCompetitorSolveForAll();
+
+        updateScorecard();
+        updateGoalTracker();
+        updateDashboardBadges();
+        saveSimState();
+
+        if (state.currentSolve >= state.numSolves) {
+            finishRound();
+        } else {
+            updateScrambleDisplay();
+            resetTimer();
+
+            if (state.liveMode) {
+                showToast('⏳ Waiting for next attempt...', 'info');
+                setTimeout(() => showToast('✅ Ready for next attempt!', 'success'), 5000 + Math.random() * 10000);
+            }
+        }
+    }
+
+    // ========== UI UPDATES ==========
+    function updateDashboardHeader() {
+        $('#dash-comp-name').textContent = state.compName;
+        $('#dash-event-badge').textContent = EVENT_NAMES[state.event];
+        $('#dash-round-badge').textContent = ROUND_NAMES[state.round];
+        updateDashboardBadges();
+    }
+
+    function updateDashboardBadges() {
+        const current = Math.min(state.currentSolve + 1, state.numSolves);
+        $('#dash-solve-badge').textContent = `Solve ${current}/${state.numSolves}`;
+        $('#scorecard-name').textContent = state.playerName;
+        $('#scorecard-event').textContent = `${EVENT_NAMES[state.event]} — ${ROUND_NAMES[state.round]}`;
+    }
+
+    function renderScorecardTemplate() {
+        const tbody = $('#scorecard-body');
+        tbody.innerHTML = '';
+
+        for (let i = 0; i < state.numSolves; i++) {
+            const tr = document.createElement('tr');
+            if (i === state.currentSolve) tr.classList.add('current-solve');
+            // Only show scramble for current solve, hide future ones
+            const scrambleText = (i === state.currentSolve && state.scrambles[i]) 
+                ? truncateScramble(state.scrambles[i]) 
+                : (i < state.currentSolve && state.scrambles[i]) 
+                    ? truncateScramble(state.scrambles[i]) 
+                    : '<span class="scramble-hidden">Hidden</span>';
+            tr.innerHTML = `
+                <td>${i + 1}</td>
+                <td class="scramble-cell">${scrambleText}</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        $('#stat-best').textContent = '—';
+        $('#stat-worst').textContent = '—';
+        $('#stat-average').textContent = '—';
+    }
+
+    function updateScorecard() {
+        const tbody = $('#scorecard-body');
+        const rows = tbody.querySelectorAll('tr');
+
+        const validResults = state.solves.filter(s => s.penalty !== 'dnf').map(s => s.result);
+        const bestResult = validResults.length > 0 ? Math.min(...validResults) : null;
+        const worstResult = state.solves.length > 0 ?
+            (state.solves.some(s => s.penalty === 'dnf') ? Infinity :
+                (validResults.length > 0 ? Math.max(...validResults) : null)) : null;
+
+        state.solves.forEach((solve, i) => {
+            if (!rows[i]) return;
+            rows[i].classList.remove('current-solve');
+            rows[i].classList.add('completed');
+
+            const cells = rows[i].querySelectorAll('td');
+            cells[2].textContent = formatTime(solve.time);
+            cells[3].textContent = solve.penalty === 'none' ? '' : solve.penalty.toUpperCase();
+            cells[4].textContent = solve.penalty === 'dnf' ? 'DNF' : formatTime(solve.result);
+
+            cells[4].classList.remove('best-time', 'worst-time');
+            if (solve.result === bestResult && state.solves.length > 1) cells[4].classList.add('best-time');
+            if ((solve.penalty === 'dnf' || solve.result === worstResult) && state.solves.length > 1) cells[4].classList.add('worst-time');
+        });
+
+        if (state.currentSolve < state.numSolves && rows[state.currentSolve]) {
+            rows[state.currentSolve].classList.add('current-solve');
+        }
+
+        if (validResults.length > 0) $('#stat-best').textContent = formatTime(Math.min(...validResults));
+        const allResults = state.solves.map(s => s.penalty === 'dnf' ? Infinity : s.result);
+        if (allResults.length > 0) {
+            if (state.solves.some(s => s.penalty === 'dnf')) {
+                $('#stat-worst').textContent = 'DNF';
+            } else {
+                const finiteWorst = allResults.filter(r => r !== Infinity);
+                if (finiteWorst.length > 0) $('#stat-worst').textContent = formatTime(Math.max(...finiteWorst));
+            }
+        }
+
+        if (state.solves.length === state.numSolves) {
+            const avg = calculateAverage(state.solves);
+            $('#stat-average').textContent = avg === Infinity ? 'DNF' : formatTime(avg);
+        }
+    }
+
+    function updateScrambleDisplay() {
+        if (state.currentSolve >= state.numSolves) return;
+        const scramble = state.scrambles[state.currentSolve];
+        const scrambleEl = $('#scramble-text');
+        scrambleEl.textContent = scramble;
+        renderCubeNet(state.event);
+        // Also refresh scorecard to reveal current scramble and hide future
+        renderScorecardTemplate();
+        // Re-apply completed solves to scorecard
+        if (state.solves.length > 0) updateScorecard();
+    }
+
+    function renderCubeNet(event) {
+        const container = $('#scramble-visual');
+        container.innerHTML = '';
+        
+        const puzzleMap = {
+            '333': '3x3x3',
+            '222': '2x2x2',
+            '444': '4x4x4',
+            '555': '5x5x5',
+            '666': '6x6x6',
+            '777': '7x7x7',
+            '333oh': '3x3x3',
+            '333bf': '3x3x3',
+            '333fm': '3x3x3',
+            'pyram': 'pyraminx',
+            'skewb': 'skewb',
+            'sq1': 'square1',
+            'minx': 'megaminx',
+            'clock': 'clock'
+        };
+
+        const puzzleType = puzzleMap[event];
+        if (!puzzleType) {
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = 'color: var(--clr-text-muted); font-size: 0.85rem; text-align: center;';
+            placeholder.textContent = `Visual preview not available for ${EVENT_NAMES[event] || event}`;
+            container.appendChild(placeholder);
+            return;
+        }
+
+        const scramble = state.scrambles[state.currentSolve];
+        
+        const player = document.createElement('twisty-player');
+        player.setAttribute('puzzle', puzzleType);
+        player.setAttribute('experimental-setup-alg', scramble);
+        player.setAttribute('visualization', '2D');
+        player.setAttribute('background', 'none');
+        player.setAttribute('control-panel', 'none');
+        player.style.width = '100%';
+        player.style.height = '150px';
+        player.style.maxWidth = '300px';
+        player.style.margin = '0 auto';
+
+        container.appendChild(player);
+    }
+
+    function updateGoalTracker() {
+        const goalTarget = state.goalTime || state.playerAvg;
+        $('#goal-target-avg').textContent = formatTime(goalTarget);
+
+        // Show PR average
+        if (state.playerData) {
+            const eventPR = state.playerData.personal_records[state.event];
+            if (eventPR && eventPR.average) {
+                $('#goal-pr-avg').textContent = formatTime(eventPR.average.best / 100);
+            } else {
+                $('#goal-pr-avg').textContent = '—';
+            }
+        }
+
+        if (state.solves.length === 0) {
+            $('#goal-current-avg').textContent = '—';
+            $('#goal-status').textContent = 'Waiting...';
+            $('#goal-status').className = 'goal-val goal-status';
+            updateGoalRing(0);
+            return;
+        }
+
+        const validSolves = state.solves.filter(s => s.penalty !== 'dnf');
+        if (validSolves.length === 0) {
+            $('#goal-current-avg').textContent = 'DNF';
+            $('#goal-status').textContent = 'All DNF';
+            $('#goal-status').className = 'goal-val goal-status behind';
+            updateGoalRing(0);
+            return;
+        }
+
+        const currentAvg = validSolves.reduce((sum, s) => sum + s.result, 0) / validSolves.length;
+        $('#goal-current-avg').textContent = formatTime(currentAvg);
+
+        const progress = Math.min(100, Math.max(0, (1 - (currentAvg - goalTarget) / goalTarget) * 100));
+        updateGoalRing(Math.round(progress));
+
+        if (currentAvg <= goalTarget) {
+            $('#goal-status').textContent = '✅ On Track!';
+            $('#goal-status').className = 'goal-val goal-status on-track';
+        } else {
+            const diff = (currentAvg - goalTarget).toFixed(2);
+            $('#goal-status').textContent = `+${diff}s behind`;
+            $('#goal-status').className = 'goal-val goal-status behind';
+        }
+    }
+
+    function updateGoalRing(pct) {
+        const circumference = 2 * Math.PI * 52;
+        const offset = circumference - (pct / 100) * circumference;
+        const ring = $('#goal-ring-fill');
+        ring.style.strokeDashoffset = offset;
+
+        if (pct >= 80) ring.style.stroke = 'var(--clr-success)';
+        else if (pct >= 50) ring.style.stroke = 'var(--clr-primary)';
+        else if (pct >= 25) ring.style.stroke = 'var(--clr-warning)';
+        else ring.style.stroke = 'var(--clr-danger)';
+
+        $('#goal-pct').textContent = pct + '%';
+    }
+
+    function renderLeaderboard() {
+        const tbody = $('#leaderboard-body');
+        tbody.innerHTML = '';
+
+        const hasFinished = state.solves.length === state.numSolves;
+        const computedAvg = calculateAverage(state.solves);
+        
+        let prSingle = Infinity;
+        let prAvgPlayer = null;
+        if (state.playerData && state.playerData.personal_records[state.event]) {
+            if (state.playerData.personal_records[state.event].single) {
+                prSingle = state.playerData.personal_records[state.event].single.best / 100;
+            }
+            if (state.playerData.personal_records[state.event].average) {
+                prAvgPlayer = state.playerData.personal_records[state.event].average.best / 100;
+            }
+        }
+        
+        const playerCountry = state.playerData?.person?.country_iso2 || state.playerData?.person?.country?.iso2 || '';
+        
+        const playerData = {
+            name: state.playerName,
+            isPlayer: true,
+            country: playerCountry,
+            prSingle: prSingle !== Infinity ? prSingle : null,
+            prAvg: prAvgPlayer,
+            solves: state.solves,
+            best: state.solves.length > 0 ? getCompBest(state.solves) : Infinity,
+            average: hasFinished ? computedAvg : Infinity
+        };
+
+        const all = [...state.competitors, playerData];
+
+        // Sort: by average if everyone is done, otherwise by best single
+        const allDone = all.every(c => (c.solves ? c.solves.length : 0) >= state.numSolves);
+
+        all.sort((a, b) => {
+            if (allDone) {
+                // Sort by average
+                if (a.average === Infinity && b.average === Infinity) return 0;
+                if (a.average === Infinity) return 1;
+                if (b.average === Infinity) return -1;
+                return a.average - b.average;
+            } else {
+                // Sort by best single during the round
+                if (a.best === Infinity && b.best === Infinity) return 0;
+                if (a.best === Infinity) return 1;
+                if (b.best === Infinity) return -1;
+                return a.best - b.best;
+            }
+        });
+
+        all.forEach((comp, i) => {
+            const rank = i + 1;
+            const tr = document.createElement('tr');
+            if (comp.isPlayer) tr.classList.add('user-row');
+
+            let medal = '';
+            if (rank === 1) medal = '🥇';
+            else if (rank === 2) medal = '🥈';
+            else if (rank === 3) medal = '🥉';
+
+            const solvesCompleted = comp.solves ? comp.solves.length : 0;
+            const isComplete = solvesCompleted >= state.numSolves;
+
+            const bestStr = comp.best === Infinity ? (solvesCompleted > 0 ? 'DNF' : '—') : formatTime(comp.best);
+            const avgStr = isComplete ? (comp.average === Infinity ? 'DNF' : formatTime(comp.average)) : (solvesCompleted > 0 ? `${solvesCompleted}/${state.numSolves}` : '—');
+            const prStr = comp.prAvg ? formatTime(comp.prAvg) : (comp.prSingle ? formatTime(comp.prSingle) : '—');
+            const flagHtml = comp.country ? countryFlagImg(comp.country, 16) : '';
+
+            tr.innerHTML = `
+                <td class="lb-rank">${medal || rank}</td>
+                <td class="lb-name">${flagHtml} ${comp.name}${comp.isPlayer ? ' (You)' : ''}</td>
+                <td class="lb-pr">${prStr}</td>
+                <td class="lb-best">${bestStr}</td>
+                <td class="lb-avg">${avgStr}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        $('#lb-count').textContent = `${all.length} competitors`;
+    }
+
+    // ========== ROUND COMPLETION ==========
+    function finishRound() {
+        if (state.soundEnabled) playBeep(523, 200);
+
+        const avg = calculateAverage(state.solves);
+        const validSolves = state.solves.filter(s => s.penalty !== 'dnf');
+        const best = validSolves.length > 0 ? Math.min(...validSolves.map(s => s.result)) : Infinity;
+
+        renderLeaderboard();
+
+        const playerData = { name: state.playerName, isPlayer: true, best, average: avg };
+        const all = [...state.competitors, playerData];
+        all.sort((a, b) => {
+            if (a.average === Infinity && b.average === Infinity) return 0;
+            if (a.average === Infinity) return 1;
+            if (b.average === Infinity) return -1;
+            return a.average - b.average;
+        });
+
+        const placement = all.findIndex(c => c.isPlayer) + 1;
+        const total = all.length;
+
+        $('#end-avg').textContent = avg === Infinity ? 'DNF' : formatTime(avg);
+        $('#end-placement').textContent = `${placement}/${total}`;
+        $('#end-best').textContent = best === Infinity ? 'DNF' : formatTime(best);
+
+        let message = '';
+        if (placement === 1) {
+            message = '🏆 INCREDIBLE! You won the round!';
+            $('#next-round-btn').style.display = state.round < 4 ? 'inline-flex' : 'none';
+        } else if (placement <= 3) {
+            message = '🏅 Amazing! Podium finish!';
+            $('#next-round-btn').style.display = state.round < 4 ? 'inline-flex' : 'none';
+        } else {
+            // Check if would advance (top 75% for R1, top 50% for R2, etc)
+            const advancementRates = { 1: 0.75, 2: 0.5, 3: 0.33, 4: 0 };
+            const advRate = advancementRates[state.round] || 0;
+            const advCount = Math.ceil(total * advRate);
+            const advanced = advCount > 0 && placement <= advCount;
+
+            message = `You placed ${placement}${getOrdinal(placement)} out of ${total} competitors.`;
+            if (advanced && state.round < 4) {
+                message = `🎉 Congratulations! You advanced to ${ROUND_NAMES[state.round + 1]}!\n` + message;
+                $('#next-round-btn').style.display = 'inline-flex';
+            } else {
+                $('#next-round-btn').style.display = 'none';
+            }
+        }
+
+        if (state.goalTime && avg !== Infinity) {
+            if (avg <= state.goalTime) {
+                message += `\n\n🎯 Goal achieved! (${formatTime(avg)} ≤ ${formatTime(state.goalTime)})`;
+            } else {
+                message += `\n\n❌ Missed goal by ${(avg - state.goalTime).toFixed(2)}s`;
+            }
+        }
+
+        // Check if PR was beaten
+        if (state.playerData && avg !== Infinity) {
+            const eventPR = state.playerData.personal_records[state.event];
+            if (eventPR && eventPR.average && avg < eventPR.average.best / 100) {
+                message += `\n\n🔥 NEW PR AVERAGE! (beat ${formatTime(eventPR.average.best / 100)})`;
+            }
+            if (eventPR && eventPR.single && best < eventPR.single.best / 100) {
+                message += `\n\n⚡ NEW PR SINGLE! (beat ${formatTime(eventPR.single.best / 100)})`;
+            }
+        }
+
+        $('#round-end-message').textContent = message;
+        $('#round-end-title').textContent = placement <= 3 ? '🏆 Incredible Performance!' : 'Round Complete!';
+        $('#round-end-overlay').style.display = 'flex';
+
+        if (placement <= 3) spawnConfetti();
+        saveToHistory(avg, placement, total, best);
+        saveSimState();
+    }
+
+    function startNextRound() {
+        state.round = Math.min(state.round + 1, 4);
+
+        state.competitors.sort((a, b) => {
+            if (a.average === Infinity && b.average === Infinity) return 0;
+            if (a.average === Infinity) return 1;
+            if (b.average === Infinity) return -1;
+            return a.average - b.average;
+        });
+
+        const advCount = Math.ceil(state.numCompetitors * 0.5);
+        state.competitors = state.competitors.slice(0, Math.max(advCount - 1, 1));
+        state.numCompetitors = state.competitors.length + 1;
+
+        state.competitors.forEach(comp => {
+            comp.solves = [];
+            comp.best = Infinity;
+            comp.average = Infinity;
+        });
+
+        state.currentSolve = 0;
+        state.solves = [];
+        state.scrambles = [];
+        for (let i = 0; i < state.numSolves; i++) {
+            state.scrambles.push(generateScramble(state.event));
+        }
+
+        $('#round-end-overlay').style.display = 'none';
+        updateDashboardHeader();
+        renderScorecardTemplate();
+        updateScrambleDisplay();
+        updateGoalTracker();
+        renderLeaderboard();
+        resetTimer();
+
+        showToast(`🏁 ${ROUND_NAMES[state.round]} started! ${state.numCompetitors} competitors remaining.`, 'info');
+        saveSimState();
+    }
+
+    // ========== HISTORY ==========
+    function saveToHistory(avg, placement, total, best) {
+        const entry = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            compName: state.compName,
+            event: state.event,
+            eventName: EVENT_NAMES[state.event],
+            round: state.round,
+            roundName: ROUND_NAMES[state.round],
+            average: avg,
+            best: best,
+            placement, total,
+            solves: [...state.solves],
+            goal: state.goalTime,
+            wcaId: state.playerWcaId
+        };
+
+        state.history.unshift(entry);
+        if (state.history.length > 50) state.history = state.history.slice(0, 50);
+        localStorage.setItem('sc-history', JSON.stringify(state.history));
+    }
+
+    function loadHistory() {
+        try {
+            const saved = localStorage.getItem('sc-history');
+            state.history = saved ? JSON.parse(saved) : [];
+        } catch { state.history = []; }
+    }
+
+    function renderHistory() {
+        const list = $('#history-list');
+        const empty = $('#history-empty');
+
+        if (state.history.length === 0) {
+            empty.style.display = 'block';
+            list.querySelectorAll('.history-item').forEach(el => el.remove());
+            return;
+        }
+
+        empty.style.display = 'none';
+        list.querySelectorAll('.history-item').forEach(el => el.remove());
+
+        state.history.forEach(entry => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            const dateStr = new Date(entry.date).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const avgStr = entry.average === Infinity ? 'DNF' : formatTime(entry.average);
+            const bestStr = entry.best === Infinity ? 'DNF' : formatTime(entry.best);
+
+            item.innerHTML = `
+                <div class="history-item-header">
+                    <span class="history-item-title">${entry.compName} — ${entry.eventName}</span>
+                    <span class="history-item-date">${dateStr}</span>
+                </div>
+                <div class="history-item-stats">
+                    <div class="history-stat"><span class="history-stat-label">Round</span><span class="history-stat-value">${entry.roundName}</span></div>
+                    <div class="history-stat"><span class="history-stat-label">Average</span><span class="history-stat-value">${avgStr}</span></div>
+                    <div class="history-stat"><span class="history-stat-label">Best</span><span class="history-stat-value">${bestStr}</span></div>
+                    <div class="history-stat"><span class="history-stat-label">Placement</span><span class="history-stat-value">${entry.placement}/${entry.total}</span></div>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    function clearHistory() {
+        if (confirm('Clear all simulation history?')) {
+            state.history = [];
+            localStorage.removeItem('sc-history');
+            renderHistory();
+            showToast('History cleared', 'info');
+        }
+    }
+
+    // ========== UTILITIES ==========
+    function formatTime(seconds) {
+        if (seconds === Infinity) return 'DNF';
+        if (seconds < 60) return seconds.toFixed(2);
+        const mins = Math.floor(seconds / 60);
+        const secs = (seconds % 60).toFixed(2).padStart(5, '0');
+        return `${mins}:${secs}`;
+    }
+
+    function truncateScramble(scramble) {
+        if (scramble.length <= 30) return scramble;
+        return scramble.substring(0, 27) + '...';
+    }
+
+    function getOrdinal(n) {
+        const s = ['th', 'st', 'nd', 'rd'];
+        const v = n % 100;
+        return s[(v - 20) % 10] || s[v] || s[0];
+    }
+
+    function showToast(message, type = 'info') {
+        const container = $('#toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+    }
+
+    // Shared AudioContext for sound effects (singleton to avoid browser limits)
+    let _audioCtx = null;
+    function getAudioContext() {
+        if (!_audioCtx) {
+            _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        // Resume if suspended (browsers require user gesture)
+        if (_audioCtx.state === 'suspended') {
+            _audioCtx.resume();
+        }
+        return _audioCtx;
+    }
+
+    function playBeep(freq, duration) {
+        try {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + duration / 1000);
+        } catch (e) {
+            console.warn('Audio playback failed:', e);
+        }
+    }
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => { });
+        } else {
+            document.exitFullscreen().catch(() => { });
+        }
+    }
+
+    function spawnConfetti() {
+        const container = $('#confetti-container');
+        container.innerHTML = '';
+        const colors = ['#6366F1', '#F97316', '#10B981', '#F59E0B', '#EF4444', '#22D3EE', '#A855F7'];
+        for (let i = 0; i < 50; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.left = Math.random() * 100 + '%';
+            piece.style.top = '-10px';
+            piece.style.animationDelay = Math.random() * 1 + 's';
+            piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+            piece.style.width = (4 + Math.random() * 8) + 'px';
+            piece.style.height = (4 + Math.random() * 8) + 'px';
+            piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+            container.appendChild(piece);
+        }
+    }
+
+    function copyResults() {
+        const avg = calculateAverage(state.solves);
+        const validSolves = state.solves.filter(s => s.penalty !== 'dnf');
+        const best = validSolves.length > 0 ? Math.min(...validSolves.map(s => s.result)) : Infinity;
+
+        let text = `SimulateCubing Results\n━━━━━━━━━━━━━━━━━━━━━\n`;
+        text += `Competition: ${state.compName}\nEvent: ${EVENT_NAMES[state.event]} | ${ROUND_NAMES[state.round]}\n`;
+        text += `Player: ${state.playerName} (${state.playerWcaId})\n━━━━━━━━━━━━━━━━━━━━━\n`;
+
+        state.solves.forEach((solve, i) => {
+            const result = solve.penalty === 'dnf' ? 'DNF' :
+                (solve.penalty === '+2' ? formatTime(solve.result) + ' (+2)' : formatTime(solve.result));
+            text += `Solve ${i + 1}: ${result}\n`;
+        });
+
+        text += `━━━━━━━━━━━━━━━━━━━━━\nAverage: ${avg === Infinity ? 'DNF' : formatTime(avg)}\n`;
+        text += `Best: ${best === Infinity ? 'DNF' : formatTime(best)}\n`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('📋 Results copied to clipboard!', 'success');
+        }).catch(() => { showToast('Failed to copy', 'error'); });
+    }
+
+    // ========== STATE PERSISTENCE ==========
+    const SIM_STATE_KEY = 'sc-sim-state';
+    const LAST_ACTIVITY_KEY = 'sc-last-activity';
+    const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+    function saveSimState() {
+        // Only save if there's an active simulation
+        if (!state.scrambles || state.scrambles.length === 0) return;
+
+        const stateToSave = {
+            compId: state.compId,
+            compName: state.compName,
+            event: state.event,
+            numSolves: state.numSolves,
+            round: state.round,
+            numCompetitors: state.numCompetitors,
+            playerName: state.playerName,
+            playerWcaId: state.playerWcaId,
+            playerAvg: state.playerAvg,
+            goalTime: state.goalTime,
+            timeLimit: state.timeLimit,
+            cutoff: state.cutoff,
+            soundEnabled: state.soundEnabled,
+            liveMode: state.liveMode,
+            currentSolve: state.currentSolve,
+            scrambles: state.scrambles,
+            solves: state.solves,
+            competitors: state.competitors,
+            selectedPenalty: state.selectedPenalty,
+            playerData: state.playerData,
+        };
+
+        localStorage.setItem(SIM_STATE_KEY, JSON.stringify(stateToSave));
+        localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+    }
+
+    function tryRestoreSimState() {
+        try {
+            const lastActivity = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY), 10);
+            if (!lastActivity || (Date.now() - lastActivity) > INACTIVITY_TIMEOUT) {
+                clearSimState();
+                return false;
+            }
+
+            const saved = localStorage.getItem(SIM_STATE_KEY);
+            if (!saved) return false;
+
+            const restored = JSON.parse(saved);
+            if (!restored || !restored.scrambles || restored.scrambles.length === 0) {
+                clearSimState();
+                return false;
+            }
+
+            // If round was already completed, don't restore to dashboard
+            if (restored.currentSolve >= restored.numSolves) {
+                clearSimState();
+                return false;
+            }
+
+            // Restore state
+            Object.assign(state, {
+                compId: restored.compId || '',
+                compName: restored.compName || 'Custom Competition',
+                event: restored.event || '333',
+                numSolves: restored.numSolves || 5,
+                round: restored.round || 1,
+                numCompetitors: restored.numCompetitors || 30,
+                playerName: restored.playerName || 'Player',
+                playerWcaId: restored.playerWcaId || '',
+                playerAvg: restored.playerAvg || 12,
+                goalTime: restored.goalTime || null,
+                timeLimit: restored.timeLimit || 600,
+                cutoff: restored.cutoff || 0,
+                soundEnabled: restored.soundEnabled !== false,
+                liveMode: restored.liveMode || false,
+                currentSolve: restored.currentSolve || 0,
+                scrambles: restored.scrambles,
+                solves: restored.solves || [],
+                competitors: restored.competitors || [],
+                selectedPenalty: restored.selectedPenalty || 'none',
+                playerData: restored.playerData || null,
+            });
+
+            // Rebuild dashboard UI
+            updateDashboardHeader();
+            renderScorecardTemplate();
+            if (state.solves.length > 0) updateScorecard();
+            if (state.currentSolve < state.numSolves) updateScrambleDisplay();
+            updateGoalTracker();
+            renderLeaderboard();
+            resetTimer();
+
+            switchView('dashboard');
+            showToast('🔄 Simulation restored!', 'info');
+            return true;
+        } catch (err) {
+            console.error('Failed to restore simulation state:', err);
+            clearSimState();
+            return false;
+        }
+    }
+
+    function clearSimState() {
+        localStorage.removeItem(SIM_STATE_KEY);
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+    }
+
+    function initActivityTracker() {
+        const updateActivity = () => {
+            localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+        };
+        document.addEventListener('click', updateActivity);
+        document.addEventListener('keydown', updateActivity);
+    }
+
+    // ========== START ==========
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const res = await fetch('https://simulatecubing-default-rtdb.firebaseio.com/algorithms.json');
+            window.ALGORITHMS = await res.json();
+        } catch (e) {
+            console.error('Failed to load algorithms from Firebase', e);
+            window.ALGORITHMS = {};
+        }
+        init();
+    });
+})();

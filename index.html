@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimulateCubing — WCA Competition Simulator</title>
+    <meta name="description" content="Practice for your upcoming Rubik's cube competition with SimulateCubing! Simulate real WCA competition rounds with scrambles, timers, scorecards, and live leaderboards.">
+    <meta property="og:title" content="SimulateCubing — WCA Competition Simulator">
+    <meta property="og:description" content="The ultimate speedcubing competition simulator. Practice under real competition pressure.">
+    <meta property="og:type" content="website">
+    <meta name="keywords" content="speedcubing, WCA, competition simulator, Rubik's cube, cubing practice">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js for stats -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- TwistyPlayer for native algorithm rendering -->
+    <script src="https://cdn.cubing.net/js/cubing/twisty" type="module"></script>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow--1"></div>
+    <div class="bg-glow bg-glow--2"></div>
+    <div class="bg-glow bg-glow--3"></div>
+
+    <!-- Navigation -->
+    <header id="site-header">
+        <nav class="navbar">
+            <div class="nav-brand" id="nav-logo" style="cursor: pointer;">
+                <div class="brand-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <rect x="2" y="2" width="8" height="8" rx="1.5" fill="#FF6B35"/>
+                        <rect x="12" y="2" width="8" height="8" rx="1.5" fill="#F7C948"/>
+                        <rect x="22" y="2" width="8" height="8" rx="1.5" fill="#2ECC71"/>
+                        <rect x="2" y="12" width="8" height="8" rx="1.5" fill="#E74C3C"/>
+                        <rect x="12" y="12" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.15"/>
+                        <rect x="22" y="12" width="8" height="8" rx="1.5" fill="#3498DB"/>
+                        <rect x="2" y="22" width="8" height="8" rx="1.5" fill="#9B59B6"/>
+                        <rect x="12" y="22" width="8" height="8" rx="1.5" fill="#1ABC9C"/>
+                        <rect x="22" y="22" width="8" height="8" rx="1.5" fill="#FF6B35"/>
+                    </svg>
+                </div>
+                <span class="brand-name">Simulate<span class="brand-accent">Cubing</span></span>
+            </div>
+            <div class="nav-links">
+                <button class="nav-btn" id="nav-home-btn" title="Home">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    Home
+                </button>
+                <button class="nav-btn" id="nav-simulation-btn" title="Comp Simulation">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Comp Sim
+                </button>
+                <button class="nav-btn" id="nav-stats-btn" title="Statistics">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    Stats
+                </button>
+                <button class="nav-btn" id="nav-records-btn" title="Records & Rankings">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                    Records
+                </button>
+                <button class="nav-btn" id="nav-competitions-btn" title="Competitions">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Competitions
+                </button>
+                <button class="nav-btn" id="nav-algorithms-btn" title="Algorithms & Drills">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    Algorithms
+                </button>
+                <button class="nav-btn" id="nav-history-btn" title="History">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    History
+                </button>
+                <div class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                    <svg class="theme-icon sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <svg class="theme-icon moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main id="app-main">
+        <!-- ========== HOME VIEW ========== -->
+        <section id="home-view" class="view active">
+            <div class="setup-container" style="text-align: center; margin-top: var(--space-xl);">
+                <div class="setup-hero">
+                    <div class="hero-badge">WELCOME TO</div>
+                    <h1 class="hero-title"><span class="gradient-text">Simulate</span>Cubing</h1>
+                    <p class="hero-subtitle">The ultimate platform for speedcubers. Simulate real WCA competitions, learn new algorithms, and track your records.</p>
+                </div>
+                
+                <div class="setup-grid" style="margin-top: 3rem;">
+                    <div class="home-feature-card" onclick="document.getElementById('nav-simulation-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">🏁</span> Comp Simulation</h2>
+                        <p class="card-desc">Experience the pressure of an official WCA competition with full simulation.</p>
+                    </div>
+                    <div class="home-feature-card" onclick="document.getElementById('nav-algorithms-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">🧩</span> Algorithm Database</h2>
+                        <p class="card-desc">Browse thousands of native 2D algorithms across all WCA events.</p>
+                    </div>
+                    <div class="home-feature-card" onclick="document.getElementById('nav-records-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">👑</span> WCA Records</h2>
+                        <p class="card-desc">Keep track of the latest global, continental, and national records.</p>
+                    </div>
+                    <div class="home-feature-card" onclick="document.getElementById('nav-stats-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">📊</span> Statistics</h2>
+                        <p class="card-desc">Track your progress and analyze your personal speedcubing stats.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== SETUP VIEW ========== -->
+        <section id="setup-view" class="view">
+            <div class="setup-container">
+                <div class="setup-hero">
+                    <div class="hero-badge">WCA COMPETITION SIMULATOR</div>
+                    <h1 class="hero-title">Practice Like It's <span class="gradient-text">Competition Day</span></h1>
+                    <p class="hero-subtitle">Enter your WCA ID and competition ID below. We'll pull real competition data, your PRs, and simulate the experience.</p>
+                </div>
+
+                <form id="setup-form" class="setup-form">
+                    <div class="setup-grid">
+                        <!-- Competition Card -->
+                        <div class="setup-card" id="setup-card-comp">
+                            <div class="card-header">
+                                <div class="card-icon">🏆</div>
+                                <h2 class="card-title">Competition</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="comp-id" class="form-label">Competition ID</label>
+                                    <div class="input-with-action">
+                                        <input type="text" id="comp-id" class="form-input" placeholder="e.g. Euro2024" required>
+                                        <button type="button" id="search-comp-btn" class="input-action-btn" title="Look up competition">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        </button>
+                                    </div>
+                                    <span class="form-hint">The ID from the WCA competition URL</span>
+                                </div>
+                                <!-- Competition info loaded from API -->
+                                <div id="comp-info-display" class="api-info-card" style="display:none;">
+                                    <div class="api-info-header">
+                                        <span class="api-status-dot success"></span>
+                                        <span class="api-info-title" id="comp-display-name">—</span>
+                                    </div>
+                                    <div class="api-info-details">
+                                        <div class="api-detail"><span class="api-detail-icon">📅</span><span id="comp-display-date">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">📍</span><span id="comp-display-venue">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🌍</span><span id="comp-display-city">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">👥</span><span id="comp-display-limit">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🧩</span><span id="comp-display-events">—</span></div>
+                                    </div>
+                                </div>
+                                <div id="comp-error-display" class="api-error-card" style="display:none;">
+                                    <span class="api-status-dot error"></span>
+                                    <span id="comp-error-text">Competition not found</span>
+                                </div>
+                                <div id="comp-loading" class="api-loading" style="display:none;">
+                                    <div class="spinner"></div>
+                                    <span>Fetching competition data...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Event Card -->
+                        <div class="setup-card" id="setup-card-event">
+                            <div class="card-header">
+                                <div class="card-icon">🧩</div>
+                                <h2 class="card-title">Event & Round</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label">Select Event</label>
+                                    <div class="event-grid" id="event-grid">
+                                        <label class="event-chip selected" data-event="333">
+                                            <input type="radio" name="event" value="333" checked>
+                                            <span class="chip-label">3x3</span>
+                                        </label>
+                                        <label class="event-chip" data-event="222">
+                                            <input type="radio" name="event" value="222">
+                                            <span class="chip-label">2x2</span>
+                                        </label>
+                                        <label class="event-chip" data-event="444">
+                                            <input type="radio" name="event" value="444">
+                                            <span class="chip-label">4x4</span>
+                                        </label>
+                                        <label class="event-chip" data-event="555">
+                                            <input type="radio" name="event" value="555">
+                                            <span class="chip-label">5x5</span>
+                                        </label>
+                                        <label class="event-chip" data-event="666">
+                                            <input type="radio" name="event" value="666">
+                                            <span class="chip-label">6x6</span>
+                                        </label>
+                                        <label class="event-chip" data-event="777">
+                                            <input type="radio" name="event" value="777">
+                                            <span class="chip-label">7x7</span>
+                                        </label>
+                                        <label class="event-chip" data-event="333oh">
+                                            <input type="radio" name="event" value="333oh">
+                                            <span class="chip-label">OH</span>
+                                        </label>
+                                        <label class="event-chip" data-event="pyram">
+                                            <input type="radio" name="event" value="pyram">
+                                            <span class="chip-label">Pyra</span>
+                                        </label>
+                                        <label class="event-chip" data-event="skewb">
+                                            <input type="radio" name="event" value="skewb">
+                                            <span class="chip-label">Skewb</span>
+                                        </label>
+                                        <label class="event-chip" data-event="sq1">
+                                            <input type="radio" name="event" value="sq1">
+                                            <span class="chip-label">SQ-1</span>
+                                        </label>
+                                        <label class="event-chip" data-event="minx">
+                                            <input type="radio" name="event" value="minx">
+                                            <span class="chip-label">Mega</span>
+                                        </label>
+                                        <label class="event-chip" data-event="clock">
+                                            <input type="radio" name="event" value="clock">
+                                            <span class="chip-label">Clock</span>
+                                        </label>
+                                    </div>
+                                    <span class="form-hint" id="event-format-hint">Average of 5</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="round-select" class="form-label">Starting Round</label>
+                                    <select id="round-select" class="form-select">
+                                        <option value="1">Round 1</option>
+                                        <option value="2">Round 2</option>
+                                        <option value="3">Semi-Final</option>
+                                        <option value="4">Final</option>
+                                    </select>
+                                </div>
+                                <!-- Event info from competition displayed here -->
+                                <div id="event-comp-info" class="event-comp-info" style="display:none;">
+                                    <div class="event-info-row">
+                                        <span class="event-info-label">Time Limit</span>
+                                        <span class="event-info-value" id="event-time-limit">—</span>
+                                    </div>
+                                    <div class="event-info-row">
+                                        <span class="event-info-label">Cutoff</span>
+                                        <span class="event-info-value" id="event-cutoff">—</span>
+                                    </div>
+                                    <div class="event-info-row">
+                                        <span class="event-info-label">Rounds</span>
+                                        <span class="event-info-value" id="event-rounds-count">—</span>
+                                    </div>
+                                    <div class="event-info-row">
+                                        <span class="event-info-label">Competitors</span>
+                                        <span class="event-info-value" id="event-competitor-count">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Player Card (WCA ID based) -->
+                        <div class="setup-card" id="setup-card-player">
+                            <div class="card-header">
+                                <div class="card-icon">👤</div>
+                                <h2 class="card-title">Your Profile</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="wca-id" class="form-label">WCA ID</label>
+                                    <div class="input-with-action">
+                                        <input type="text" id="wca-id" class="form-input" placeholder="e.g. 2023CARV02" required>
+                                        <button type="button" id="search-wca-btn" class="input-action-btn" title="Look up WCA profile">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        </button>
+                                    </div>
+                                    <span class="form-hint">Your World Cube Association identifier</span>
+                                </div>
+                                <!-- WCA profile info loaded from API -->
+                                <div id="wca-info-display" class="api-info-card" style="display:none;">
+                                    <div class="api-info-header">
+                                        <img id="wca-avatar" class="wca-avatar" src="" alt="Avatar" style="display:none;">
+                                        <div>
+                                            <span class="api-status-dot success"></span>
+                                            <span class="api-info-title" id="wca-display-name">—</span>
+                                        </div>
+                                    </div>
+                                    <div class="api-info-details">
+                                        <div class="api-detail"><span class="api-detail-icon">🌍</span><span id="wca-display-country">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🏅</span><span id="wca-display-medals">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🔢</span><span id="wca-display-comps">—</span></div>
+                                    </div>
+                                    <div class="pr-display" id="pr-display">
+                                        <h4 class="pr-title">Personal Records for <span id="pr-event-name">3x3</span></h4>
+                                        <div class="pr-grid">
+                                            <div class="pr-stat">
+                                                <span class="pr-label">Single PR</span>
+                                                <span class="pr-value" id="pr-single">—</span>
+                                                <span class="pr-rank" id="pr-single-rank">—</span>
+                                            </div>
+                                            <div class="pr-stat">
+                                                <span class="pr-label">Average PR</span>
+                                                <span class="pr-value" id="pr-average">—</span>
+                                                <span class="pr-rank" id="pr-average-rank">—</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="wca-error-display" class="api-error-card" style="display:none;">
+                                    <span class="api-status-dot error"></span>
+                                    <span id="wca-error-text">WCA ID not found</span>
+                                </div>
+                                <div id="wca-loading" class="api-loading" style="display:none;">
+                                    <div class="spinner"></div>
+                                    <span>Fetching WCA profile...</span>
+                                </div>
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label for="goal-time" class="form-label">Goal Average (sec)</label>
+                                    <input type="number" id="goal-time" class="form-input" min="0.5" max="600" step="0.01" placeholder="e.g. 10.00">
+                                    <span class="form-hint">What you're aiming for today</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Settings Card -->
+                        <div class="setup-card" id="setup-card-settings">
+                            <div class="card-header">
+                                <div class="card-icon">⚙️</div>
+                                <h2 class="card-title">Simulation Settings</h2>
+                            </div>
+                            <div class="card-body">
+
+                                <div class="form-group">
+                                    <label class="toggle-label">
+                                        <span>Sound Effects</span>
+                                        <div class="toggle-switch">
+                                            <input type="checkbox" id="sound-toggle" checked>
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="toggle-label">
+                                        <span>Live Mode (wait between solves)</span>
+                                        <div class="toggle-switch">
+                                            <input type="checkbox" id="live-mode-toggle">
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setup-actions">
+                        <button type="submit" id="start-sim-btn" class="btn btn-primary btn-lg">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Start Simulation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ========== DASHBOARD VIEW ========== -->
+        <section id="dashboard-view" class="view">
+            <div class="dashboard-container">
+                <!-- Top Bar -->
+                <div class="dash-topbar">
+                    <div class="dash-info">
+                        <h2 id="dash-comp-name" class="dash-comp-title">Competition Name</h2>
+                        <div class="dash-meta">
+                            <span class="dash-badge event-badge" id="dash-event-badge">3x3</span>
+                            <span class="dash-badge round-badge" id="dash-round-badge">Round 1</span>
+                            <span class="dash-badge solve-badge" id="dash-solve-badge">Solve 1/5</span>
+                        </div>
+                    </div>
+                    <div class="dash-actions">
+                        <button class="btn btn-ghost btn-sm" id="back-to-setup-btn" title="Back to Setup">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                            Setup
+                        </button>
+                        <button class="btn btn-ghost btn-sm" id="fullscreen-btn" title="Fullscreen">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dash-grid">
+                    <!-- Scramble Panel -->
+                    <div class="dash-card scramble-card" id="scramble-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title">📋 Scramble</h3>
+                            <button class="btn btn-sm btn-outline" id="toggle-scramble-colors-btn" title="Toggle Scramble Colors">🎨 Colors</button>
+                        </div>
+                        <div class="scramble-content">
+                            <p class="scramble-text" id="scramble-text">Press Start to generate scramble...</p>
+                        </div>
+                        <div class="scramble-visual" id="scramble-visual"></div>
+                    </div>
+
+                    <!-- Manual Entry Panel -->
+                    <div class="dash-card timer-card" id="manual-entry-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title">⌨️ Enter Time</h3>
+                            <div class="timer-status ready" id="timer-status">INPUT</div>
+                        </div>
+                        <div class="timer-display-wrap">
+                            <input type="text" id="manual-time-input" class="manual-time-input" placeholder="0.00" autocomplete="off" inputmode="numeric">
+                            <p class="timer-hint" id="timer-hint">Type numbers (e.g. 954 for 9.54s) and press Enter</p>
+                        </div>
+                        <div class="penalty-bar">
+                            <button class="penalty-btn active" id="penalty-none" data-penalty="none">OK</button>
+                            <button class="penalty-btn" id="penalty-plus2" data-penalty="+2">+2</button>
+                            <button class="penalty-btn" id="penalty-dnf" data-penalty="dnf">DNF</button>
+                            <div class="penalty-divider"></div>
+                            <button class="btn btn-accent btn-sm" id="submit-solve-btn">Submit Solve</button>
+                        </div>
+                    </div>
+
+                    <!-- Scorecard Panel -->
+                    <div class="dash-card scorecard-card" id="scorecard-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title">📝 Scorecard</h3>
+                        </div>
+                        <div class="scorecard-wrap">
+                            <div class="scorecard-player-info">
+                                <span class="scorecard-name" id="scorecard-name">Player</span>
+                                <span class="scorecard-event" id="scorecard-event">3x3 — Round 1</span>
+                            </div>
+                            <table class="scorecard-table" id="scorecard-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Scramble</th>
+                                        <th>Time</th>
+                                        <th>Penalty</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scorecard-body"></tbody>
+                            </table>
+                            <div class="scorecard-summary">
+                                <div class="summary-stat">
+                                    <span class="stat-label">Best</span>
+                                    <span class="stat-value" id="stat-best">—</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-label">Worst</span>
+                                    <span class="stat-value" id="stat-worst">—</span>
+                                </div>
+                                <div class="summary-stat highlight">
+                                    <span class="stat-label">Average</span>
+                                    <span class="stat-value" id="stat-average">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Goal Tracker -->
+                    <div class="dash-card goal-card" id="goal-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title">🎯 Goal Tracker</h3>
+                        </div>
+                        <div class="goal-content">
+                            <div class="goal-ring-wrap">
+                                <svg class="goal-ring" viewBox="0 0 120 120">
+                                    <circle class="ring-bg" cx="60" cy="60" r="52" />
+                                    <circle class="ring-fill" cx="60" cy="60" r="52" id="goal-ring-fill" />
+                                </svg>
+                                <div class="goal-ring-text">
+                                    <span class="ring-pct" id="goal-pct">0%</span>
+                                    <span class="ring-label">Progress</span>
+                                </div>
+                            </div>
+                            <div class="goal-details">
+                                <div class="goal-detail-row">
+                                    <span>Target Avg</span>
+                                    <span class="goal-val" id="goal-target-avg">—</span>
+                                </div>
+                                <div class="goal-detail-row">
+                                    <span>Current Avg</span>
+                                    <span class="goal-val" id="goal-current-avg">—</span>
+                                </div>
+                                <div class="goal-detail-row">
+                                    <span>PR Average</span>
+                                    <span class="goal-val" id="goal-pr-avg">—</span>
+                                </div>
+                                <div class="goal-detail-row">
+                                    <span>Status</span>
+                                    <span class="goal-val goal-status" id="goal-status">Waiting...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard Panel -->
+                    <div class="dash-card leaderboard-card" id="leaderboard-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title">🏅 Leaderboard</h3>
+                            <span class="card-bar-info" id="lb-count">0 competitors</span>
+                        </div>
+                        <div class="leaderboard-wrap" id="leaderboard-wrap">
+                            <table class="leaderboard-table" id="leaderboard-table">
+                                <thead>
+                                    <tr>
+                                        <th class="lb-rank">#</th>
+                                        <th class="lb-name">Name</th>
+                                        <th class="lb-pr">PR</th>
+                                        <th class="lb-best">Best</th>
+                                        <th class="lb-avg">Average</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboard-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Round End Overlay -->
+                <div class="round-end-overlay" id="round-end-overlay" style="display:none;">
+                    <div class="round-end-card">
+                        <div class="round-end-confetti" id="confetti-container"></div>
+                        <h2 class="round-end-title" id="round-end-title">Round Complete!</h2>
+                        <div class="round-end-stats">
+                            <div class="end-stat">
+                                <span class="end-stat-label">Your Average</span>
+                                <span class="end-stat-value" id="end-avg">—</span>
+                            </div>
+                            <div class="end-stat">
+                                <span class="end-stat-label">Placement</span>
+                                <span class="end-stat-value" id="end-placement">—</span>
+                            </div>
+                            <div class="end-stat">
+                                <span class="end-stat-label">Best Single</span>
+                                <span class="end-stat-value" id="end-best">—</span>
+                            </div>
+                        </div>
+                        <div class="round-end-message" id="round-end-message"></div>
+                        <div class="round-end-actions">
+                            <button class="btn btn-primary" id="next-round-btn" style="display:none;">Next Round →</button>
+                            <button class="btn btn-accent" id="new-sim-btn">New Simulation</button>
+                            <button class="btn btn-ghost" id="copy-results-btn">📋 Copy Results</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== HISTORY VIEW ========== -->
+        <section id="history-view" class="view">
+            <div class="history-container">
+                <div class="history-header">
+                    <h2>📊 Simulation History</h2>
+                    <button class="btn btn-ghost btn-sm" id="clear-history-btn">Clear All</button>
+                </div>
+                <div class="history-list" id="history-list">
+                    <div class="history-empty" id="history-empty">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <p>No simulation history yet.<br>Complete a round to see results here.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Statistics View -->
+        <div id="statistics-view" class="view">
+            <div class="container">
+                <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-xl); margin-top: var(--space-xl);">
+                    <div class="hero-badge">STATISTICS</div>
+                    <h1 class="hero-title">Your Simulation <span class="gradient-text">Performance</span></h1>
+                    <p class="hero-subtitle">Track your progress and personal records across all simulations.</p>
+                </div>
+                <div id="stats-placeholder" class="setup-card" style="padding: 4rem 2rem; text-align: center; border: 1px solid var(--clr-border); background: var(--clr-surface);">
+                    <div style="font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.8;">📊</div>
+                    <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--clr-text); margin-bottom: var(--space-sm);">No Data Yet</h2>
+                    <p style="color: var(--clr-text-muted); font-size: 1.1rem; max-width: 400px; margin: 0 auto; line-height: 1.6;">
+                        Look up your WCA ID on the setup page to view your official WCA statistics!
+                    </p>
+                </div>
+                <div id="stats-content" style="display: none;">
+                    <div class="setup-card" style="margin-bottom: var(--space-xl); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem 2rem; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%);">
+                        <img id="stats-avatar" src="" alt="Avatar" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid var(--clr-primary); box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3); margin-bottom: 1.5rem;">
+                        <h2 id="stats-name" style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800; letter-spacing: -0.5px;">Name</h2>
+                        
+                        <div style="display: flex; gap: 0.8rem; justify-content: center; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                            <span style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; font-family: var(--font-mono); border: 1px solid rgba(255,255,255,0.1);"><span style="opacity: 0.5; margin-right: 5px;">ID</span><strong id="stats-wcaid" style="color: var(--clr-text);"></strong></span>
+                            <span style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.1);"><span style="opacity: 0.5; margin-right: 5px;">🌍</span><strong id="stats-country">Country</strong></span>
+                            <span id="stats-gender-badge" style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.1); display: none;"><span style="opacity: 0.5; margin-right: 5px;">👤</span><strong id="stats-gender">Gender</strong></span>
+                        </div>
+                        
+                        <div style="display: flex; gap: 3rem; color: var(--clr-text-muted); font-size: 1.1rem; border-top: 1px solid var(--clr-border); padding-top: 1.5rem; width: 100%; max-width: 400px; justify-content: center;">
+                            <div style="display: flex; flex-direction: column;"><strong style="color: var(--clr-text); font-size: 1.5rem;" id="stats-total-events">0</strong> <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Events</span></div>
+                            <div style="display: flex; flex-direction: column;"><strong style="color: var(--clr-text); font-size: 1.5rem;" id="stats-total-medals">0</strong> <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Total Medals</span></div>
+                        </div>
+                    </div>
+                    <div class="setup-grid" style="margin-bottom: var(--space-xl);">
+                        <div class="setup-card" style="text-align: center; padding: 2rem;">
+                            <h2 style="font-size: 3rem; color: var(--clr-primary); margin-bottom: 0.5rem; font-weight: 800;" id="stat-comps-count">0</h2>
+                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Competitions</p>
+                        </div>
+                        <div class="setup-card" style="text-align: center; padding: 2rem;">
+                            <h2 style="font-size: 3rem; color: #F7C948; margin-bottom: 0.5rem; font-weight: 800;" id="stat-gold">0</h2>
+                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Gold Medals</p>
+                        </div>
+                        <div class="setup-card" style="text-align: center; padding: 2rem;">
+                            <h2 style="font-size: 3rem; color: #CBD5E1; margin-bottom: 0.5rem; font-weight: 800;" id="stat-silver">0</h2>
+                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Silver Medals</p>
+                        </div>
+                        <div class="setup-card" style="text-align: center; padding: 2rem;">
+                            <h2 style="font-size: 3rem; color: #D97706; margin-bottom: 0.5rem; font-weight: 800;" id="stat-bronze">0</h2>
+                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Bronze Medals</p>
+                        </div>
+                    </div>
+                    <div class="setup-card" style="padding: 0; overflow: hidden;">
+                        <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--clr-border); background: rgba(255,255,255,0.02);">
+                            <h3 style="font-size: 1.25rem; font-weight: 600;">Personal Records & Rankings</h3>
+                        </div>
+                        <div class="lb-wrapper" style="margin-top: 0; border: none; background: transparent;">
+                            <table class="lb-table" style="margin: 0;">
+                                <thead>
+                                    <tr>
+                                        <th>Event</th>
+                                        <th>Single</th>
+                                        <th>Average</th>
+                                        <th>World Rank</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stats-pr-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Records View -->
+        <div id="records-view" class="view">
+            <div class="container records-container">
+                <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-lg); margin-top: var(--space-xl);">
+                    <div class="hero-badge">RECORDS</div>
+                    <h1 class="hero-title">Official WCA <span class="gradient-text">World Records</span></h1>
+                    <p class="hero-subtitle">View the current official World Records, record holders, and competition details for all 17 WCA events. Click any row to see more.</p>
+                </div>
+
+                <div class="setup-card records-table-card" style="padding: 0; overflow: hidden;">
+                    <div id="records-loading" class="records-loading-state" style="display: none;">
+                        <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>
+                        <span>Loading records...</span>
+                    </div>
+                    <div class="records-table-wrap">
+                        <table class="records-table-enhanced" id="records-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th class="rec-th-event">Event</th>
+                                    <th class="rec-th-time">WR Single</th>
+                                    <th class="rec-th-holder">Holder</th>
+                                    <th class="rec-th-time">WR Average</th>
+                                    <th class="rec-th-holder">Holder</th>
+                                    <th class="rec-th-expand"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="records-table-body">
+                                <!-- Records populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="records-footer-hint">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        Click any event row to view detailed record information
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Competitions View -->
+        <div id="competitions-view" class="view">
+            <div class="container">
+                <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-lg); margin-top: var(--space-xl);">
+                    <div class="hero-badge">COMPETITIONS</div>
+                    <h1 class="hero-title">Discover <span class="gradient-text">Competitions</span></h1>
+                    <p class="hero-subtitle">Browse upcoming competitions globally or search a WCA ID to see past competitions attended by a competitor.</p>
+                </div>
+
+                <div style="display: flex; justify-content: center; margin-bottom: var(--space-xl);">
+                    <div class="setup-card" style="width: 100%; max-width: 650px; text-align: center; padding: 2.5rem 2rem;">
+                        <h3 class="card-title" style="justify-content: center;"><span class="icon">🔍</span> Search Past Competitions</h3>
+                        <p class="card-desc">Enter a WCA ID (e.g. 2023CARV02) to see all past competitions.</p>
+                        
+                        <div class="wca-lookup" style="justify-content: center;">
+                            <input type="text" id="past-comp-wca-id" class="form-input" placeholder="e.g. 2023CARV02" autocomplete="off" spellcheck="false" style="text-transform: uppercase; text-align: center; max-width: 250px; background-color: var(--clr-surface-alt); border: 1px solid var(--clr-border);">
+                            <button id="search-past-comps-btn" class="btn btn-primary" style="flex-shrink: 0;">Search</button>
+                        </div>
+                        
+                        <div id="past-comps-loading" class="comp-info-state" style="display: none;">
+                            <div class="spinner"></div>
+                            <span>Fetching WCA results...</span>
+                        </div>
+                        <div id="past-comps-error" class="comp-info-state error" style="display: none;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span id="past-comps-error-text">WCA ID not found.</span>
+                        </div>
+                        <div id="past-comps-results" class="upcoming-comps-list" style="display: none; margin-top: var(--space-md); max-height: 600px; overflow-y: auto;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Competitions (WCA Live style) -->
+                <div class="upcoming-comps-section" id="upcoming-comps-section">
+                    <div class="upcoming-comps-header">
+                        <h3 class="upcoming-comps-title">📅 Upcoming Competitions</h3>
+                        <a href="https://live.worldcubeassociation.org/" target="_blank" rel="noopener noreferrer" class="upcoming-comps-link">View on WCA Live →</a>
+                    </div>
+                    <div class="upcoming-comps-list" id="upcoming-comps-list">
+                        <div class="upcoming-comps-loading">
+                            <div class="spinner"></div>
+                            <span>Loading upcoming competitions...</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Algorithms View -->
+        <div id="algorithms-view" class="view">
+            <div class="algorithms-container" style="display: flex; flex-direction: column; height: 100vh; padding-top: 60px;">
+                <div class="dash-header" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-xl); margin-bottom: 0; background: var(--clr-surface); border-bottom: 1px solid var(--clr-border); flex-wrap: wrap; gap: var(--space-md);">
+                    <div>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 4px;">Learn & Practice</h2>
+                        <p style="color: var(--clr-text-muted); font-size: 0.9rem;">Native Algorithm Database</p>
+                    </div>
+                    <div style="display: flex; gap: var(--space-md); align-items: center; flex-wrap: wrap;">
+                        <select id="alg-event-select" class="form-input" style="width: 150px; padding: 0.5rem;">
+                            <option value="2x2">2x2</option>
+                            <option value="3x3" selected>3x3</option>
+                            <option value="4x4">4x4</option>
+                            <option value="5x5">5x5</option>
+                            <option value="Pyraminx">Pyraminx</option>
+                            <option value="Megaminx">Megaminx</option>
+                        </select>
+                        <div id="alg-subset-container" style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+                            <!-- Populated by JS -->
+                        </div>
+                        <select id="alg-subgroup-select" class="form-input" style="width: 150px; padding: 0.5rem; display: none;">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                </div>
+                <div style="flex-grow: 1; overflow-y: auto; padding: var(--space-xl); background: var(--clr-bg);">
+                    <div id="algorithms-grid" class="setup-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-md);">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toast-container">    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

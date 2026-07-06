@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — SimulateCubing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding: var(--space-xl); background-color: var(--clr-bg); }
+        .admin-container { max-width: 800px; margin: 0 auto; }
+        .hidden { display: none !important; }
+        .alg-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: var(--clr-surface); border: 1px solid var(--clr-border); border-radius: var(--radius-md); margin-bottom: 0.5rem; }
+        .alg-info { flex-grow: 1; }
+        .alg-name { font-weight: 600; color: var(--clr-text); }
+        .alg-string { font-family: var(--font-mono); font-size: 0.85rem; color: var(--clr-primary); display: block; margin-top: 4px; }
+        .alg-actions { display: flex; gap: 0.5rem; }
+        .btn-danger { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.5); }
+        .btn-danger:hover { background: rgba(231, 76, 60, 0.3); }
+        .edit-form { display: flex; gap: 0.5rem; width: 100%; align-items: center; }
+        .edit-form input { flex-grow: 1; }
+    </style>
+</head>
+<body>
+
+<div class="admin-container">
+    <div id="login-view" class="setup-card" style="max-width: 400px; margin: 10vh auto; text-align: center;">
+        <h2 class="card-title" style="justify-content: center;">Admin Login</h2>
+        <p class="card-desc">Enter your secret password to manage content.</p>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <input type="password" id="admin-password" class="form-input" placeholder="Password">
+            <button id="login-btn" class="btn btn-primary">Login</button>
+        </div>
+        <p id="login-error" style="color: #e74c3c; margin-top: 1rem; display: none;">Invalid password.</p>
+    </div>
+
+    <div id="dashboard-view" class="hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>SimulateCubing <span class="gradient-text">Admin</span></h2>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </div>
+
+        <div class="setup-card" style="margin-bottom: 2rem;">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 150px;">
+                    <label class="form-label">Event</label>
+                    <select id="event-select" class="form-select"></select>
+                </div>
+                <div style="flex: 1; min-width: 150px;">
+                    <label class="form-label">Subset</label>
+                    <select id="subset-select" class="form-select"></select>
+                </div>
+                <div style="flex: 1; min-width: 150px;" id="subgroup-container" class="hidden">
+                    <label class="form-label">Subgroup</label>
+                    <select id="subgroup-select" class="form-select"></select>
+                </div>
+            </div>
+            
+            <div style="margin-top: 2rem;">
+                <h3>Add New Algorithm</h3>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <input type="text" id="new-alg-name" class="form-input" placeholder="Name (e.g. T-Perm)" style="flex: 1;">
+                    <input type="text" id="new-alg-string" class="form-input" placeholder="Alg (e.g. R U R' U')" style="flex: 2;">
+                    <button id="add-alg-btn" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="setup-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Manage Algorithms (<span id="alg-count">0</span>)</h3>
+                <button id="save-btn" class="btn btn-primary">Save Changes to File</button>
+            </div>
+            <div id="save-status" style="margin-bottom: 1rem; color: #2ecc71; display: none;">Changes saved successfully!</div>
+            <div id="alg-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let ALGORITHMS = {};
+    let password = localStorage.getItem('admin_password') || '';
+    
+    const elements = {
+        loginView: document.getElementById('login-view'),
+        dashboardView: document.getElementById('dashboard-view'),
+        passwordInput: document.getElementById('admin-password'),
+        loginBtn: document.getElementById('login-btn'),
+        logoutBtn: document.getElementById('logout-btn'),
+        loginError: document.getElementById('login-error'),
+        
+        eventSelect: document.getElementById('event-select'),
+        subsetSelect: document.getElementById('subset-select'),
+        subgroupSelect: document.getElementById('subgroup-select'),
+        subgroupContainer: document.getElementById('subgroup-container'),
+        
+        algList: document.getElementById('alg-list'),
+        algCount: document.getElementById('alg-count'),
+        
+        newAlgName: document.getElementById('new-alg-name'),
+        newAlgString: document.getElementById('new-alg-string'),
+        addAlgBtn: document.getElementById('add-alg-btn'),
+        saveBtn: document.getElementById('save-btn'),
+        saveStatus: document.getElementById('save-status')
+    };
+
+    async function init() {
+        if (password) {
+            await tryLogin(password);
+        }
+        
+        elements.loginBtn.addEventListener('click', () => tryLogin(elements.passwordInput.value));
+        elements.passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(elements.passwordInput.value); });
+        elements.logoutBtn.addEventListener('click', logout);
+        
+        elements.eventSelect.addEventListener('change', () => { updateSubsetOptions(); renderAlgList(); });
+        elements.subsetSelect.addEventListener('change', () => { updateSubgroupOptions(); renderAlgList(); });
+        elements.subgroupSelect.addEventListener('change', renderAlgList);
+        
+        elements.addAlgBtn.addEventListener('click', addAlgorithm);
+        elements.saveBtn.addEventListener('click', saveAlgorithms);
+    }
+
+    async function tryLogin(pass) {
+        // Client-side simple auth for UI
+        if (pass === 'admin2009') {
+            password = pass;
+            localStorage.setItem('admin_password', pass);
+            elements.loginError.style.display = 'none';
+            elements.loginView.classList.add('hidden');
+            elements.dashboardView.classList.remove('hidden');
+            await fetchAlgorithms();
+        } else {
+            elements.loginError.style.display = 'block';
+            logout();
+        }
+    }
+
+    function logout() {
+        password = '';
+        localStorage.removeItem('admin_password');
+        elements.dashboardView.classList.add('hidden');
+        elements.loginView.classList.remove('hidden');
+    }
+
+    async function fetchAlgorithms() {
+        try {
+            const res = await fetch('https://simulatecubing-default-rtdb.firebaseio.com/algorithms.json');
+            ALGORITHMS = await res.json();
+            updateEventOptions();
+        } catch (e) {
+            alert('Failed to fetch algorithms from Firebase.');
+        }
+    }
+
+    function updateEventOptions() {
+        elements.eventSelect.innerHTML = '';
+        Object.keys(ALGORITHMS).forEach(event => {
+            elements.eventSelect.appendChild(new Option(event, event));
+        });
+        updateSubsetOptions();
+    }
+
+    function updateSubsetOptions() {
+        const event = elements.eventSelect.value;
+        if (!event) return;
+        
+        elements.subsetSelect.innerHTML = '';
+        Object.keys(ALGORITHMS[event]).forEach(subset => {
+            elements.subsetSelect.appendChild(new Option(subset, subset));
+        });
+        updateSubgroupOptions();
+    }
+
+    function updateSubgroupOptions() {
+        const event = elements.eventSelect.value;
+        const subset = elements.subsetSelect.value;
+        if (!event || !subset) return;
+
+        const data = ALGORITHMS[event][subset];
+        if (Array.isArray(data)) {
+            elements.subgroupContainer.classList.add('hidden');
+            elements.subgroupSelect.innerHTML = '';
+        } else {
+            elements.subgroupContainer.classList.remove('hidden');
+            elements.subgroupSelect.innerHTML = '';
+            Object.keys(data).forEach(sub => {
+                elements.subgroupSelect.appendChild(new Option(sub, sub));
+            });
+        }
+        renderAlgList();
+    }
+
+    function getTargetArray() {
+        const event = elements.eventSelect.value;
+        const subset = elements.subsetSelect.value;
+        const subgroup = elements.subgroupSelect.value;
+        
+        if (!event || !subset) return null;
+        
+        let data = ALGORITHMS[event][subset];
+        if (!Array.isArray(data)) {
+            if (!subgroup) return null;
+            data = data[subgroup];
+        }
+        return data;
+    }
+
+    function renderAlgList() {
+        elements.algList.innerHTML = '';
+        const data = getTargetArray();
+        
+        if (!data) {
+            elements.algCount.textContent = '0';
+            return;
+        }
+        
+        elements.algCount.textContent = data.length;
+        
+        data.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'alg-item';
+            div.innerHTML = `
+                <div class="alg-info">
+                    <span class="alg-name">${item.name}</span>
+                    <span class="alg-string">${item.alg}</span>
+                </div>
+                <div class="alg-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="editAlgorithm(${index})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteAlgorithm(${index})">Delete</button>
+                </div>
+            `;
+            elements.algList.appendChild(div);
+        });
+    }
+
+    function addAlgorithm() {
+        const name = elements.newAlgName.value.trim();
+        const alg = elements.newAlgString.value.trim();
+        if (!name || !alg) return alert("Please enter both name and algorithm string.");
+        
+        const data = getTargetArray();
+        if (data) {
+            data.push({ name, alg });
+            elements.newAlgName.value = '';
+            elements.newAlgString.value = '';
+            renderAlgList();
+        }
+    }
+
+    window.deleteAlgorithm = function(index) {
+        if(confirm('Are you sure you want to delete this algorithm?')) {
+            const data = getTargetArray();
+            if (data) {
+                data.splice(index, 1);
+                renderAlgList();
+            }
+        }
+    }
+
+    window.editAlgorithm = function(index) {
+        const data = getTargetArray();
+        if (!data) return;
+        
+        const item = data[index];
+        const newName = prompt("Edit Name:", item.name);
+        if (newName === null) return;
+        
+        const newAlg = prompt("Edit Algorithm:", item.alg);
+        if (newAlg === null) return;
+        
+        if (newName.trim() && newAlg.trim()) {
+            data[index] = { name: newName.trim(), alg: newAlg.trim() };
+            renderAlgList();
+        }
+    }
+
+    async function saveAlgorithms() {
+        elements.saveBtn.textContent = 'Saving...';
+        elements.saveBtn.disabled = true;
+        
+        try {
+            const res = await fetch('https://simulatecubing-default-rtdb.firebaseio.com/algorithms.json', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(ALGORITHMS)
+            });
+            
+            if (!res.ok) throw new Error('Network response was not ok');
+            
+            elements.saveStatus.style.display = 'block';
+            setTimeout(() => elements.saveStatus.style.display = 'none', 3000);
+        } catch (e) {
+            alert('Failed to save to Firebase.');
+        } finally {
+            elements.saveBtn.textContent = 'Save Changes to Cloud';
+            elements.saveBtn.disabled = false;
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
