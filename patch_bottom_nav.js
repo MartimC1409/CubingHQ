@@ -1,13 +1,5 @@
 const fs = require('fs');
 
-let css = fs.readFileSync('style.css', 'utf8');
-
-// Find the index of the old patch
-const patchIndex = css.indexOf('/* ============================================================');
-if (patchIndex !== -1) {
-    css = css.substring(0, patchIndex);
-}
-
 const bottomNavPatch = `
 /* ============================================================
    BOTTOM NAVIGATION BAR OVERHAUL
@@ -43,8 +35,8 @@ const bottomNavPatch = `
         overflow-y: hidden;
         border-top: 1px solid var(--clr-border);
         z-index: 999;
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
     .nav-links::-webkit-scrollbar {
         display: none;
@@ -142,5 +134,5 @@ const bottomNavPatch = `
 }
 `;
 
-fs.writeFileSync('style.css', css + bottomNavPatch);
-console.log('Bottom Nav CSS applied.');
+fs.appendFileSync('style.css', bottomNavPatch);
+console.log('Bottom Nav CSS applied safely.');
