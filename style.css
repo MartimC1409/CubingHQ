@@ -244,6 +244,10 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
+    position: fixed;
+    top: 20px;
+    right: 32px;
+    z-index: 101;
 }
 
 .nav-btn {
@@ -2514,6 +2518,7 @@ body {
     /* Bottom Bar */
     .nav-links {
         position: fixed;
+        top: auto;
         bottom: 0;
         left: 0;
         right: 0;
