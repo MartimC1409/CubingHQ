@@ -1,4 +1,14 @@
+const fs = require('fs');
 
+let css = fs.readFileSync('style.css', 'utf8');
+
+// Find the index of the old patch
+const patchIndex = css.indexOf('/* ============================================================');
+if (patchIndex !== -1) {
+    css = css.substring(0, patchIndex);
+}
+
+const bottomNavPatch = `
 /* ============================================================
    BOTTOM NAVIGATION BAR OVERHAUL
    ============================================================ */
@@ -130,3 +140,7 @@
         font-size: 25vw;
     }
 }
+`;
+
+fs.writeFileSync('style.css', css + bottomNavPatch);
+console.log('Bottom Nav CSS applied.');

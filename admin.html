@@ -19,6 +19,14 @@
         .btn-danger:hover { background: rgba(231, 76, 60, 0.3); }
         .edit-form { display: flex; gap: 0.5rem; width: 100%; align-items: center; }
         .edit-form input { flex-grow: 1; }
+        
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            .alg-item { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .alg-actions { width: 100%; justify-content: flex-end; }
+            #dashboard-view > div { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            #dashboard-view > div button { width: 100%; }
+        }
     </style>
 </head>
 <body>
