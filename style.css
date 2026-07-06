@@ -2499,10 +2499,13 @@ body {
    ============================================================ */
 
 @media (max-width: 850px) {
-    /* Center logo at the top */
+    /* Center logo at the top and fix containing block bug */
     .navbar {
         padding: 0.5rem;
         justify-content: center;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: var(--clr-surface);
     }
     .nav-brand {
         margin: 0 auto;
