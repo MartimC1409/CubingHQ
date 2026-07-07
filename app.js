@@ -1870,7 +1870,7 @@
         state.round = parseInt($('#round-select').value);
         state.goalTime = $('#goal-time').value ? parseFloat($('#goal-time').value) : null;
         state.soundEnabled = $('#sound-toggle').checked;
-        state.liveMode = $('#live-mode-toggle').checked;
+        state.liveMode = $('#live-mode-toggle')?.checked || false;
 
         // Determine numSolves from event
         state.numSolves = MEAN_OF_3_EVENTS.includes(state.event) ? 3 : 5;
