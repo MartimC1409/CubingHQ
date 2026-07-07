@@ -586,38 +586,40 @@
 
         <!-- Records View -->
         <div id="records-view" class="view">
-            <div class="container records-container">
-                <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-lg); margin-top: var(--space-xl);">
-                    <div class="hero-badge">RECORDS</div>
-                    <h1 class="hero-title">Official WCA <span class="gradient-text">World Records</span></h1>
-                    <p class="hero-subtitle">View the current official World Records, record holders, and competition details for all 17 WCA events. Click any row to see more.</p>
+            <div class="records-container" style="display: flex; flex-direction: column; height: 100vh; padding-top: 60px;">
+                <div class="dash-header" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-xl); margin-bottom: 0; background: var(--clr-surface); border-bottom: 1px solid var(--clr-border); flex-wrap: wrap; gap: var(--space-md);">
+                    <div>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 4px;">World Records</h2>
+                        <p style="color: var(--clr-text-muted); font-size: 0.9rem;">Official WCA Rankings and Records</p>
+                    </div>
                 </div>
-
-                <div class="setup-card records-table-card" style="padding: 0; overflow: hidden;">
-                    <div id="records-loading" class="records-loading-state" style="display: none;">
-                        <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>
-                        <span>Loading records...</span>
-                    </div>
-                    <div class="records-table-wrap">
-                        <table class="records-table-enhanced" id="records-table" style="display: none;">
-                            <thead>
-                                <tr>
-                                    <th class="rec-th-event">Event</th>
-                                    <th class="rec-th-time">WR Single</th>
-                                    <th class="rec-th-holder">Holder</th>
-                                    <th class="rec-th-time">WR Average</th>
-                                    <th class="rec-th-holder">Holder</th>
-                                    <th class="rec-th-expand"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="records-table-body>
-                                <!-- Records populated by JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="records-footer-hint">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        Click any event row to view detailed record information
+                <div style="flex-grow: 1; overflow-y: auto; padding: var(--space-xl); background: var(--clr-bg);">
+                    <div class="setup-card records-table-card" style="padding: 0; overflow: hidden; max-width: 1200px; margin: 0 auto;">
+                        <div id="records-loading" class="records-loading-state" style="display: none;">
+                            <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>
+                            <span>Loading records...</span>
+                        </div>
+                        <div class="records-table-wrap">
+                            <table class="records-table-enhanced" id="records-table" style="display: none;">
+                                <thead>
+                                    <tr>
+                                        <th class="rec-th-event">Event</th>
+                                        <th class="rec-th-time">WR Single</th>
+                                        <th class="rec-th-holder">Holder</th>
+                                        <th class="rec-th-time">WR Average</th>
+                                        <th class="rec-th-holder">Holder</th>
+                                        <th class="rec-th-expand"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="records-table-body">
+                                    <!-- Records populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="records-footer-hint">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            Click any event row to view detailed record information
+                        </div>
                     </div>
                 </div>
             </div>

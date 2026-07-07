@@ -1125,8 +1125,20 @@
 
     // ========== WCA API: RECORDS ==========
     let activeRecordEvent = null;
+    let fetchedWorldRecords = null;
 
-    function loadWorldRecords() {
+    async function loadWorldRecords() {
+        if (!fetchedWorldRecords) {
+            $('#records-loading').style.display = 'flex';
+            $('#records-table').style.display = 'none';
+            try {
+                const res = await fetch('https://simulatecubing-default-rtdb.firebaseio.com/records.json');
+                const data = await res.json();
+                if (data) fetchedWorldRecords = data;
+            } catch (err) {
+                console.error("Failed to fetch custom world records:", err);
+            }
+        }
         renderRecordsTable();
         fetchUpcomingCompetitions();
     }
@@ -1143,7 +1155,7 @@
         ];
 
         wcaOrder.forEach(eventId => {
-            const rec = WORLD_RECORDS[eventId];
+            const rec = (fetchedWorldRecords && fetchedWorldRecords[eventId]) ? fetchedWorldRecords[eventId] : WORLD_RECORDS[eventId];
             if (!rec || !EVENT_NAMES[eventId]) return;
 
             const tr = document.createElement('tr');
@@ -1270,7 +1282,7 @@
         activeRecordEvent = eventId;
         rowEl.classList.add('active');
 
-        const rec = WORLD_RECORDS[eventId];
+        const rec = (fetchedWorldRecords && fetchedWorldRecords[eventId]) ? fetchedWorldRecords[eventId] : WORLD_RECORDS[eventId];
         if (!rec) return;
 
         const detailRow = document.createElement('tr');

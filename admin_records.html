@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — SimulateCubing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding: var(--space-xl); background-color: var(--clr-bg); }
+        .admin-container { max-width: 800px; margin: 0 auto; }
+        .hidden { display: none !important; }
+        .alg-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: var(--clr-surface); border: 1px solid var(--clr-border); border-radius: var(--radius-md); margin-bottom: 0.5rem; }
+        .alg-info { flex-grow: 1; }
+        .alg-name { font-weight: 600; color: var(--clr-text); }
+        .alg-string { font-family: var(--font-mono); font-size: 0.85rem; color: var(--clr-primary); display: block; margin-top: 4px; }
+        .alg-actions { display: flex; gap: 0.5rem; }
+        .btn-danger { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.5); }
+        .btn-danger:hover { background: rgba(231, 76, 60, 0.3); }
+        .edit-form { display: flex; gap: 0.5rem; width: 100%; align-items: center; }
+        .edit-form input { flex-grow: 1; }
+        
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            .alg-item { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .alg-actions { width: 100%; justify-content: flex-end; }
+            #dashboard-view > div { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            #dashboard-view > div button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="admin-container">
+    <div id="login-view" class="setup-card" style="max-width: 400px; margin: 10vh auto; text-align: center;">
+        <h2 class="card-title" style="justify-content: center;">Admin Login</h2>
+        <p class="card-desc">Enter your secret password to manage content.</p>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <input type="password" id="admin-password" class="form-input" placeholder="Password">
+            <button id="login-btn" class="btn btn-primary">Login</button>
+        </div>
+        <p id="login-error" style="color: #e74c3c; margin-top: 1rem; display: none;">Invalid password.</p>
+    </div>
+
+    <div id="dashboard-view" class="hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>SimulateCubing <span class="gradient-text">Records Admin</span></h2>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </div>
+
+                <div class="setup-card" style="margin-bottom: 2rem;">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 150px;">
+                    <label class="form-label">Select Event to Edit</label>
+                    <select id="event-select" class="form-select">
+                        <option value="333">3x3x3 Cube</option>
+                        <option value="222">2x2x2 Cube</option>
+                        <option value="444">4x4x4 Cube</option>
+                        <option value="555">5x5x5 Cube</option>
+                        <option value="666">6x6x6 Cube</option>
+                        <option value="777">7x7x7 Cube</option>
+                        <option value="333bf">3x3x3 Blindfolded</option>
+                        <option value="333fm">3x3x3 Fewest Moves</option>
+                        <option value="333oh">3x3x3 One-Handed</option>
+                        <option value="clock">Clock</option>
+                        <option value="minx">Megaminx</option>
+                        <option value="pyram">Pyraminx</option>
+                        <option value="skewb">Skewb</option>
+                        <option value="sq1">Square-1</option>
+                        <option value="444bf">4x4x4 Blindfolded</option>
+                        <option value="555bf">5x5x5 Blindfolded</option>
+                        <option value="333mbf">3x3x3 Multi-Blind</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="setup-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 id="editor-title">Editing 3x3x3 Cube Records</h3>
+                <button id="save-btn" class="btn btn-primary">Save to Database</button>
+            </div>
+            <div id="save-status" style="margin-bottom: 1rem; color: #2ecc71; display: none;">Changes saved successfully!</div>
+            
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <h4 style="margin-bottom: 1rem;">World Record Single</h4>
+                    <div class="form-floating" style="margin-bottom: 1rem;">
+                        <input type="text" id="single-time" class="form-input" placeholder=" ">
+                        <label>Time (e.g. 3.47)</label>
+                    </div>
+                    <div class="form-floating" style="margin-bottom: 1rem;">
+                        <input type="text" id="single-holder" class="form-input" placeholder=" ">
+                        <label>Holder Name</label>
+                    </div>
+                    <div class="form-floating" style="margin-bottom: 1rem;">
+                        <input type="text" id="single-country" class="form-input" placeholder=" ">
+                        <label>Country Code (e.g. US, CN)</label>
+                    </div>
+                    <div class="form-floating" style="margin-bottom: 1rem;">
+                        <input type="text" id="single-comp" class="form-input" placeholder=" ">
+                        <label>Competition</label>
+                    </div>
+                </div>
+                
+                <div style="flex: 1; min-width: 250px;">
+                    <h4 style="margin-bottom: 1rem;">World Record Average</h4>
+                    <div class="form-floating" style="margin-bottom: 1rem;">
+                        <input type="text" id="avg-time" class="form-input" placeholder=" ">
+                        <label>Time (e.g. 4.48)</label>
+                    </div>
+                    <div class="form-floating" style="margin-bottom: 1rem;">
+                        <input type="text" id="avg-holder" class="form-input" placeholder=" ">
+                        <label>Holder Name</label>
+                    </div>
+                    <div class="form-floating" style="margin-bottom: 1rem;">
+                        <input type="text" id="avg-country" class="form-input" placeholder=" ">
+                        <label>Country Code (e.g. US, CN)</label>
+                    </div>
+                    <div class="form-floating" style="margin-bottom: 1rem;">
+                        <input type="text" id="avg-comp" class="form-input" placeholder=" ">
+                        <label>Competition</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    let RECORDS = {};
+    let password = localStorage.getItem('admin_password') || '';
+    
+    const elements = {
+        loginView: document.getElementById('login-view'),
+        dashboardView: document.getElementById('dashboard-view'),
+        passwordInput: document.getElementById('admin-password'),
+        loginBtn: document.getElementById('login-btn'),
+        logoutBtn: document.getElementById('logout-btn'),
+        loginError: document.getElementById('login-error'),
+        
+        eventSelect: document.getElementById('event-select'),
+        editorTitle: document.getElementById('editor-title'),
+        saveBtn: document.getElementById('save-btn'),
+        saveStatus: document.getElementById('save-status'),
+        
+        singleTime: document.getElementById('single-time'),
+        singleHolder: document.getElementById('single-holder'),
+        singleCountry: document.getElementById('single-country'),
+        singleComp: document.getElementById('single-comp'),
+        
+        avgTime: document.getElementById('avg-time'),
+        avgHolder: document.getElementById('avg-holder'),
+        avgCountry: document.getElementById('avg-country'),
+        avgComp: document.getElementById('avg-comp')
+    };
+
+    function init() {
+        if (password) {
+            tryLogin(password);
+        }
+        
+        elements.loginBtn.addEventListener('click', () => tryLogin(elements.passwordInput.value));
+        elements.passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(elements.passwordInput.value); });
+        elements.logoutBtn.addEventListener('click', logout);
+        
+        elements.eventSelect.addEventListener('change', loadEventToForm);
+        elements.saveBtn.addEventListener('click', saveRecords);
+    }
+
+    async function tryLogin(pass) {
+        if (pass === 'admin2009') {
+            password = pass;
+            localStorage.setItem('admin_password', pass);
+            elements.loginError.style.display = 'none';
+            elements.loginView.classList.add('hidden');
+            elements.dashboardView.classList.remove('hidden');
+            await fetchRecords();
+        } else {
+            elements.loginError.style.display = 'block';
+            logout();
+        }
+    }
+
+    function logout() {
+        password = '';
+        localStorage.removeItem('admin_password');
+        elements.loginView.classList.remove('hidden');
+        elements.dashboardView.classList.add('hidden');
+        elements.passwordInput.value = '';
+    }
+
+    async function fetchRecords() {
+        try {
+            const res = await fetch('https://simulatecubing-default-rtdb.firebaseio.com/records.json');
+            const data = await res.json();
+            if (data) {
+                RECORDS = data;
+                loadEventToForm();
+            } else {
+                console.log('No records found in DB. Starting fresh.');
+            }
+        } catch (e) {
+            console.error('Failed to fetch records', e);
+            alert('Failed to connect to database.');
+        }
+    }
+
+    function loadEventToForm() {
+        const ev = elements.eventSelect.value;
+        const evName = elements.eventSelect.options[elements.eventSelect.selectedIndex].text;
+        elements.editorTitle.textContent = `Editing ${evName} Records`;
+        
+        const rec = RECORDS[ev] || { single: {}, average: {} };
+        const s = rec.single || {};
+        const a = rec.average || {};
+        
+        elements.singleTime.value = s.time !== undefined ? s.time : '';
+        elements.singleHolder.value = s.holder || '';
+        elements.singleCountry.value = s.country || '';
+        elements.singleComp.value = s.competition || '';
+        
+        elements.avgTime.value = a.time !== undefined ? a.time : '';
+        elements.avgHolder.value = a.holder || '';
+        elements.avgCountry.value = a.country || '';
+        elements.avgComp.value = a.competition || '';
+    }
+
+    async function saveRecords() {
+        elements.saveBtn.textContent = 'Saving...';
+        elements.saveBtn.disabled = true;
+        
+        const ev = elements.eventSelect.value;
+        if (!RECORDS[ev]) RECORDS[ev] = { single: {}, average: {} };
+        
+        // Update local object
+        const st = elements.singleTime.value;
+        if (st) {
+            RECORDS[ev].single = {
+                time: isNaN(Number(st)) ? st : Number(st),
+                holder: elements.singleHolder.value,
+                country: elements.singleCountry.value,
+                competition: elements.singleComp.value
+            };
+            if (String(st).includes('/') || isNaN(Number(st))) {
+                if (ev === '333mbf') RECORDS[ev].single.isMulti = true;
+                if (ev === '333fm') RECORDS[ev].single.isMoves = true;
+            }
+        } else {
+            RECORDS[ev].single = null;
+        }
+        
+        const at = elements.avgTime.value;
+        if (at) {
+            RECORDS[ev].average = {
+                time: isNaN(Number(at)) ? at : Number(at),
+                holder: elements.avgHolder.value,
+                country: elements.avgCountry.value,
+                competition: elements.avgComp.value
+            };
+            if (ev === '333fm') RECORDS[ev].average.isMoves = true;
+        } else {
+            RECORDS[ev].average = null;
+        }
+
+        try {
+            const res = await fetch(https://simulatecubing-default-rtdb.firebaseio.com/records/.json, {
+                method: 'PUT',
+                body: JSON.stringify(RECORDS[ev]),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (res.ok) {
+                elements.saveStatus.style.display = 'block';
+                setTimeout(() => elements.saveStatus.style.display = 'none', 3000);
+            } else {
+                alert('Failed to save to database.');
+            }
+        } catch (e) {
+            alert('Error saving.');
+        } finally {
+            elements.saveBtn.textContent = 'Save to Database';
+            elements.saveBtn.disabled = false;
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
