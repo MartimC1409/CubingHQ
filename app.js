@@ -1573,12 +1573,14 @@
                         let singleStr = '—';
                         let avgStr = '—';
                         let worldRank = '—';
+                        let nationalRank = '—';
 
                         if (pr.single) {
                             if (eventId === '333fm') singleStr = String(pr.single.best);
                             else if (eventId === '333mbf') singleStr = decodeMBLD(pr.single.best);
                             else singleStr = formatTime(pr.single.best / 100);
                             worldRank = pr.single.world_rank;
+                            nationalRank = pr.single.country_rank;
                         }
 
                         if (pr.average) {
@@ -1586,14 +1588,16 @@
                             else avgStr = formatTime(pr.average.best / 100);
                             if (!pr.single || (pr.average.world_rank < pr.single.world_rank)) {
                                 worldRank = pr.average.world_rank;
+                                nationalRank = pr.average.country_rank;
                             }
                         }
 
                         tr.innerHTML = `
-                            <td class="lb-name" style="font-weight: 600;">${EVENT_NAMES[eventId] || eventId}</td>
-                            <td class="lb-best" style="font-family: var(--font-mono);">${singleStr}</td>
-                            <td class="lb-avg" style="font-family: var(--font-mono);">${avgStr}</td>
-                            <td style="font-family: var(--font-mono); color: var(--clr-primary);">#${worldRank}</td>
+                            <td class="lb-name" style="font-weight: 600; text-align: center;">${EVENT_NAMES[eventId] || eventId}</td>
+                            <td class="lb-best" style="font-family: var(--font-mono); font-weight: 500; text-align: center;">${singleStr}</td>
+                            <td class="lb-avg" style="font-family: var(--font-mono); font-weight: 500; text-align: center;">${avgStr}</td>
+                            <td style="font-family: var(--font-mono); color: var(--clr-primary); font-weight: 600; text-align: center;">#${nationalRank}</td>
+                            <td style="font-family: var(--font-mono); color: var(--clr-primary); font-weight: 600; text-align: center;">#${worldRank}</td>
                         `;
                         prBody.appendChild(tr);
                     });
@@ -1736,20 +1740,8 @@
         const prTableBody = $('#pr-table-body');
         if (!prTableBody) return;
 
-        // Build table of all personal records
-        const allEvents = Object.keys(prs);
-        
-        // Define a sort order matching WCA typical order
-        const eventOrder = ['333', '222', '444', '555', '666', '777', '333bf', '333fm', '333oh', 'clock', 'minx', 'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'];
-        
-        allEvents.sort((a, b) => {
-            const idxA = eventOrder.indexOf(a);
-            const idxB = eventOrder.indexOf(b);
-            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-            if (idxA !== -1) return -1;
-            if (idxB !== -1) return 1;
-            return a.localeCompare(b);
-        });
+        // Show ONLY the personal records for the currently selected event
+        const allEvents = Object.keys(prs).filter(evt => evt === currentEvent);
 
         if (allEvents.length === 0) {
             prTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:var(--clr-text-muted);">No official results yet.</td></tr>';

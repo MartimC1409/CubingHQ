@@ -1,45 +1,29 @@
-HTML_OLD = """                    <div class="setup-grid" style="margin-bottom: var(--space-xl);">
-                        <div class="setup-card" style="text-align: center; padding: 2rem;">
-                            <h2 style="font-size: 3rem; color: var(--clr-primary); margin-bottom: 0.5rem; font-weight: 800;" id="stat-comps-count">0</h2>
-                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Competitions</p>
-                        </div>
-                        <div class="setup-card" style="text-align: center; padding: 2rem;">
-                            <h2 style="font-size: 3rem; color: #F7C948; margin-bottom: 0.5rem; font-weight: 800;" id="stat-gold">0</h2>
-                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Gold Medals</p>
-                        </div>
-                        <div class="setup-card" style="text-align: center; padding: 2rem;">
-                            <h2 style="font-size: 3rem; color: #CBD5E1; margin-bottom: 0.5rem; font-weight: 800;" id="stat-silver">0</h2>
-                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Silver Medals</p>
-                        </div>
-                        <div class="setup-card" style="text-align: center; padding: 2rem;">
-                            <h2 style="font-size: 3rem; color: #D97706; margin-bottom: 0.5rem; font-weight: 800;" id="stat-bronze">0</h2>
-                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Bronze Medals</p>
-                        </div>
-                    </div>"""
+JS_OLD = """    // Build table of all personal records
+    const allEvents = Object.keys(prs);
 
-HTML_NEW = """                    <div class="setup-card" style="text-align: center; padding: 2rem; margin-bottom: var(--space-lg);">
-                        <h2 style="font-size: 3rem; color: var(--clr-primary); margin-bottom: 0.5rem; font-weight: 800;" id="stat-comps-count">0</h2>
-                        <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Competitions</p>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-lg); margin-bottom: var(--space-xl);">
-                        <div class="setup-card" style="text-align: center; padding: 2rem;">
-                            <h2 style="font-size: 2.5rem; color: #F7C948; margin-bottom: 0.5rem; font-weight: 800;" id="stat-gold">0</h2>
-                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Gold</p>
-                        </div>
-                        <div class="setup-card" style="text-align: center; padding: 2rem;">
-                            <h2 style="font-size: 2.5rem; color: #CBD5E1; margin-bottom: 0.5rem; font-weight: 800;" id="stat-silver">0</h2>
-                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Silver</p>
-                        </div>
-                        <div class="setup-card" style="text-align: center; padding: 2rem;">
-                            <h2 style="font-size: 2.5rem; color: #D97706; margin-bottom: 0.5rem; font-weight: 800;" id="stat-bronze">0</h2>
-                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Bronze</p>
-                        </div>
-                    </div>"""
+    // Define a sort order matching WCA typical order
+    const eventOrder = ['333', '222', '444', '555', '666', '777', '333bf', '333fm', '333oh', 'clock', 'minx', 'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'];
 
-content = open('d:/AI-TESTE/index.html', encoding='utf-8').read().replace('\r\n', '\n')
-if HTML_OLD in content:
-    content = content.replace(HTML_OLD, HTML_NEW)
-    open('d:/AI-TESTE/index.html', 'w', encoding='utf-8', newline='\n').write(content)
-    print("Replaced stats grid")
+    allEvents.sort((a, b) => {
+        const idxA = eventOrder.indexOf(a);
+        const idxB = eventOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b);
+    });
+
+    if (allEvents.length === 0) {"""
+
+JS_NEW = """    // Show ONLY the personal records for the currently selected event
+    let allEvents = Object.keys(prs).filter(evt => evt === currentEvent);
+
+    if (allEvents.length === 0) {"""
+
+content = open('d:/AI-TESTE/app.js', encoding='utf-8').read().replace('\r\n', '\n')
+if JS_OLD in content:
+    content = content.replace(JS_OLD, JS_NEW)
+    open('d:/AI-TESTE/app.js', 'w', encoding='utf-8', newline='\n').write(content)
+    print("Updated updatePRDisplay to show only current event")
 else:
     print("Not found")
