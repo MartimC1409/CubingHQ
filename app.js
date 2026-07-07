@@ -560,7 +560,7 @@
                     <div style="width: 140px; height: 140px; margin-bottom: 1rem; position: relative;">
                         <twisty-player 
                             puzzle="${puzzleName}" 
-                            alg="${item.alg}" 
+                            alg="${getInverse(item.alg)}" 
                             visualization="2D" 
                             background="none" 
                             control-panel="none" 
@@ -721,7 +721,7 @@
 
             // Show case in twisty-player (show inverse so you see scrambled state)
             const twisty = $('#trainer-twisty');
-            twisty.setAttribute('alg', c.alg === 'skip' ? '' : c.alg);
+            twisty.setAttribute('alg', c.alg === 'skip' ? '' : getInverse(c.alg));
 
             // Reset timer display
             resetTimerDisplay();
@@ -800,7 +800,7 @@
             $('#alg-hint-alg').textContent = c.alg || '—';
             const hintTwisty = $('#hint-twisty');
             hintTwisty.setAttribute('puzzle', getPuzzleName(trainerState.currentEvent));
-            hintTwisty.setAttribute('alg', c.alg === 'skip' ? '' : c.alg);
+            hintTwisty.setAttribute('alg', c.alg === 'skip' ? '' : getInverse(c.alg));
             $('#alg-hint-modal').style.display = 'flex';
         }
 
@@ -1387,15 +1387,15 @@
 
     // ========== WCA API: PERSON LOOKUP ==========
     async function lookupWCAProfile(overrideWcaId = null, quiet = false) {
-        const wcaId = (typeof overrideWcaId === 'string' ? overrideWcaId : $('#wca-id').value).trim().toUpperCase();
+        const wcaId = (typeof overrideWcaId === 'string' ? overrideWcaId : ($('#wca-id') ? $('#wca-id').value : '')).trim().toUpperCase();
         if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
 
         if (!quiet) {
             // Show loading
-            $('#wca-info-display').style.display = 'none';
-            $('#wca-error-display').style.display = 'none';
-            $('#wca-loading').style.display = 'flex';
-            $('#search-wca-btn').classList.add('loading');
+            if ($('#wca-info-display')) $('#wca-info-display').style.display = 'none';
+            if ($('#wca-error-display')) $('#wca-error-display').style.display = 'none';
+            if ($('#wca-loading')) $('#wca-loading').style.display = 'flex';
+            if ($('#search-wca-btn')) $('#search-wca-btn').classList.add('loading');
         }
 
         try {
@@ -1407,122 +1407,137 @@
             state.playerWcaId = data.person.wca_id;
             state.playerName = data.person.name;
 
-            // Display info
-            $('#wca-display-name').textContent = data.person.name;
-            $('#wca-display-country').textContent = data.person.country ? data.person.country.name : 'N/A';
-            $('#wca-display-medals').textContent = `🥇${data.medals.gold} 🥈${data.medals.silver} 🥉${data.medals.bronze}`;
-            $('#wca-display-comps').textContent = `${data.competition_count} competitions`;
+            if (!quiet) {
+                // Display info
+                if ($('#wca-display-name')) $('#wca-display-name').textContent = data.person.name;
+                if ($('#wca-display-country')) $('#wca-display-country').textContent = data.person.country ? data.person.country.name : 'N/A';
+                if ($('#wca-display-medals')) $('#wca-display-medals').textContent = `🥇${data.medals.gold} 🥈${data.medals.silver} 🥉${data.medals.bronze}`;
+                if ($('#wca-display-comps')) $('#wca-display-comps').textContent = `${data.competition_count} competitions`;
 
-            // Avatar
-            const avatar = data.person.avatar;
-            if (avatar && !avatar.is_default && avatar.thumb_url) {
-                $('#wca-avatar').src = avatar.thumb_url;
-                $('#wca-avatar').style.display = 'block';
-                $('#stats-avatar').src = avatar.thumb_url;
-                $('#stats-avatar').style.display = 'block';
-            } else {
-                $('#wca-avatar').style.display = 'none';
-                $('#stats-avatar').style.display = 'none';
-            }
-
-            // Populate Statistics Tab
-            $('#stats-placeholder').style.display = 'none';
-            $('#stats-content').style.display = 'block';
-            $('#stats-name').textContent = data.person.name;
-            $('#stats-country').textContent = data.person.country ? data.person.country.name : 'N/A';
-            $('#stat-comps-count').textContent = data.competition_count;
-            $('#stat-gold').textContent = data.medals.gold;
-            $('#stat-silver').textContent = data.medals.silver;
-            $('#stat-bronze').textContent = data.medals.bronze;
-            $('#stats-wcaid').textContent = data.person.wca_id;
-
-            const genderMap = { 'm': 'Male', 'f': 'Female', 'o': 'Other' };
-            if (data.person.gender && genderMap[data.person.gender]) {
-                $('#stats-gender').textContent = genderMap[data.person.gender];
-                $('#stats-gender-badge').style.display = 'inline-block';
-            } else {
-                $('#stats-gender-badge').style.display = 'none';
-            }
-
-            const totalEvents = Object.keys(data.personal_records).length;
-            const totalMedals = data.medals.gold + data.medals.silver + data.medals.bronze;
-            $('#stats-total-events').textContent = totalEvents;
-            $('#stats-total-medals').textContent = totalMedals;
-
-            // Populate PR Table
-            const prBody = $('#stats-pr-body');
-            prBody.innerHTML = '';
-
-            const prEvents = Object.keys(data.personal_records);
-            const wcaOrderFull = [
-                '333', '222', '444', '555', '666', '777',
-                '333bf', '333fm', '333oh', 'clock', 'minx',
-                'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'
-            ];
-            prEvents.sort((a, b) => {
-                let idxA = wcaOrderFull.indexOf(a);
-                let idxB = wcaOrderFull.indexOf(b);
-                if (idxA === -1) idxA = 999;
-                if (idxB === -1) idxB = 999;
-                return idxA - idxB;
-            });
-
-            prEvents.forEach(eventId => {
-                const pr = data.personal_records[eventId];
-                const tr = document.createElement('tr');
-
-                let singleStr = '—';
-                let avgStr = '—';
-                let worldRank = '—';
-
-                if (pr.single) {
-                    if (eventId === '333fm') singleStr = String(pr.single.best);
-                    else if (eventId === '333mbf') singleStr = decodeMBLD(pr.single.best);
-                    else singleStr = formatTime(pr.single.best / 100);
-                    worldRank = pr.single.world_rank;
-                }
-
-                if (pr.average) {
-                    if (eventId === '333fm') avgStr = (pr.average.best / 100).toFixed(2);
-                    else avgStr = formatTime(pr.average.best / 100);
-                    if (!pr.single || (pr.average.world_rank < pr.single.world_rank)) {
-                        worldRank = pr.average.world_rank;
+                // Avatar
+                const avatar = data.person.avatar;
+                if ($('#wca-avatar')) {
+                    if (avatar && !avatar.is_default && avatar.thumb_url) {
+                        $('#wca-avatar').src = avatar.thumb_url;
+                        $('#wca-avatar').style.display = 'block';
+                    } else {
+                        $('#wca-avatar').style.display = 'none';
                     }
                 }
 
-                tr.innerHTML = `
-                    <td class="lb-name" style="font-weight: 600;">${EVENT_NAMES[eventId] || eventId}</td>
-                    <td class="lb-best" style="font-family: var(--font-mono);">${singleStr}</td>
-                    <td class="lb-avg" style="font-family: var(--font-mono);">${avgStr}</td>
-                    <td style="font-family: var(--font-mono); color: var(--clr-primary);">#${worldRank}</td>
-                `;
-                prBody.appendChild(tr);
-            });
+                // Populate Statistics Tab
+                if ($('#stats-placeholder')) $('#stats-placeholder').style.display = 'none';
+                if ($('#stats-content')) $('#stats-content').style.display = 'block';
+                if ($('#stats-name')) $('#stats-name').textContent = data.person.name;
+                if ($('#stats-country')) $('#stats-country').textContent = data.person.country ? data.person.country.name : 'N/A';
+                if ($('#stat-comps-count')) $('#stat-comps-count').textContent = data.competition_count;
+                if ($('#stat-gold')) $('#stat-gold').textContent = data.medals.gold;
+                if ($('#stat-silver')) $('#stat-silver').textContent = data.medals.silver;
+                if ($('#stat-bronze')) $('#stat-bronze').textContent = data.medals.bronze;
+                if ($('#stats-wcaid')) $('#stats-wcaid').textContent = data.person.wca_id;
 
-            // Update PR display for selected event
-            updatePRDisplay();
+                const genderMap = { 'm': 'Male', 'f': 'Female', 'o': 'Other' };
+                if ($('#stats-gender-badge')) {
+                    if (data.person.gender && genderMap[data.person.gender]) {
+                        if ($('#stats-gender')) $('#stats-gender').textContent = genderMap[data.person.gender];
+                        $('#stats-gender-badge').style.display = 'inline-block';
+                    } else {
+                        $('#stats-gender-badge').style.display = 'none';
+                    }
+                }
 
-            $('#wca-info-display').style.display = 'block';
-            $('#wca-error-display').style.display = 'none';
-            showToast(`✅ Found: ${data.person.name}`, 'success');
+                const totalEvents = Object.keys(data.personal_records).length;
+                const totalMedals = data.medals.gold + data.medals.silver + data.medals.bronze;
+                if ($('#stats-total-events')) $('#stats-total-events').textContent = totalEvents;
+                if ($('#stats-total-medals')) $('#stats-total-medals').textContent = totalMedals;
+
+                // Populate PR Table
+                const prBody = $('#stats-pr-body');
+                if (prBody) {
+                    prBody.innerHTML = '';
+                    const prEvents = Object.keys(data.personal_records);
+                    const wcaOrderFull = [
+                        '333', '222', '444', '555', '666', '777',
+                        '333bf', '333fm', '333oh', 'clock', 'minx',
+                        'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'
+                    ];
+                    prEvents.sort((a, b) => {
+                        let idxA = wcaOrderFull.indexOf(a);
+                        let idxB = wcaOrderFull.indexOf(b);
+                        if (idxA === -1) idxA = 999;
+                        if (idxB === -1) idxB = 999;
+                        return idxA - idxB;
+                    });
+
+                    prEvents.forEach(eventId => {
+                        const pr = data.personal_records[eventId];
+                        const tr = document.createElement('tr');
+
+                        let singleStr = '—';
+                        let avgStr = '—';
+                        let worldRank = '—';
+
+                        if (pr.single) {
+                            if (eventId === '333fm') singleStr = String(pr.single.best);
+                            else if (eventId === '333mbf') singleStr = decodeMBLD(pr.single.best);
+                            else singleStr = formatTime(pr.single.best / 100);
+                            worldRank = pr.single.world_rank;
+                        }
+
+                        if (pr.average) {
+                            if (eventId === '333fm') avgStr = (pr.average.best / 100).toFixed(2);
+                            else avgStr = formatTime(pr.average.best / 100);
+                            if (!pr.single || (pr.average.world_rank < pr.single.world_rank)) {
+                                worldRank = pr.average.world_rank;
+                            }
+                        }
+
+                        tr.innerHTML = `
+                            <td class="lb-name" style="font-weight: 600;">${EVENT_NAMES[eventId] || eventId}</td>
+                            <td class="lb-best" style="font-family: var(--font-mono);">${singleStr}</td>
+                            <td class="lb-avg" style="font-family: var(--font-mono);">${avgStr}</td>
+                            <td style="font-family: var(--font-mono); color: var(--clr-primary);">#${worldRank}</td>
+                        `;
+                        prBody.appendChild(tr);
+                    });
+                }
+
+                // Update PR display for selected event
+                updatePRDisplay();
+
+                if ($('#stats-avatar')) {
+                    const avatar2 = data.person.avatar;
+                    if (avatar2 && !avatar2.is_default && avatar2.thumb_url) {
+                        $('#stats-avatar').src = avatar2.thumb_url;
+                        $('#stats-avatar').style.display = 'block';
+                    } else {
+                        $('#stats-avatar').style.display = 'none';
+                    }
+                }
+
+                if ($('#wca-info-display')) $('#wca-info-display').style.display = 'block';
+                if ($('#wca-error-display')) $('#wca-error-display').style.display = 'none';
+                showToast(`✅ Found: ${data.person.name}`, 'success');
+            }
 
         } catch (err) {
             console.error('Error fetching WCA profile:', err);
             state.playerData = null;
             if (!quiet) {
-                $('#wca-info-display').style.display = 'none';
-                $('#wca-error-display').style.display = 'flex';
-                $('#wca-error-text').textContent = `WCA ID "${wcaId}" not found. Error: ${err.message}`;
+                if ($('#wca-info-display')) $('#wca-info-display').style.display = 'none';
+                if ($('#wca-error-display')) $('#wca-error-display').style.display = 'flex';
+                if ($('#wca-error-text')) $('#wca-error-text').textContent = `WCA ID "${wcaId}" not found. Error: ${err.message}`;
             }
         } finally {
             if (!quiet) {
-                $('#wca-loading').style.display = 'none';
-                $('#search-wca-btn').classList.remove('loading');
+                if ($('#wca-loading')) $('#wca-loading').style.display = 'none';
+                if ($('#search-wca-btn')) $('#search-wca-btn').classList.remove('loading');
             }
         }
     }
 
     // ========== WCA API: PAST COMPETITIONS LOOKUP ==========
+
     async function fetchPastCompetitions() {
         const wcaId = $('#past-comp-wca-id').value.trim().toUpperCase();
         if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
@@ -1652,13 +1667,34 @@
     }
 
     // ========== SETUP ==========
-    function handleSetupSubmit(e) {
+    async function handleSetupSubmit(e) {
         e.preventDefault();
 
         // Validate WCA ID was looked up
         if (!state.playerData) {
-            showToast('⚠️ Please look up your WCA ID first', 'error');
-            return;
+            const wcaInput = $('#wca-id').value.trim();
+            if (wcaInput) {
+                await lookupWCAProfile();
+                if (!state.playerData) return;
+            } else if (state.userProfile && state.userProfile.wca_id) {
+                // User is logged in via WCA OAuth — use their WCA ID automatically
+                await lookupWCAProfile(state.userProfile.wca_id, true);
+                if (!state.playerData) {
+                    showToast('⚠️ Could not load your WCA profile. Please try again.', 'error');
+                    return;
+                }
+            } else {
+                showToast('⚠️ Please enter or look up a WCA ID first', 'error');
+                return;
+            }
+        }
+        
+        // Also lookup competition if entered but not searched
+        if (!state.wcifData) {
+            const compInput = $('#comp-id').value.trim();
+            if (compInput) {
+                await lookupCompetition();
+            }
         }
 
         // Collect config
@@ -1997,13 +2033,17 @@
 
     function updateDashboardBadges() {
         const current = Math.min(state.currentSolve + 1, state.numSolves);
-        $('#dash-solve-badge').textContent = `Solve ${current}/${state.numSolves}`;
-        $('#scorecard-name').textContent = state.playerName;
-        $('#scorecard-event').textContent = `${EVENT_NAMES[state.event]} — ${ROUND_NAMES[state.round]}`;
+        const solBadge = $('#dash-solve-badge');
+        if (solBadge) solBadge.textContent = `Solve ${current}/${state.numSolves}`;
+        const scName = $('#scorecard-name');
+        if (scName) scName.textContent = state.playerName;
+        const scEvent = $('#scorecard-event');
+        if (scEvent) scEvent.textContent = `${EVENT_NAMES[state.event]} — ${ROUND_NAMES[state.round]}`;
     }
 
     function renderScorecardTemplate() {
         const tbody = $('#scorecard-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
 
         for (let i = 0; i < state.numSolves; i++) {
@@ -2025,9 +2065,9 @@
             tbody.appendChild(tr);
         }
 
-        $('#stat-best').textContent = '—';
-        $('#stat-worst').textContent = '—';
-        $('#stat-average').textContent = '—';
+        const sb = $('#stat-best'); if (sb) sb.textContent = '—';
+        const sw = $('#stat-worst'); if (sw) sw.textContent = '—';
+        const sa = $('#stat-average'); if (sa) sa.textContent = '—';
     }
 
     function updateScorecard() {
@@ -2192,7 +2232,7 @@
         else if (pct >= 25) ring.style.stroke = 'var(--clr-warning)';
         else ring.style.stroke = 'var(--clr-danger)';
 
-        $('#goal-pct').textContent = pct + '%';
+        $('#ring-pct').textContent = pct + '%';
     }
 
     function renderLeaderboard() {

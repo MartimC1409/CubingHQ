@@ -2875,7 +2875,6 @@ const ALGORITHMS = {
             }
         ]
     },
-
     "5x5": {
         "L2E": [
             {
@@ -2975,27 +2974,27 @@ const ALGORITHMS = {
                 "alg": "R' U L R' L' R2"
             },
             {
-                "name": "Clockwise 3-Cycle (FRU→BRU→BLU)",
+                "name": "Clockwise 3-Cycle (FRU\u2192BRU\u2192BLU)",
                 "alg": "L R' L' R2 U' R'"
             },
             {
-                "name": "Clockwise 3-Cycle (FRU→BLU→FLU)",
+                "name": "Clockwise 3-Cycle (FRU\u2192BLU\u2192FLU)",
                 "alg": "U' L2 R' L' R L'"
             },
             {
-                "name": "Clockwise 3-Cycle (FRU→FLU→BRU)",
+                "name": "Clockwise 3-Cycle (FRU\u2192FLU\u2192BRU)",
                 "alg": "U R' L R' L' R2"
             },
             {
-                "name": "Counter-Clockwise 3-Cycle (FRU→BLU→BRU)",
+                "name": "Counter-Clockwise 3-Cycle (FRU\u2192BLU\u2192BRU)",
                 "alg": "R' L R L2' U L"
             },
             {
-                "name": "Counter-Clockwise 3-Cycle (FRU→FLU→BLU)",
+                "name": "Counter-Clockwise 3-Cycle (FRU\u2192FLU\u2192BLU)",
                 "alg": "U' L R' L R L2'"
             },
             {
-                "name": "Counter-Clockwise 3-Cycle (FRU→BRU→FLU)",
+                "name": "Counter-Clockwise 3-Cycle (FRU\u2192BRU\u2192FLU)",
                 "alg": "U R2' L R L' R"
             },
             {
