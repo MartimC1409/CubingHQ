@@ -335,7 +335,7 @@
         } else if (viewName === 'home') {
             $('#nav-home-btn').classList.add('active');
         } else if (viewName === 'statistics') {
-            $('#nav-stats-btn').classList.add('active');
+            if ($('#nav-profile-btn')) $('#nav-profile-btn').classList.add('active');
         } else if (viewName === 'records') {
             $('#nav-records-btn').classList.add('active');
         } else if (viewName === 'history') {
@@ -446,9 +446,7 @@
             renderHistory();
             switchView('history');
         });
-        $('#nav-stats-btn').addEventListener('click', () => {
-            switchView('statistics');
-        });
+
         $('#nav-records-btn').addEventListener('click', () => {
             switchView('records');
             loadWorldRecords();

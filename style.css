@@ -3423,3 +3423,9 @@ body {
     border: 2px solid var(--clr-primary);
     box-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
 }
+.nav-btn.active .nav-avatar {
+    border-color: #ff9500;
+    box-shadow: 0 0 12px rgba(255, 149, 0, 0.6);
+    transform: scale(1.1);
+    transition: all 0.3s ease;
+}
