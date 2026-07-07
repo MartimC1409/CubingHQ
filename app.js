@@ -159,7 +159,7 @@
     };
 
     // ========== STATE ==========
-    const state = {
+    const ambientNoise = new Audio('competition_noise.mp3');\nambientNoise.loop = true;\nambientNoise.volume = 0.4;\n\nconst state = {
         // Config
         compId: '',
         compName: '',
@@ -334,6 +334,12 @@
         $$('.view').forEach(v => v.classList.remove('active'));
         $(`#${viewName}-view`).classList.add('active');
         state.currentView = viewName;
+        
+        if (viewName === 'dashboard' && state.soundEnabled) {
+            ambientNoise.play().catch(e => console.warn('Audio play failed', e));
+        } else {
+            ambientNoise.pause();
+        }
 
         $$('.nav-btn').forEach(b => b.classList.remove('active'));
         if (viewName === 'setup' || viewName === 'dashboard') {
