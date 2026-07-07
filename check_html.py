@@ -1,29 +1,31 @@
-JS_OLD = """    // Build table of all personal records
-    const allEvents = Object.keys(prs);
+HTML_OLD = """                        <div class="lb-wrapper" style="margin-top: 0; border: none; background: transparent;">
+                            <table class="lb-table" style="margin: 0; text-align: center;">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: center;">Event</th>
+                                        <th style="text-align: center;">Single</th>
+                                        <th style="text-align: center;">Average</th>
+                                        <th style="text-align: center;">National Rank</th>
+                                        <th style="text-align: center;">World Rank</th>
+                                    </tr>
+                                </thead>"""
 
-    // Define a sort order matching WCA typical order
-    const eventOrder = ['333', '222', '444', '555', '666', '777', '333bf', '333fm', '333oh', 'clock', 'minx', 'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'];
+HTML_NEW = """                        <div class="records-table-wrap" style="margin-top: 0; border: none; background: transparent;">
+                            <table class="records-table-enhanced" style="width: 100%; text-align: center; margin: 0;">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: center; padding: 1rem;">Event</th>
+                                        <th style="text-align: center; padding: 1rem;">Single</th>
+                                        <th style="text-align: center; padding: 1rem;">Average</th>
+                                        <th style="text-align: center; padding: 1rem;">National Rank</th>
+                                        <th style="text-align: center; padding: 1rem;">World Rank</th>
+                                    </tr>
+                                </thead>"""
 
-    allEvents.sort((a, b) => {
-        const idxA = eventOrder.indexOf(a);
-        const idxB = eventOrder.indexOf(b);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-        return a.localeCompare(b);
-    });
-
-    if (allEvents.length === 0) {"""
-
-JS_NEW = """    // Show ONLY the personal records for the currently selected event
-    let allEvents = Object.keys(prs).filter(evt => evt === currentEvent);
-
-    if (allEvents.length === 0) {"""
-
-content = open('d:/AI-TESTE/app.js', encoding='utf-8').read().replace('\r\n', '\n')
-if JS_OLD in content:
-    content = content.replace(JS_OLD, JS_NEW)
-    open('d:/AI-TESTE/app.js', 'w', encoding='utf-8', newline='\n').write(content)
-    print("Updated updatePRDisplay to show only current event")
+content = open('d:/AI-TESTE/index.html', encoding='utf-8').read().replace('\r\n', '\n')
+if HTML_OLD in content:
+    content = content.replace(HTML_OLD, HTML_NEW)
+    open('d:/AI-TESTE/index.html', 'w', encoding='utf-8', newline='\n').write(content)
+    print("Replaced lb-table with records-table-enhanced")
 else:
     print("Not found")
