@@ -3826,3 +3826,191 @@ body {
 }
 
 .spinning-icon { animation: spin 1s linear infinite; }
+
+/* ============================================================
+   MOBILE RESPONSIVE — Comprehensive overhaul
+   ============================================================ */
+@media (max-width: 768px) {
+
+    /* === NAV === */
+    .nav-links { gap: 0.25rem; }
+    .nav-btn { font-size: 0.7rem; padding: 0.4rem 0.5rem; gap: 0.25rem; }
+    .nav-btn svg { width: 14px; height: 14px; }
+    .nav-logo-text { font-size: 1rem; }
+
+    /* === GENERAL VIEWS === */
+    .view { padding: 0.75rem; }
+    .setup-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+    .setup-card { padding: 0; }
+    .card-body { padding: 0.75rem; }
+
+    /* === SIMULATION SETUP === */
+    .setup-actions { padding: 0.75rem; }
+    .wca-profile-card { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    .pr-display { max-height: 200px; }
+    .records-table-wrap { max-height: 180px; }
+
+    /* === STATS PAGE === */
+    .stats-medals-row { gap: 0.5rem; }
+    .lb-wrapper { overflow-x: auto; }
+    .lb-table { font-size: 0.78rem; min-width: 340px; }
+    .lb-table th, .lb-table td { padding: 0.5rem 0.4rem; }
+
+    /* === BATTLE LOBBY === */
+    .battle-lobby-container { padding: 0.75rem; }
+    .battle-room-grid { grid-template-columns: 1fr !important; }
+    .battle-room-card { padding: 1rem; }
+
+    /* ========================
+       BATTLE IN-GAME — MOBILE
+       Stacks left panel above right panel
+       Order: Event selector → Scramble → Timer → Results table
+       ======================== */
+
+    /* The top bar */
+    .battle-room-topbar { padding: 0.5rem 0.75rem; gap: 0.4rem; }
+    .battle-back-btn { font-size: 0.75rem; padding: 0.35rem 0.65rem; gap: 0.3rem; }
+    .battle-back-btn svg { width: 14px; height: 14px; }
+    .battle-room-name-tag { font-size: 0.9rem; }
+    .battle-room-status { font-size: 0.75rem; }
+
+    /* Stack body into single column */
+    .battle-room-body {
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: auto;
+        max-height: calc(100vh - 100px);
+    }
+
+    /* Left panel: no border, full width */
+    .battle-room-left {
+        border-right: none;
+        border-bottom: 1px solid var(--clr-border);
+        overflow-y: visible;
+        flex-shrink: 0;
+    }
+
+    /* Event selector bar: wrap chips nicely */
+    .battle-event-selector-bar {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        padding: 0.65rem 0.75rem;
+    }
+    .battle-event-selector-label { width: 100%; margin-bottom: 0.1rem; }
+    .battle-event-chips { gap: 0.3rem; }
+    .battle-event-chip { font-size: 0.72rem; padding: 0.25rem 0.55rem; border-radius: 6px; }
+
+    /* New Scramble button goes full-width below chips */
+    #battle-new-scramble-btn {
+        width: 100% !important;
+        justify-content: center;
+        margin-top: 0.35rem;
+    }
+
+    /* Scramble panel: compact */
+    .battle-scramble-panel {
+        padding: 0.75rem;
+    }
+    .battle-scramble-text {
+        font-size: 0.8rem;
+        line-height: 1.4;
+        word-break: break-all;
+    }
+    .battle-scramble-viz {
+        display: flex;
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+    #battle-twisty {
+        width: 110px !important;
+        height: 110px !important;
+    }
+
+    /* Timer panel: shrink font */
+    .battle-timer-panel {
+        padding: 1rem 0.75rem;
+        gap: 0.75rem;
+        min-height: 180px;
+    }
+    .battle-timer-time {
+        font-size: 3.5rem;
+    }
+    .battle-keyboard-hint {
+        font-size: 0.7rem;
+        text-align: center;
+    }
+    .battle-input-mode-bar { gap: 0.3rem; }
+    .battle-mode-btn { font-size: 0.75rem; padding: 0.4rem 0.65rem; gap: 0.25rem; }
+
+    /* Right panel: results table shown BELOW left panel */
+    .battle-room-right {
+        flex-shrink: 0;
+        overflow: visible;
+        border-top: 2px solid var(--clr-border);
+    }
+
+    /* Show full cross table without height cap on mobile */
+    .battle-cross-table-wrap {
+        overflow-x: auto;
+        overflow-y: visible;
+        max-height: none;
+    }
+
+    /* BCT (cross table) — smaller text */
+    .bct-td-num, .bct-th-num { width: 28px; font-size: 0.72rem; }
+    .bct-player-header { min-width: 80px; font-size: 0.72rem; }
+    .bct-row td, .bct-stat-row td, .bct-footer-row td {
+        font-size: 0.72rem;
+        padding: 4px 5px;
+    }
+
+    /* Typing mode input */
+    .battle-typing-input-wrap { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+    .battle-typing-input { font-size: 1.1rem; text-align: center; padding: 0.6rem; }
+    #battle-typing-submit { width: 100%; justify-content: center; }
+
+    /* Battle modal */
+    .battle-modal-card { border-radius: 16px; max-height: 95vh; }
+    .battle-modal-body { padding: 1rem; gap: 0.75rem; }
+    .battle-modal-header { padding: 1rem; }
+    .battle-modal-footer { padding: 0.75rem 1rem; flex-direction: column; }
+    .battle-modal-footer .btn { width: 100%; justify-content: center; }
+    .form-group-row { flex-direction: column; gap: 0.5rem; }
+
+    /* Ready button */
+    .battle-ready-btn { width: 100%; justify-content: center; font-size: 0.95rem; }
+
+    /* === SCORECARD TABLE === */
+    .scorecard-table { font-size: 0.75rem; }
+    .scorecard-table th, .scorecard-table td { padding: 0.4rem 0.3rem; }
+    .scorecard-table td.scramble-cell { max-width: 80px; font-size: 0.65rem; }
+
+    /* === LEADERBOARD / RECORDS === */
+    .records-table-enhanced { font-size: 0.78rem; }
+    .records-table-enhanced th, .records-table-enhanced td { padding: 0.45rem 0.35rem; }
+
+    /* === GOAL TRACKER === */
+    .goal-tracker { padding: 0.75rem; }
+    .goal-ring-wrap { width: 100px; }
+    .goal-ring-wrap svg { width: 100px; height: 100px; }
+
+    /* === COMPETITION VIEW === */
+    .wca-info-display { padding: 0.75rem; }
+    .api-info-details { flex-wrap: wrap; gap: 0.35rem; }
+
+    /* === MODALS === */
+    .glass-panel { padding: 1.5rem 1rem; border-radius: 16px; width: 95%; }
+    .modal-content { max-height: 95vh; overflow-y: auto; }
+}
+
+/* Extra small screens */
+@media (max-width: 400px) {
+    .nav-btn span { display: none; }
+    .nav-btn { padding: 0.4rem; }
+    .nav-btn svg { width: 18px; height: 18px; }
+    .battle-timer-time { font-size: 2.8rem; }
+    .battle-event-chip { font-size: 0.68rem; padding: 0.2rem 0.45rem; }
+    #battle-twisty { width: 90px !important; height: 90px !important; }
+}
