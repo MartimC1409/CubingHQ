@@ -319,10 +319,10 @@
     // ========== NAVIGATION (Hash-based Routing) ==========
     const VIEW_TO_HASH = {
         'home': '#home', 'setup': '#simulation', 'dashboard': '#simulation',
-        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms'
+        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle'
     };
     const HASH_TO_VIEW = {
-        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '': 'home'
+        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '': 'home'
     };
 
     function switchView(viewName, updateHash = true) {
@@ -348,8 +348,10 @@
             $('#nav-history-btn').classList.add('active');
         } else if (viewName === 'competitions') {
             $('#nav-competitions-btn').classList.add('active');
-        } else if (viewName === 'algorithms') {
+        } else if (viewName === 'algorithms' || viewName === 'practice') {
             $('#nav-algorithms-btn').classList.add('active');
+        } else if (viewName === 'battle') {
+            if ($('#nav-battle-btn')) $('#nav-battle-btn').classList.add('active');
         }
 
         // Update URL hash
@@ -374,6 +376,7 @@
             if (targetView === 'records') loadWorldRecords();
             if (targetView === 'competitions' && !state.upcomingCompsFetched) fetchUpcomingCompetitions();
             if (targetView === 'algorithms') initializeAlgorithmsUI();
+            if (targetView === 'battle') initBattle();
         }
     }
 
@@ -465,6 +468,12 @@
             switchView('algorithms');
             initializeAlgorithmsUI();
         });
+        if ($('#nav-battle-btn')) {
+            $('#nav-battle-btn').addEventListener('click', () => {
+                switchView('battle');
+                initBattle();
+            });
+        }
 
         // Algorithms View Logic (Native + TwistyPlayer)
         const algEventSelect = $('#alg-event-select');
@@ -594,6 +603,10 @@
             currentEvent: '3x3',
             currentSetName: '',
             lastCase: null,
+            spaceHeld: false,
+            spaceHoldTimeout: null,
+            spaceHoldTime: 500,
+            isReadyToStart: false,
         };
 
         function getPuzzleName(event) {
@@ -692,8 +705,8 @@
             trainerState.active = true;
             clearInterval(trainerState.timerInterval);
 
-            // Show overlay
-            $('#alg-trainer-overlay').style.display = 'flex';
+            // Show view
+            switchView('practice');
 
             // Update header
             $('#trainer-set-name').textContent = trainerState.currentSetName;
@@ -737,6 +750,7 @@
             $('#trainer-timer-time').textContent = '0.00';
             $('#trainer-timer-time').className = 'trainer-timer-time';
             $('#trainer-timer-status').textContent = 'Press Space to start';
+            $('#trainer-timer-status').style.color = '';
             trainerState.timerRunning = false;
             clearInterval(trainerState.timerInterval);
         }
@@ -748,6 +762,7 @@
             const statusEl = $('#trainer-timer-status');
             timeEl.className = 'trainer-timer-time running';
             statusEl.textContent = 'Solving...';
+            statusEl.style.color = '';
             trainerState.timerInterval = setInterval(() => {
                 const elapsed = performance.now() - trainerState.startTime;
                 timeEl.textContent = formatTimeSec(elapsed);
@@ -763,6 +778,7 @@
             timeEl.textContent = formatTimeSec(elapsed);
             timeEl.className = 'trainer-timer-time';
             $('#trainer-timer-status').textContent = 'Press Space for next case';
+            $('#trainer-timer-status').style.color = '';
             addTime(elapsed, trainerState.currentCase ? trainerState.currentCase.name : '?');
         }
 
@@ -818,7 +834,7 @@
             trainerState.active = false;
             clearInterval(trainerState.timerInterval);
             trainerState.timerRunning = false;
-            $('#alg-trainer-overlay').style.display = 'none';
+            switchView('algorithms');
         }
 
         // Trainer button events
@@ -864,8 +880,23 @@
                 if (trainerState.timerRunning) {
                     stopTimer();
                     setTimeout(() => loadNextCase(), 800);
-                } else {
-                    startTimer();
+                } else if (!trainerState.spaceHeld) {
+                    trainerState.spaceHeld = true;
+                    trainerState.isReadyToStart = false;
+                    $('#trainer-timer-status').textContent = 'Holding...';
+                    $('#trainer-timer-status').style.color = 'var(--clr-warning)';
+                    
+                    if (trainerState.spaceHoldTime > 0) {
+                        trainerState.spaceHoldTimeout = setTimeout(() => {
+                            trainerState.isReadyToStart = true;
+                            $('#trainer-timer-status').textContent = 'Ready!';
+                            $('#trainer-timer-status').style.color = 'var(--clr-success)';
+                        }, trainerState.spaceHoldTime);
+                    } else {
+                        trainerState.isReadyToStart = true;
+                        $('#trainer-timer-status').textContent = 'Ready!';
+                        $('#trainer-timer-status').style.color = 'var(--clr-success)';
+                    }
                 }
             } else if (e.key === 'h' || e.key === 'H') {
                 showHintModal();
@@ -876,19 +907,78 @@
             }
         });
 
+        document.addEventListener('keyup', (e) => {
+            if (!trainerState.active || e.code !== 'Space') return;
+            e.preventDefault();
+
+            if (trainerState.spaceHeld && !trainerState.timerRunning) {
+                clearTimeout(trainerState.spaceHoldTimeout);
+                if (trainerState.isReadyToStart) {
+                    startTimer();
+                } else {
+                    $('#trainer-timer-status').textContent = 'Press Space to start';
+                    $('#trainer-timer-status').style.color = '';
+                }
+            }
+            trainerState.spaceHeld = false;
+            trainerState.isReadyToStart = false;
+        });
+
+        $('#hold-time-select').addEventListener('change', (e) => {
+            trainerState.spaceHoldTime = parseInt(e.target.value, 10);
+        });
+
         // Click on main area = space bar equivalent
-        $('#alg-trainer-overlay').addEventListener('click', (e) => {
+        const overlay = $('#alg-trainer-overlay');
+        
+        function handlePointerDown(e) {
             if (!trainerState.active) return;
-            // Only if click is directly on the main area (not buttons)
             const target = e.target;
             if (target.closest('button') || target.closest('.alg-trainer-sidebar') || target.closest('.alg-trainer-topbar') || target.closest('.alg-trainer-scramble-bar')) return;
+            
             if (trainerState.timerRunning) {
                 stopTimer();
                 setTimeout(() => loadNextCase(), 800);
-            } else {
-                startTimer();
+            } else if (!trainerState.spaceHeld) {
+                trainerState.spaceHeld = true;
+                trainerState.isReadyToStart = false;
+                $('#trainer-timer-status').textContent = 'Holding...';
+                $('#trainer-timer-status').style.color = 'var(--clr-warning)';
+                
+                if (trainerState.spaceHoldTime > 0) {
+                    trainerState.spaceHoldTimeout = setTimeout(() => {
+                        trainerState.isReadyToStart = true;
+                        $('#trainer-timer-status').textContent = 'Ready!';
+                        $('#trainer-timer-status').style.color = 'var(--clr-success)';
+                    }, trainerState.spaceHoldTime);
+                } else {
+                    trainerState.isReadyToStart = true;
+                    $('#trainer-timer-status').textContent = 'Ready!';
+                    $('#trainer-timer-status').style.color = 'var(--clr-success)';
+                }
             }
-        });
+        }
+        
+        function handlePointerUp(e) {
+            if (!trainerState.active) return;
+            if (trainerState.spaceHeld && !trainerState.timerRunning) {
+                clearTimeout(trainerState.spaceHoldTimeout);
+                if (trainerState.isReadyToStart) {
+                    startTimer();
+                } else {
+                    $('#trainer-timer-status').textContent = 'Press Space to start';
+                    $('#trainer-timer-status').style.color = '';
+                }
+            }
+            trainerState.spaceHeld = false;
+            trainerState.isReadyToStart = false;
+        }
+
+        overlay.addEventListener('mousedown', handlePointerDown);
+        overlay.addEventListener('touchstart', handlePointerDown);
+        overlay.addEventListener('mouseup', handlePointerUp);
+        overlay.addEventListener('touchend', handlePointerUp);
+        overlay.addEventListener('mouseleave', handlePointerUp);
 
 
         $$('.event-chip').forEach(chip => {
@@ -2792,6 +2882,728 @@
         };
         document.addEventListener('click', updateActivity);
         document.addEventListener('keydown', updateActivity);
+    }
+
+    // ========== BATTLE SYSTEM ==========
+    const BATTLE_EVENTS = {
+        '3x3':  { label: '3x3', puzzle: '3x3x3',  color: '#FF6B35', avgRange: [8000, 45000] },
+        '2x2':  { label: '2x2', puzzle: '2x2x2',  color: '#F7C948', avgRange: [2000, 18000] },
+        '4x4':  { label: '4x4', puzzle: '4x4x4',  color: '#2ECC71', avgRange: [28000, 120000] },
+        '5x5':  { label: '5x5', puzzle: '5x5x5',  color: '#3498DB', avgRange: [55000, 220000] },
+        '6x6':  { label: '6x6', puzzle: '6x6x6',  color: '#9B59B6', avgRange: [100000, 380000] },
+        '7x7':  { label: '7x7', puzzle: '7x7x7',  color: '#1ABC9C', avgRange: [160000, 500000] },
+        'oh':   { label: 'OH',  puzzle: '3x3x3',  color: '#E74C3C', avgRange: [14000, 80000] },
+        'clock':{ label: 'Clock', puzzle: 'clock', color: '#FF9FF3', avgRange: [6000, 30000] },
+        'mega': { label: 'Mega',  puzzle: 'megaminx', color: '#FEA47F', avgRange: [40000, 180000] },
+        'pyra': { label: 'Pyra',  puzzle: 'pyraminx', color: '#6C5CE7', avgRange: [3000, 22000] },
+        'skewb':{ label: 'Skewb', puzzle: 'skewb',  color: '#00CEC9', avgRange: [3500, 20000] },
+        'sq1':  { label: 'Sq-1',  puzzle: 'square1', color: '#FDCB6E', avgRange: [10000, 60000] },
+    };
+
+    const BOT_NAMES = [
+        'Max Hilbert', 'Sofia Renner', 'Luca Bianchi', 'Yuki Tanaka', 'Marco Polo',
+        'Elena Vasquez', 'Kai Nguyen', 'Mia Schreiber', 'Aarav Patel', 'Olivia Müller',
+        'Nathan Kim', 'Zara Ahmed', 'Felix Stein', 'Priya Singh', 'Lucas Dubois',
+        'Hannah Berg', 'Diego Flores', 'Aisha Okafor', 'Riku Sato', 'Emilia Johansson'
+    ];
+
+    const battleState = {
+        initialized: false,
+        rooms: [],
+        pendingRoomId: null,
+        currentRoom: null,
+        playerIsReady: false,
+        timerRunning: false,
+        timerArmed: false,
+        spaceHeld: false,
+        spaceHoldTimeout: null,
+        startTime: null,
+        timerInterval: null,
+        roundResults: [],
+        filterEvent: 'all',
+    };
+
+    function battleRandInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function battleFormatTime(ms) {
+        if (ms >= 60000) {
+            const m = Math.floor(ms / 60000);
+            const s = ((ms % 60000) / 1000).toFixed(2);
+            return `${m}:${parseFloat(s) < 10 ? '0' : ''}${s}`;
+        }
+        return (ms / 1000).toFixed(2);
+    }
+
+    function generateBattleScramble(event) {
+        const moves3 = ["U","U'","U2","D","D'","D2","R","R'","R2","L","L'","L2","F","F'","F2","B","B'","B2"];
+        const moves2 = ["U","U'","U2","R","R'","R2","F","F'","F2"];
+        const movesSkewb = ["U","U'","R","R'","L","L'","B","B'","F","F'"];
+        const movesPyra = ["U","U'","L","L'","R","R'","B","B'"];
+        const n = event === '4x4' ? 40 : event === '5x5' ? 60 : event === '6x6' ? 80 : event === '7x7' ? 100 : 20;
+        const pool = event === '2x2' ? moves2 : event === 'pyra' ? movesPyra : event === 'skewb' ? movesSkewb : moves3;
+        let s = [], last = '';
+        for (let i = 0; i < n; i++) {
+            let m;
+            do { m = pool[Math.floor(Math.random() * pool.length)]; } while (m.replace(/['2]/g,'') === last);
+            last = m.replace(/['2]/g,'');
+            s.push(m);
+        }
+        return s.join(' ');
+    }
+
+    function generateLobbyRooms() {
+        const eventKeys = Object.keys(BATTLE_EVENTS);
+        const rooms = [];
+        const usedNames = new Set();
+
+        const roomNames = [
+            'Friday Night Battles', 'Sub-10 Only 👑', 'Casual Cubing 🎲', 'Pro League Match',
+            'Beginners Welcome!', 'Speed Run Central', 'PB Hunters', 'Main Event Room',
+            'Warm-Up Room', 'Weekend Warriors', 'Daily Grind', 'Top Seeds Only',
+        ];
+
+        for (let i = 0; i < 10; i++) {
+            const evt = eventKeys[i % eventKeys.length];
+            const maxP = battleRandInt(2, 6);
+            const curP = battleRandInt(1, maxP - 1);
+            const botCount = curP;
+            const bots = [];
+            const usedBots = new Set();
+            for (let b = 0; b < botCount; b++) {
+                let bn;
+                do { bn = BOT_NAMES[battleRandInt(0, BOT_NAMES.length - 1)]; } while (usedBots.has(bn));
+                usedBots.add(bn);
+                bots.push({ name: bn, isBot: true, skill: Math.random() });
+            }
+
+            let rn;
+            do { rn = roomNames[battleRandInt(0, roomNames.length - 1)]; } while (usedNames.has(rn));
+            usedNames.add(rn);
+
+            const isPrivate = i % 5 === 4;
+            rooms.push({
+                id: 'room_' + i,
+                name: rn,
+                event: evt,
+                isPrivate,
+                password: isPrivate ? 'test123' : null,
+                maxPlayers: maxP,
+                players: bots,
+                totalRounds: 5,
+                currentRound: battleRandInt(0, 2),
+            });
+        }
+        return rooms;
+    }
+
+    function initBattle() {
+        // Check login
+        if (!state.userProfile) {
+            if ($('#battle-login-gate')) $('#battle-login-gate').style.display = 'flex';
+            if ($('#battle-lobby')) $('#battle-lobby').style.display = 'none';
+            if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
+
+            const loginBtn = $('#battle-login-btn');
+            if (loginBtn && !loginBtn._bound) {
+                loginBtn._bound = true;
+                loginBtn.addEventListener('click', () => {
+                    const loginModal = $('#login-modal');
+                    if (loginModal) loginModal.style.display = 'flex';
+                });
+            }
+            return;
+        }
+
+        // Logged in — show lobby
+        if ($('#battle-login-gate')) $('#battle-login-gate').style.display = 'none';
+        if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
+        if ($('#battle-lobby')) $('#battle-lobby').style.display = 'block';
+
+        if (!battleState.initialized) {
+            battleState.rooms = generateLobbyRooms();
+            battleState.initialized = true;
+            bindBattleEvents();
+        }
+
+        renderBattleLobby();
+    }
+
+    function bindBattleEvents() {
+        // Create room
+        $('#battle-create-room-btn').addEventListener('click', () => {
+            $('#battle-room-name-input').value = '';
+            $('#battle-room-password').value = '';
+            $('#battle-password-group').style.display = 'none';
+            $('#battle-vis-public').classList.add('active');
+            $('#battle-vis-private').classList.remove('active');
+            $('#battle-create-modal').style.display = 'flex';
+        });
+
+        $('#battle-create-close').addEventListener('click', () => $('#battle-create-modal').style.display = 'none');
+        $('#battle-create-cancel').addEventListener('click', () => $('#battle-create-modal').style.display = 'none');
+
+        // Visibility toggle
+        $('#battle-vis-public').addEventListener('click', () => {
+            $('#battle-vis-public').classList.add('active');
+            $('#battle-vis-private').classList.remove('active');
+            $('#battle-password-group').style.display = 'none';
+        });
+        $('#battle-vis-private').addEventListener('click', () => {
+            $('#battle-vis-private').classList.add('active');
+            $('#battle-vis-public').classList.remove('active');
+            $('#battle-password-group').style.display = 'block';
+        });
+
+        $('#battle-create-confirm').addEventListener('click', () => {
+            const name = $('#battle-room-name-input').value.trim();
+            if (!name) { showToast('Please enter a room name', 'error'); return; }
+            const isPrivate = $('#battle-vis-private').classList.contains('active');
+            const password = $('#battle-room-password').value.trim();
+            if (isPrivate && !password) { showToast('Please set a password for the private room', 'error'); return; }
+
+            const event = $('#battle-event-select').value;
+            const maxPlayers = parseInt($('#battle-max-players').value);
+            const totalRounds = parseInt($('#battle-rounds-select').value);
+
+            const newRoom = {
+                id: 'room_user_' + Date.now(),
+                name,
+                event,
+                isPrivate,
+                password: isPrivate ? password : null,
+                maxPlayers,
+                players: [],
+                totalRounds,
+                currentRound: 0,
+                isUserRoom: true,
+            };
+
+            battleState.rooms.unshift(newRoom);
+            $('#battle-create-modal').style.display = 'none';
+            enterBattleRoom(newRoom.id);
+        });
+
+        // Password modal
+        $('#battle-pw-close').addEventListener('click', () => {
+            $('#battle-password-modal').style.display = 'none';
+            battleState.pendingRoomId = null;
+        });
+        $('#battle-pw-cancel').addEventListener('click', () => {
+            $('#battle-password-modal').style.display = 'none';
+            battleState.pendingRoomId = null;
+        });
+        $('#battle-pw-confirm').addEventListener('click', () => {
+            const room = battleState.rooms.find(r => r.id === battleState.pendingRoomId);
+            if (!room) return;
+            const entered = $('#battle-pw-input').value;
+            if (entered === room.password) {
+                $('#battle-password-modal').style.display = 'none';
+                $('#battle-pw-error').style.display = 'none';
+                enterBattleRoom(room.id, true);
+            } else {
+                $('#battle-pw-error').style.display = 'flex';
+            }
+        });
+        $('#battle-pw-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter') $('#battle-pw-confirm').click();
+        });
+
+        // Event filter chips
+        $$('.battle-filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                $$('.battle-filter-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                battleState.filterEvent = chip.dataset.event;
+                renderBattleLobby();
+            });
+        });
+
+        // Room controls
+        $('#battle-leave-btn').addEventListener('click', leaveBattleRoom);
+        $('#battle-ready-btn').addEventListener('click', toggleBattleReady);
+        $('#battle-next-round-btn').addEventListener('click', startNextBattleRound);
+
+        // Spacebar for battle timer
+        document.addEventListener('keydown', battleKeyDown);
+        document.addEventListener('keyup', battleKeyUp);
+    }
+
+    function renderBattleLobby() {
+        const grid = $('#battle-rooms-grid');
+        if (!grid) return;
+
+        const filter = battleState.filterEvent;
+        const visible = filter === 'all' ? battleState.rooms : battleState.rooms.filter(r => r.event === filter);
+
+        if (visible.length === 0) {
+            grid.innerHTML = `<div class="battle-empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <p>No rooms found for this event. <button class="btn btn-primary" onclick="document.getElementById('battle-create-room-btn').click()">Create one!</button></p>
+            </div>`;
+            return;
+        }
+
+        grid.innerHTML = visible.map(room => {
+            const evtInfo = BATTLE_EVENTS[room.event] || { label: room.event, color: '#888' };
+            const playerCount = room.players.length + 1; // +1 for potential user
+            const isFull = playerCount > room.maxPlayers;
+            const statusText = room.currentRound > 0 ? `Round ${room.currentRound} in progress` : 'Waiting to start';
+            const statusClass = room.currentRound > 0 ? 'in-progress' : 'waiting';
+
+            return `<div class="battle-room-card ${isFull ? 'full' : ''}" data-room-id="${room.id}" style="--evt-color:${evtInfo.color}">
+                <div class="battle-room-card-header">
+                    <div class="battle-room-card-event" style="background:${evtInfo.color}22; color:${evtInfo.color}; border-color:${evtInfo.color}44">${evtInfo.label}</div>
+                    ${room.isPrivate ? `<div class="battle-room-private-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private</div>` : ''}
+                </div>
+                <div class="battle-room-card-name">${room.name}</div>
+                <div class="battle-room-card-host">Host: ${room.players[0] ? room.players[0].name : (state.userProfile ? state.userProfile.name : 'You')}</div>
+                <div class="battle-room-card-footer">
+                    <div class="battle-room-card-players">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        ${room.players.length}/${room.maxPlayers}
+                    </div>
+                    <div class="battle-room-card-status battle-status--${statusClass}">${statusText}</div>
+                </div>
+                <button class="battle-join-btn ${isFull ? 'disabled' : ''}" data-room-id="${room.id}" ${isFull ? 'disabled' : ''}>
+                    ${isFull ? 'Full' : room.isPrivate ? '🔒 Join' : 'Join →'}
+                </button>
+            </div>`;
+        }).join('');
+
+        // Bind join buttons
+        $$('.battle-join-btn:not(.disabled)').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const roomId = btn.dataset.roomId;
+                const room = battleState.rooms.find(r => r.id === roomId);
+                if (!room) return;
+                if (room.isPrivate) {
+                    battleState.pendingRoomId = roomId;
+                    $('#battle-pw-input').value = '';
+                    $('#battle-pw-error').style.display = 'none';
+                    $('#battle-password-modal').style.display = 'flex';
+                } else {
+                    enterBattleRoom(roomId);
+                }
+            });
+        });
+    }
+
+    function enterBattleRoom(roomId, skipPassword = false) {
+        const room = battleState.rooms.find(r => r.id === roomId);
+        if (!room) return;
+
+        // Add user to players if not already
+        const userName = state.userProfile ? state.userProfile.name : 'You';
+        if (!room.players.find(p => p.name === userName)) {
+            // Fill remaining slots with bots
+            const botsToAdd = Math.min(room.maxPlayers - 1 - room.players.length, battleRandInt(1, 3));
+            const usedNames = new Set(room.players.map(p => p.name));
+            for (let i = 0; i < botsToAdd; i++) {
+                let bn;
+                do { bn = BOT_NAMES[battleRandInt(0, BOT_NAMES.length - 1)]; } while (usedNames.has(bn));
+                usedNames.add(bn);
+                room.players.push({ name: bn, isBot: true, skill: Math.random(), scores: [] });
+            }
+        }
+
+        battleState.currentRoom = {
+            ...room,
+            userPlayer: { name: userName, isBot: false, skill: 0.5, scores: [] },
+            round: 1,
+            scramble: null,
+            roundStarted: false,
+        };
+
+        battleState.playerIsReady = false;
+        battleState.timerRunning = false;
+        battleState.timerArmed = false;
+
+        // Show room view
+        if ($('#battle-lobby')) $('#battle-lobby').style.display = 'none';
+        if ($('#battle-room-view')) $('#battle-room-view').style.display = 'flex';
+
+        renderBattleRoomView();
+    }
+
+    function renderBattleRoomView() {
+        const room = battleState.currentRoom;
+        if (!room) return;
+        const evtInfo = BATTLE_EVENTS[room.event] || { label: room.event, puzzle: '3x3x3', color: '#888' };
+
+        $('#battle-room-name-display').textContent = room.name;
+        $('#battle-room-event-badge').textContent = evtInfo.label;
+        $('#battle-room-event-badge').style.background = evtInfo.color + '22';
+        $('#battle-room-event-badge').style.color = evtInfo.color;
+        $('#battle-round-counter').textContent = `Round ${room.round} / ${room.totalRounds}`;
+
+        // Reset state
+        $('#battle-status-text').textContent = 'Waiting for players to ready up...';
+        $('#battle-scramble-text').textContent = '— Ready up to reveal —';
+        $('#battle-timer-time').textContent = '0.00';
+        $('#battle-timer-time').className = 'battle-timer-time';
+        $('#battle-timer-status').textContent = 'Ready up to begin';
+        $('#battle-timer-status').style.color = '';
+        $('#battle-timer-panel').style.display = 'flex';
+        $('#battle-round-results').style.display = 'none';
+        $('#battle-ready-btn').textContent = '';
+        $('#battle-ready-btn').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ready Up`;
+        $('#battle-ready-btn').classList.remove('is-ready');
+        battleState.playerIsReady = false;
+        battleState.roundResults = [];
+
+        // Set twisty puzzle
+        const twisty = $('#battle-twisty');
+        if (twisty) {
+            twisty.setAttribute('puzzle', evtInfo.puzzle);
+            twisty.setAttribute('alg', '');
+        }
+
+        renderBattlePlayers();
+        renderBattleScoreHistory();
+    }
+
+    function renderBattlePlayers() {
+        const room = battleState.currentRoom;
+        if (!room) return;
+        const list = $('#battle-players-list');
+        if (!list) return;
+
+        const allPlayers = [room.userPlayer, ...room.players];
+        list.innerHTML = allPlayers.map((p, i) => {
+            const status = p.isBot ? getBotStatus(p) : (battleState.playerIsReady ? 'ready' : 'waiting');
+            const statusLabel = { 'waiting': 'Waiting', 'ready': 'Ready ✓', 'solving': 'Solving...', 'finished': 'Done ✓' }[status] || 'Waiting';
+            const statusClass = { 'waiting': '', 'ready': 'ready', 'solving': 'solving', 'finished': 'finished' }[status] || '';
+            return `<div class="battle-player-row ${p.isBot ? '' : 'is-user'}">
+                <div class="battle-player-avatar" style="background:hsl(${(i * 47 + 120) % 360},65%,45%)">${(p.name||'?')[0].toUpperCase()}</div>
+                <div class="battle-player-info">
+                    <div class="battle-player-name">${p.name}${!p.isBot ? ' (You)' : ''}</div>
+                </div>
+                <div class="battle-player-status ${statusClass}">${statusLabel}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function getBotStatus(bot) {
+        if (!battleState.currentRoom?.roundStarted) return Math.random() < 0.6 ? 'ready' : 'waiting';
+        return 'solving';
+    }
+
+    function toggleBattleReady() {
+        battleState.playerIsReady = !battleState.playerIsReady;
+        const btn = $('#battle-ready-btn');
+        if (battleState.playerIsReady) {
+            btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ready!`;
+            btn.classList.add('is-ready');
+        } else {
+            btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ready Up`;
+            btn.classList.remove('is-ready');
+        }
+        renderBattlePlayers();
+
+        // Auto-start after a short delay when user readies up
+        if (battleState.playerIsReady) {
+            $('#battle-status-text').textContent = 'Starting in 3 seconds...';
+            setTimeout(() => {
+                if (battleState.playerIsReady && battleState.currentRoom && !battleState.currentRoom.roundStarted) {
+                    startBattleRound();
+                }
+            }, 3000);
+        }
+    }
+
+    function startBattleRound() {
+        const room = battleState.currentRoom;
+        if (!room) return;
+        room.roundStarted = true;
+        battleState.roundResults = [];
+
+        const evtInfo = BATTLE_EVENTS[room.event] || { puzzle: '3x3x3' };
+        const scramble = generateBattleScramble(room.event);
+        room.scramble = scramble;
+
+        $('#battle-scramble-text').textContent = scramble;
+        $('#battle-status-text').textContent = 'Round in progress!';
+        $('#battle-timer-status').textContent = 'Hold Space to start timer';
+
+        const twisty = $('#battle-twisty');
+        if (twisty) twisty.setAttribute('alg', scramble);
+
+        renderBattlePlayers();
+
+        // Schedule bots to finish
+        const allBots = room.players;
+        allBots.forEach(bot => {
+            const evtRange = evtInfo.avgRange || [10000, 60000];
+            const skillFactor = 0.5 + bot.skill * 0.5;
+            const mean = evtRange[0] + (evtRange[1] - evtRange[0]) * (1 - bot.skill * 0.7);
+            const variance = mean * 0.25;
+            const solveTime = Math.max(evtRange[0] * 0.7, mean + (Math.random() - 0.5) * variance);
+            setTimeout(() => {
+                if (!battleState.currentRoom || !battleState.currentRoom.roundStarted) return;
+                battleState.roundResults.push({ name: bot.name, isBot: true, time: solveTime });
+                checkBattleRoundComplete();
+            }, solveTime);
+        });
+    }
+
+    function battleKeyDown(e) {
+        if (state.currentView !== 'battle') return;
+        if (!battleState.currentRoom || !battleState.currentRoom.roundStarted) return;
+        if ($('#battle-round-results') && $('#battle-round-results').style.display !== 'none') return;
+        if (e.code !== 'Space') return;
+        e.preventDefault();
+
+        if (battleState.timerRunning) {
+            stopBattleTimer();
+        } else if (!battleState.spaceHeld) {
+            battleState.spaceHeld = true;
+            battleState.timerArmed = false;
+            $('#battle-timer-status').textContent = 'Holding...';
+            $('#battle-timer-status').style.color = 'var(--clr-warning)';
+            battleState.spaceHoldTimeout = setTimeout(() => {
+                battleState.timerArmed = true;
+                $('#battle-timer-status').textContent = 'Ready!';
+                $('#battle-timer-status').style.color = 'var(--clr-success)';
+            }, 500);
+        }
+    }
+
+    function battleKeyUp(e) {
+        if (state.currentView !== 'battle') return;
+        if (e.code !== 'Space') return;
+        e.preventDefault();
+
+        if (battleState.spaceHeld && !battleState.timerRunning) {
+            clearTimeout(battleState.spaceHoldTimeout);
+            if (battleState.timerArmed) {
+                startBattleTimer();
+            } else {
+                $('#battle-timer-status').textContent = 'Hold Space to start timer';
+                $('#battle-timer-status').style.color = '';
+            }
+        }
+        battleState.spaceHeld = false;
+        battleState.timerArmed = false;
+    }
+
+    function startBattleTimer() {
+        battleState.startTime = performance.now();
+        battleState.timerRunning = true;
+        const timeEl = $('#battle-timer-time');
+        timeEl.className = 'battle-timer-time running';
+        $('#battle-timer-status').textContent = 'Solving!';
+        $('#battle-timer-status').style.color = '';
+        battleState.timerInterval = setInterval(() => {
+            const elapsed = performance.now() - battleState.startTime;
+            timeEl.textContent = battleFormatTime(elapsed);
+        }, 30);
+    }
+
+    function stopBattleTimer() {
+        if (!battleState.timerRunning) return;
+        clearInterval(battleState.timerInterval);
+        battleState.timerRunning = false;
+        const elapsed = performance.now() - battleState.startTime;
+        const timeEl = $('#battle-timer-time');
+        timeEl.textContent = battleFormatTime(elapsed);
+        timeEl.className = 'battle-timer-time pb';
+        $('#battle-timer-status').textContent = 'Done! Waiting for others...';
+        $('#battle-timer-status').style.color = 'var(--clr-success)';
+
+        const userName = state.userProfile ? state.userProfile.name : 'You';
+        battleState.roundResults.push({ name: userName, isBot: false, time: elapsed });
+        checkBattleRoundComplete();
+    }
+
+    function checkBattleRoundComplete() {
+        const room = battleState.currentRoom;
+        if (!room) return;
+        const totalExpected = room.players.length + 1;
+        if (battleState.roundResults.length >= totalExpected) {
+            setTimeout(() => showBattleRoundResults(), 500);
+        }
+    }
+
+    function showBattleRoundResults() {
+        const room = battleState.currentRoom;
+        if (!room) return;
+
+        // Sort by time
+        const sorted = [...battleState.roundResults].sort((a, b) => a.time - b.time);
+        const userName = state.userProfile ? state.userProfile.name : 'You';
+
+        // Add to score history
+        if (!room.userPlayer.scores) room.userPlayer.scores = [];
+        const userResult = sorted.find(r => r.name === userName);
+        if (userResult) room.userPlayer.scores.push(userResult.time);
+        room.players.forEach(bot => {
+            const botResult = sorted.find(r => r.name === bot.name);
+            if (botResult) {
+                if (!bot.scores) bot.scores = [];
+                bot.scores.push(botResult.time);
+            }
+        });
+
+        const rankEmojis = ['🥇', '🥈', '🥉'];
+
+        $('#battle-results-table').innerHTML = sorted.map((r, i) => `
+            <div class="battle-result-row ${r.name === userName ? 'is-user' : ''}">
+                <span class="battle-result-rank">${rankEmojis[i] || `#${i+1}`}</span>
+                <span class="battle-result-name">${r.name}${!r.isBot ? ' (You)' : ''}</span>
+                <span class="battle-result-time">${battleFormatTime(r.time)}</span>
+            </div>
+        `).join('');
+
+        $('#battle-timer-panel').style.display = 'none';
+        $('#battle-round-results').style.display = 'flex';
+
+        const isLastRound = room.round >= room.totalRounds;
+        const nextBtn = $('#battle-next-round-btn');
+        if (isLastRound) {
+            nextBtn.textContent = 'See Final Results 🏆';
+        } else {
+            nextBtn.textContent = `Next Round (${room.round + 1}/${room.totalRounds}) →`;
+        }
+
+        renderBattleScoreHistory();
+    }
+
+    function renderBattleScoreHistory() {
+        const room = battleState.currentRoom;
+        const list = $('#battle-scores-list');
+        if (!list || !room) return;
+
+        const allPlayers = [room.userPlayer, ...room.players];
+        const userName = state.userProfile ? state.userProfile.name : 'You';
+
+        // Compute total wins per player
+        const rounds = room.userPlayer.scores ? room.userPlayer.scores.length : 0;
+        if (rounds === 0) {
+            list.innerHTML = '<div class="battle-scores-empty">No solves yet</div>';
+            return;
+        }
+
+        // Build per-round leaderboard rows
+        let html = '';
+        for (let r = 0; r < rounds; r++) {
+            const roundTimes = allPlayers
+                .filter(p => p.scores && p.scores[r] !== undefined)
+                .map(p => ({ name: p.name, isBot: p.isBot, time: p.scores[r] }))
+                .sort((a, b) => a.time - b.time);
+            const winner = roundTimes[0];
+            html += `<div class="battle-score-round"><div class="battle-score-round-label">Round ${r+1}</div>`;
+            roundTimes.forEach((rt, i) => {
+                html += `<div class="battle-score-entry ${rt.name === userName ? 'is-user' : ''}">
+                    <span class="battle-score-rank">#${i+1}</span>
+                    <span class="battle-score-name">${rt.name.split(' ')[0]}</span>
+                    <span class="battle-score-time">${battleFormatTime(rt.time)}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+        list.innerHTML = html;
+    }
+
+    function startNextBattleRound() {
+        const room = battleState.currentRoom;
+        if (!room) return;
+
+        if (room.round >= room.totalRounds) {
+            // Show final screen
+            showBattleFinalResults();
+            return;
+        }
+
+        room.round++;
+        room.roundStarted = false;
+        battleState.playerIsReady = false;
+        battleState.timerRunning = false;
+        clearInterval(battleState.timerInterval);
+
+        $('#battle-round-counter').textContent = `Round ${room.round} / ${room.totalRounds}`;
+        $('#battle-timer-panel').style.display = 'flex';
+        $('#battle-round-results').style.display = 'none';
+        $('#battle-scramble-text').textContent = '— Ready up to reveal —';
+        $('#battle-timer-time').textContent = '0.00';
+        $('#battle-timer-time').className = 'battle-timer-time';
+        $('#battle-timer-status').textContent = 'Ready up to begin';
+        $('#battle-timer-status').style.color = '';
+        $('#battle-ready-btn').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ready Up`;
+        $('#battle-ready-btn').classList.remove('is-ready');
+        $('#battle-status-text').textContent = 'Waiting for players to ready up...';
+
+        const twisty = $('#battle-twisty');
+        if (twisty) twisty.setAttribute('alg', '');
+
+        renderBattlePlayers();
+    }
+
+    function showBattleFinalResults() {
+        const room = battleState.currentRoom;
+        if (!room) return;
+
+        const userName = state.userProfile ? state.userProfile.name : 'You';
+        const allPlayers = [room.userPlayer, ...room.players];
+
+        // Count wins
+        const winCounts = {};
+        allPlayers.forEach(p => { winCounts[p.name] = 0; });
+        const rounds = room.userPlayer.scores ? room.userPlayer.scores.length : 0;
+        for (let r = 0; r < rounds; r++) {
+            const roundTimes = allPlayers
+                .filter(p => p.scores && p.scores[r] !== undefined)
+                .sort((a, b) => a.scores[r] - b.scores[r]);
+            if (roundTimes.length > 0) winCounts[roundTimes[0].name] = (winCounts[roundTimes[0].name] || 0) + 1;
+        }
+
+        // Average times
+        const playerStats = allPlayers.map(p => ({
+            name: p.name,
+            isBot: p.isBot,
+            wins: winCounts[p.name] || 0,
+            avg: p.scores && p.scores.length > 0 ? p.scores.reduce((a,b) => a+b, 0) / p.scores.length : Infinity,
+        })).sort((a, b) => b.wins - a.wins || a.avg - b.avg);
+
+        const rankEmojis = ['🥇', '🥈', '🥉'];
+        const userRank = playerStats.findIndex(p => p.name === userName);
+
+        $('#battle-results-table').innerHTML = `
+            <div class="battle-final-header">🏆 Final Standings</div>
+            ${playerStats.map((p, i) => `
+                <div class="battle-result-row ${p.name === userName ? 'is-user' : ''}">
+                    <span class="battle-result-rank">${rankEmojis[i] || `#${i+1}`}</span>
+                    <span class="battle-result-name">${p.name}${!p.isBot ? ' (You)' : ''}</span>
+                    <span class="battle-result-time">${p.wins}W · ${p.avg < Infinity ? battleFormatTime(p.avg) + ' avg' : 'N/A'}</span>
+                </div>
+            `).join('')}
+        `;
+        $('#battle-next-round-btn').textContent = 'Back to Lobby';
+        $('#battle-next-round-btn').onclick = () => leaveBattleRoom();
+        $('#battle-round-results').style.display = 'flex';
+        $('#battle-timer-panel').style.display = 'none';
+
+        if (userRank === 0) {
+            showToast('🏆 You won the battle! GG!', 'success');
+        } else {
+            showToast(`You finished #${userRank + 1}. Better luck next time!`, 'info');
+        }
+    }
+
+    function leaveBattleRoom() {
+        clearInterval(battleState.timerInterval);
+        battleState.timerRunning = false;
+        battleState.currentRoom = null;
+        battleState.playerIsReady = false;
+
+        if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
+        if ($('#battle-lobby')) $('#battle-lobby').style.display = 'block';
+
+        // Refresh rooms
+        battleState.rooms = generateLobbyRooms();
+        renderBattleLobby();
     }
 
     // ========== START ==========
