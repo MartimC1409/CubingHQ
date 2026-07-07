@@ -1713,40 +1713,66 @@
     function updatePRDisplay() {
         if (!state.playerData) return;
 
-        const event = state.event;
+        const currentEvent = state.event;
         const prs = state.playerData.personal_records;
-        const eventPR = prs[event];
+        const eventPR = prs[currentEvent];
 
-        $('#pr-event-name').textContent = EVENT_NAMES[event] || event;
-
+        // Maintain playerAvg for simulation logic based on currently selected event
         if (eventPR) {
-            // Single PR - values are in centiseconds
             if (eventPR.single) {
-                const singleSec = eventPR.single.best / 100;
-                state.playerAvg = singleSec; // fallback
-                $('#pr-single').textContent = formatTime(singleSec);
-                $('#pr-single-rank').textContent = `WR #${eventPR.single.world_rank} | NR #${eventPR.single.country_rank}`;
-            } else {
-                $('#pr-single').textContent = '—';
-                $('#pr-single-rank').textContent = '';
+                state.playerAvg = eventPR.single.best / 100; // fallback
             }
-
-            // Average PR
             if (eventPR.average) {
-                const avgSec = eventPR.average.best / 100;
-                state.playerAvg = avgSec; // Use PR average as player average
-                $('#pr-average').textContent = formatTime(avgSec);
-                $('#pr-average-rank').textContent = `WR #${eventPR.average.world_rank} | NR #${eventPR.average.country_rank}`;
-            } else {
-                $('#pr-average').textContent = '—';
-                $('#pr-average-rank').textContent = '';
+                state.playerAvg = eventPR.average.best / 100;
             }
         } else {
-            $('#pr-single').textContent = 'No PR';
-            $('#pr-single-rank').textContent = '';
-            $('#pr-average').textContent = 'No PR';
-            $('#pr-average-rank').textContent = '';
             state.playerAvg = 15; // default fallback
+        }
+
+        const prTableBody = $('#pr-table-body');
+        if (!prTableBody) return;
+
+        // Build table of all personal records
+        const allEvents = Object.keys(prs);
+        
+        // Define a sort order matching WCA typical order
+        const eventOrder = ['333', '222', '444', '555', '666', '777', '333bf', '333fm', '333oh', 'clock', 'minx', 'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'];
+        
+        allEvents.sort((a, b) => {
+            const idxA = eventOrder.indexOf(a);
+            const idxB = eventOrder.indexOf(b);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        if (allEvents.length === 0) {
+            prTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:var(--clr-text-muted);">No official results yet.</td></tr>';
+        } else {
+            prTableBody.innerHTML = allEvents.map(evt => {
+                const rec = prs[evt];
+                const s = rec.single;
+                const a = rec.average;
+                
+                const sTime = s ? formatTime(s.best / 100) : '—';
+                const aTime = a ? formatTime(a.best / 100) : '—';
+                const sRank = s ? s.country_rank : '—';
+                const aRank = a ? a.country_rank : '—';
+                
+                const isCurrent = evt === currentEvent;
+                const activeStyle = isCurrent ? 'background: var(--clr-primary-glow);' : '';
+                
+                return `
+                    <tr class="records-row" style="${activeStyle}">
+                        <td class="rec-event-name">${EVENT_NAMES[evt] || evt}</td>
+                        <td style="font-size: 0.75rem; color: var(--clr-text-muted); text-align: center;">${sRank !== '—' ? '#' + sRank : '—'}</td>
+                        <td class="rec-time rec-single" style="text-align: center;">${sTime}</td>
+                        <td class="rec-time" style="text-align: center;">${aTime}</td>
+                        <td style="font-size: 0.75rem; color: var(--clr-text-muted); text-align: center;">${aRank !== '—' ? '#' + aRank : '—'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         $('#pr-display').style.display = 'block';

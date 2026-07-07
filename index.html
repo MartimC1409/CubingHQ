@@ -315,18 +315,22 @@
                                         <div class="api-detail"><span class="api-detail-icon">🔢</span><span id="wca-display-comps">—</span></div>
                                     </div>
                                     <div class="pr-display" id="pr-display">
-                                        <h4 class="pr-title">Personal Records for <span id="pr-event-name">3x3</span></h4>
-                                        <div class="pr-grid">
-                                            <div class="pr-stat">
-                                                <span class="pr-label">Single PR</span>
-                                                <span class="pr-value" id="pr-single">—</span>
-                                                <span class="pr-rank" id="pr-single-rank">—</span>
-                                            </div>
-                                            <div class="pr-stat">
-                                                <span class="pr-label">Average PR</span>
-                                                <span class="pr-value" id="pr-average">—</span>
-                                                <span class="pr-rank" id="pr-average-rank">—</span>
-                                            </div>
+                                        <h4 class="pr-title" style="margin-bottom: 12px; margin-top: 10px;">Personal Records</h4>
+                                        <div class="records-table-wrap" style="max-height: 280px; overflow-y: auto; border: 1px solid var(--clr-border); border-radius: var(--radius-md);">
+                                            <table class="records-table-enhanced" style="width: 100%;">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="rec-th-event">Event</th>
+                                                        <th class="rec-th-time" style="text-align: center;">NR</th>
+                                                        <th class="rec-th-time" style="text-align: center;">Single</th>
+                                                        <th class="rec-th-time" style="text-align: center;">Average</th>
+                                                        <th class="rec-th-time" style="text-align: center;">NR</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="pr-table-body">
+                                                    <!-- Populated by JS -->
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
