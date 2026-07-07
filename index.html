@@ -76,9 +76,100 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             History
         </button>
+        <!-- Login Button -->
+        <button class="nav-btn" id="nav-login-btn" title="Login">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            Login
+        </button>
         <div class="theme-toggle" id="theme-toggle" title="Toggle theme">
             <svg class="theme-icon sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             <svg class="theme-icon moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+    </div>    <!-- Login Modal (Premium Redesign) -->
+    <div id="login-modal" class="modal auth-modal" style="display:none;">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Welcome Back</h2>
+                <p class="auth-subtitle">Login to access your personalized simulation data.</p>
+                <button id="login-close-btn" class="modal-close-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="login-methods">
+                    <button id="wca-login-btn" class="btn auth-provider-btn wca-auth-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        Continue with WCA
+                    </button>
+                </div>
+                
+                <div class="auth-divider">
+                    <span>OR</span>
+                </div>
+                
+                <form id="login-form" class="auth-form">
+                    <div class="form-floating">
+                        <input type="email" id="login-email" class="form-input" placeholder=" " required>
+                        <label for="login-email">Email Address</label>
+                    </div>
+                    <div class="form-floating">
+                        <input type="password" id="login-password" class="form-input" placeholder=" " required>
+                        <label for="login-password">Password</label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary auth-submit-btn">Sign In</button>
+                </form>
+                
+                <div class="auth-footer">
+                    Don't have an account? <a href="#" id="show-signup-link" class="auth-link">Sign up</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Modal (Premium Redesign) -->
+    <div id="signup-modal" class="modal auth-modal" style="display:none;">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Create Account</h2>
+                <p class="auth-subtitle">Join SimulateCubing to track your progress.</p>
+                <button id="signup-close-btn" class="modal-close-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="login-methods">
+                    <button id="wca-signup-btn" class="btn auth-provider-btn wca-auth-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        Sign up with WCA
+                    </button>
+                </div>
+                
+                <div class="auth-divider">
+                    <span>OR</span>
+                </div>
+                
+                <form id="signup-form" class="auth-form">
+                    <div class="form-floating">
+                        <input type="email" id="signup-email" class="form-input" placeholder=" " required>
+                        <label for="signup-email">Email Address</label>
+                    </div>
+                    <div class="form-floating">
+                        <input type="password" id="signup-password" class="form-input" placeholder=" " required>
+                        <label for="signup-password">Password</label>
+                    </div>
+                    <div class="form-floating">
+                        <input type="password" id="signup-confirm-password" class="form-input" placeholder=" " required>
+                        <label for="signup-confirm-password">Confirm Password</label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary auth-submit-btn">Create Account</button>
+                </form>
+                
+                <div class="auth-footer">
+                    Already have an account? <a href="#" id="show-login-link" class="auth-link">Log in</a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -149,8 +240,8 @@
                                     </div>
                                     <div class="api-info-details">
                                         <div class="api-detail"><span class="api-detail-icon">📅</span><span id="comp-display-date">—</span></div>
-                                        <div class="api-detail"><span class="api-detail-icon">📍</span><span id="comp-display-venue">—</span></div>
-                                        <div class="api-detail"><span class="api-detail-icon">🌍</span><span id="comp-display-city">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🏢</span><span id="comp-display-venue">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">📍</span><span id="comp-display-city">—</span></div>
                                         <div class="api-detail"><span class="api-detail-icon">👥</span><span id="comp-display-limit">—</span></div>
                                         <div class="api-detail"><span class="api-detail-icon">🧩</span><span id="comp-display-events">—</span></div>
                                     </div>
@@ -328,7 +419,6 @@
                                 <h2 class="card-title">Simulation Settings</h2>
                             </div>
                             <div class="card-body">
-
                                 <div class="form-group">
                                     <label class="toggle-label">
                                         <span>Sound Effects</span>
@@ -420,83 +510,7 @@
                     <!-- Scorecard Panel -->
                     <div class="dash-card scorecard-card" id="scorecard-panel">
                         <div class="card-header-bar">
-                            <h3 class="card-bar-title">📝 Scorecard</h3>
-                        </div>
-                        <div class="scorecard-wrap">
-                            <div class="scorecard-player-info">
-                                <span class="scorecard-name" id="scorecard-name">Player</span>
-                                <span class="scorecard-event" id="scorecard-event">3x3 — Round 1</span>
-                            </div>
-                            <table class="scorecard-table" id="scorecard-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Scramble</th>
-                                        <th>Time</th>
-                                        <th>Penalty</th>
-                                        <th>Result</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="scorecard-body"></tbody>
-                            </table>
-                            <div class="scorecard-summary">
-                                <div class="summary-stat">
-                                    <span class="stat-label">Best</span>
-                                    <span class="stat-value" id="stat-best">—</span>
-                                </div>
-                                <div class="summary-stat">
-                                    <span class="stat-label">Worst</span>
-                                    <span class="stat-value" id="stat-worst">—</span>
-                                </div>
-                                <div class="summary-stat highlight">
-                                    <span class="stat-label">Average</span>
-                                    <span class="stat-value" id="stat-average">—</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Goal Tracker -->
-                    <div class="dash-card goal-card" id="goal-panel">
-                        <div class="card-header-bar">
-                            <h3 class="card-bar-title">🎯 Goal Tracker</h3>
-                        </div>
-                        <div class="goal-content">
-                            <div class="goal-ring-wrap">
-                                <svg class="goal-ring" viewBox="0 0 120 120">
-                                    <circle class="ring-bg" cx="60" cy="60" r="52" />
-                                    <circle class="ring-fill" cx="60" cy="60" r="52" id="goal-ring-fill" />
-                                </svg>
-                                <div class="goal-ring-text">
-                                    <span class="ring-pct" id="goal-pct">0%</span>
-                                    <span class="ring-label">Progress</span>
-                                </div>
-                            </div>
-                            <div class="goal-details">
-                                <div class="goal-detail-row">
-                                    <span>Target Avg</span>
-                                    <span class="goal-val" id="goal-target-avg">—</span>
-                                </div>
-                                <div class="goal-detail-row">
-                                    <span>Current Avg</span>
-                                    <span class="goal-val" id="goal-current-avg">—</span>
-                                </div>
-                                <div class="goal-detail-row">
-                                    <span>PR Average</span>
-                                    <span class="goal-val" id="goal-pr-avg">—</span>
-                                </div>
-                                <div class="goal-detail-row">
-                                    <span>Status</span>
-                                    <span class="goal-val goal-status" id="goal-status">Waiting...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Leaderboard Panel -->
-                    <div class="dash-card leaderboard-card" id="leaderboard-panel">
-                        <div class="card-header-bar">
-                            <h3 class="card-bar-title">🏅 Leaderboard</h3>
+                            <h3 class="card-bar-title">🏆 Leaderboard</h3>
                             <span class="card-bar-info" id="lb-count">0 competitors</span>
                         </div>
                         <div class="leaderboard-wrap" id="leaderboard-wrap">
@@ -550,7 +564,7 @@
         <section id="history-view" class="view">
             <div class="history-container">
                 <div class="history-header">
-                    <h2>📊 Simulation History</h2>
+                    <h2>📜 Simulation History</h2>
                     <button class="btn btn-ghost btn-sm" id="clear-history-btn">Clear All</button>
                 </div>
                 <div class="history-list" id="history-list">
@@ -571,7 +585,7 @@
                 </div>
                 <div id="stats-placeholder" class="setup-card" style="padding: 4rem 2rem; text-align: center; border: 1px solid var(--clr-border); background: var(--clr-surface);">
                     <div style="font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.8;">📊</div>
-                    <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--clr-text); margin-bottom: var(--space-sm);">No Data Yet</h2>
+                    <h2 style="font-size: 1.5rem; font-weight: 60; color: var(--clr-text); margin-bottom: var(--space-sm);">No Data Yet</h2>
                     <p style="color: var(--clr-text-muted); font-size: 1.1rem; max-width: 400px; margin: 0 auto; line-height: 1.6;">
                         Look up your WCA ID on the setup page to view your official WCA statistics!
                     </p>
@@ -660,7 +674,7 @@
                                     <th class="rec-th-expand"></th>
                                 </tr>
                             </thead>
-                            <tbody id="records-table-body">
+                            <tbody id="records-table-body>
                                 <!-- Records populated by JS -->
                             </tbody>
                         </table>
@@ -772,7 +786,7 @@
                         <span class="trainer-case-count" id="trainer-case-count">0 cases</span>
                     </div>
                     <button id="trainer-settings-btn" class="trainer-icon-btn" title="Settings">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </button>
                 </div>
 
@@ -883,6 +897,8 @@
     <!-- Toast Notification -->
     <div class="toast-container" id="toast-container">    </div>
     
+    
+    <script src="algorithms.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

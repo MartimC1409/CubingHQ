@@ -7,6 +7,9 @@
 
     // ========== CONSTANTS ==========
     const WCA_API = 'https://www.worldcubeassociation.org/api/v0';
+    const WCA_OAUTH_URL = 'https://www.worldcubeassociation.org/oauth/authorize';
+    const WCA_CLIENT_ID = '1JYkddNS-8RmLWFIWcfkzxCDReFBT8lSoOZpY4j4_YY'; // Replace with real Client ID from WCA
+    const OAUTH_REDIRECT_URI = window.location.origin + window.location.pathname;
 
     const EVENT_NAMES = {
         '333': '3x3x3', '222': '2x2x2', '444': '4x4x4', '555': '5x5x5',
@@ -70,10 +73,10 @@
 
     // Country ISO2 to flag image (works on Windows unlike emoji flags)
     function countryFlagImg(iso2, size = 20) {
-        if (!iso2 || iso2.length !== 2) return '<span class="flag-placeholder">🌍</span>';
+        if (!iso2 || iso2.length !== 2) return '<span class="flag-placeholder">&#127757;</span>';
         const code = iso2.toLowerCase();
         const h = Math.round(size * 0.75);
-        return `<img src="https://flagcdn.com/w40/${code}.png" alt="${iso2}" class="country-flag" width="${size}" height="${h}" loading="lazy" onerror="this.outerHTML='🌍'">`;
+        return `<img src="https://flagcdn.com/${code}.svg" alt="${iso2}" class="country-flag" style="width: ${size}px; height: auto" loading="lazy" onerror="this.outerHTML='&#127757;'">`;
     }
 
     // Keep text-only version for non-HTML contexts
@@ -201,7 +204,63 @@
     const $$ = (sel) => document.querySelectorAll(sel);
 
     // ========== INITIALIZATION ==========
+    let initializeAlgorithmsUI = () => { };
+
+    function checkOAuthCallback() {
+        const hash = window.location.hash;
+        if (hash.includes('access_token=')) {
+            const params = new URLSearchParams(hash.substring(1));
+            const token = params.get('access_token');
+            if (token) {
+                localStorage.setItem('wca_access_token', token);
+                // Remove token from URL
+                window.history.replaceState(null, null, window.location.pathname);
+            }
+        }
+    }
+
+    async function fetchWCAProfile() {
+        const token = localStorage.getItem('wca_access_token');
+        if (!token) return;
+
+        try {
+            const res = await fetch(`${WCA_API}/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                state.userProfile = data.me;
+                updateUIAfterLogin();
+                showToast(`Welcome back, ${data.me.name.split(' ')[0]}!`, 'success');
+                if ($('#login-modal')) $('#login-modal').style.display = 'none';
+                if ($('#signup-modal')) $('#signup-modal').style.display = 'none';
+            } else {
+                localStorage.removeItem('wca_access_token');
+            }
+        } catch (err) {
+            console.error('Failed to fetch WCA profile', err);
+        }
+    }
+
+    function updateUIAfterLogin() {
+        if (!state.userProfile) return;
+        const navBtn = $('#nav-login-btn');
+        if (navBtn) {
+            const avatarUrl = state.userProfile.avatar?.url || 'https://www.worldcubeassociation.org/assets/missing_avatar_thumb-12654dd6f1aa6d458e80d41e6c4ea6cf79b7c53d1010e6fb3eb18ce86d9ed8df.png';
+            navBtn.innerHTML = `<img src="${avatarUrl}" alt="Profile" class="nav-avatar">`;
+            navBtn.title = "Profile";
+        }
+    }
+
+    function handleWCALogin(e) {
+        if (e) e.preventDefault();
+        const url = `${WCA_OAUTH_URL}?client_id=${WCA_CLIENT_ID}&redirect_uri=${encodeURIComponent(OAUTH_REDIRECT_URI)}&response_type=token&scope=public`;
+        window.location.href = url;
+    }
+
     function init() {
+        checkOAuthCallback();
+        fetchWCAProfile();
         loadTheme();
         loadHistory();
         bindEvents();
@@ -282,6 +341,7 @@
             if (targetView === 'history') renderHistory();
             if (targetView === 'records') loadWorldRecords();
             if (targetView === 'competitions' && !state.upcomingCompsFetched) fetchUpcomingCompetitions();
+            if (targetView === 'algorithms') initializeAlgorithmsUI();
         }
     }
 
@@ -291,6 +351,71 @@
 
     // ========== EVENT BINDINGS ==========
     function bindEvents() {
+        // Login and Signup Modals
+        const loginModal = $('#login-modal');
+        const signupModal = $('#signup-modal');
+
+        if ($('#nav-login-btn')) {
+            $('#nav-login-btn').addEventListener('click', () => {
+                if (loginModal) loginModal.style.display = 'flex';
+            });
+        }
+
+        if ($('#login-close-btn')) {
+            $('#login-close-btn').addEventListener('click', () => {
+                if (loginModal) loginModal.style.display = 'none';
+            });
+        }
+
+        if ($('#signup-close-btn')) {
+            $('#signup-close-btn').addEventListener('click', () => {
+                if (signupModal) signupModal.style.display = 'none';
+            });
+        }
+
+        if ($('#show-signup-link')) {
+            $('#show-signup-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                if (loginModal) loginModal.style.display = 'none';
+                if (signupModal) signupModal.style.display = 'flex';
+            });
+        }
+
+        if ($('#show-login-link')) {
+            $('#show-login-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                if (signupModal) signupModal.style.display = 'none';
+                if (loginModal) loginModal.style.display = 'flex';
+            });
+        }
+
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) loginModal.style.display = 'none';
+            if (e.target === signupModal) signupModal.style.display = 'none';
+        });
+
+        if ($('#login-form')) {
+            $('#login-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                loginModal.style.display = 'none';
+            });
+        }
+
+        if ($('#signup-form')) {
+            $('#signup-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                signupModal.style.display = 'none';
+            });
+        }
+
+        if ($('#wca-login-btn')) {
+            $('#wca-login-btn').addEventListener('click', handleWCALogin);
+        }
+
+        if ($('#wca-signup-btn')) {
+            $('#wca-signup-btn').addEventListener('click', handleWCALogin);
+        }
+
         // Theme
         $('#theme-toggle').addEventListener('click', toggleTheme);
 
@@ -333,14 +458,14 @@
         const algSubsetContainer = $('#alg-subset-container');
         const algSubgroupSelect = $('#alg-subgroup-select');
 
-        function initializeAlgorithmsUI() {
+        initializeAlgorithmsUI = function () {
             if (typeof ALGORITHMS === 'undefined') return;
             const currentEvent = algEventSelect.value;
             const subsets = Object.keys(ALGORITHMS[currentEvent] || {});
-            
+
             algSubsetContainer.innerHTML = '';
             algSubgroupSelect.style.display = 'none';
-            
+
             subsets.forEach((subset, index) => {
                 const btn = document.createElement('button');
                 btn.className = `btn btn-secondary alg-cat-btn ${index === 0 ? 'active' : ''}`;
@@ -372,7 +497,7 @@
                 algSubgroupSelect.style.display = 'block';
                 algSubgroupSelect.innerHTML = '';
                 const subgroups = Object.keys(data);
-                
+
                 subgroups.forEach(sub => {
                     const opt = document.createElement('option');
                     opt.value = sub;
@@ -400,7 +525,7 @@
 
             grid.innerHTML = '';
             let algs = [];
-            
+
             if (subgroup) {
                 algs = ALGORITHMS[event][subset][subgroup] || [];
             } else {
@@ -768,7 +893,7 @@
         // WCA API lookups
         $('#search-comp-btn').addEventListener('click', lookupCompetition);
         $('#search-wca-btn').addEventListener('click', lookupWCAProfile);
-        
+
         // Past competitions lookup
         $('#search-past-comps-btn').addEventListener('click', fetchPastCompetitions);
 
@@ -783,7 +908,7 @@
         // Dashboard buttons
         $('#back-to-setup-btn').addEventListener('click', () => { clearSimState(); switchView('setup'); });
         $('#fullscreen-btn').addEventListener('click', toggleFullscreen);
-        
+
         // Toggle scramble colors
         const toggleColorsBtn = $('#toggle-scramble-colors-btn');
         if (toggleColorsBtn) {
@@ -1112,6 +1237,7 @@
                 `;
                 listContainer.appendChild(card);
             });
+            state.upcomingCompsFetched = true;
         } catch (err) {
             console.error('Error fetching upcoming competitions:', err);
             listContainer.innerHTML = '<div class="upcoming-comps-empty">Failed to load upcoming competitions.</div>';
@@ -1234,7 +1360,7 @@
         const missed = parseInt(str.slice(7, 9), 10);
         const solved = difference + missed;
         const attempted = solved + missed;
-        
+
         const mins = Math.floor(timeInSeconds / 60);
         const secs = timeInSeconds % 60;
         return `${solved}/${attempted} ${mins}:${secs.toString().padStart(2, '0')}`;
@@ -1305,11 +1431,11 @@
             // Populate PR Table
             const prBody = $('#stats-pr-body');
             prBody.innerHTML = '';
-            
+
             const prEvents = Object.keys(data.personal_records);
             const wcaOrderFull = [
-                '333', '222', '444', '555', '666', '777', 
-                '333bf', '333fm', '333oh', 'clock', 'minx', 
+                '333', '222', '444', '555', '666', '777',
+                '333bf', '333fm', '333oh', 'clock', 'minx',
                 'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'
             ];
             prEvents.sort((a, b) => {
@@ -1323,7 +1449,7 @@
             prEvents.forEach(eventId => {
                 const pr = data.personal_records[eventId];
                 const tr = document.createElement('tr');
-                
+
                 let singleStr = '—';
                 let avgStr = '—';
                 let worldRank = '—';
@@ -1334,7 +1460,7 @@
                     else singleStr = formatTime(pr.single.best / 100);
                     worldRank = pr.single.world_rank;
                 }
-                
+
                 if (pr.average) {
                     if (eventId === '333fm') avgStr = (pr.average.best / 100).toFixed(2);
                     else avgStr = formatTime(pr.average.best / 100);
@@ -1392,12 +1518,12 @@
             // Check if person exists first to get a clean 404
             const personRes = await fetch(`${WCA_API}/persons/${wcaId}`);
             if (!personRes.ok) throw new Error(`WCA ID ${wcaId} not found.`);
-            
+
             const resultsRes = await fetch(`${WCA_API}/persons/${wcaId}/results`);
             if (!resultsRes.ok) throw new Error('Could not fetch results.');
-            
+
             const resultsData = await resultsRes.json();
-            
+
             if (!resultsData || resultsData.length === 0) {
                 resultsDiv.innerHTML = `<div class="comp-info-state">No competitions found for ${wcaId}.</div>`;
                 resultsDiv.style.display = 'block';
@@ -1407,18 +1533,18 @@
             // Extract unique competition IDs in chronological order (WCA API natural order)
             const uniqueComps = new Set();
             resultsData.forEach(r => uniqueComps.add(r.competition_id));
-            
+
             // Reverse to get latest to oldest
             const compsList = Array.from(uniqueComps).reverse();
 
             resultsDiv.innerHTML = `<div class="upcoming-comps-title" style="margin-bottom: var(--space-sm); text-align: left;">Past Competitions (${compsList.length})</div>`;
-            
+
             const compListContainer = document.createElement('div');
             compListContainer.style.display = 'flex';
             compListContainer.style.flexDirection = 'column';
             compListContainer.style.gap = '8px';
             compListContainer.style.textAlign = 'left';
-            
+
             compsList.forEach(compId => {
                 const link = document.createElement('a');
                 link.href = `https://www.worldcubeassociation.org/competitions/${compId}`;
@@ -1434,7 +1560,7 @@
                 `;
                 compListContainer.appendChild(link);
             });
-            
+
             resultsDiv.appendChild(compListContainer);
             resultsDiv.style.display = 'block';
 
@@ -1512,7 +1638,7 @@
 
         // Collect config
         state.event = document.querySelector('input[name="event"]:checked').value;
-        
+
         // Validate registration if comp is loaded
         if (state.compId && state.wcifData) {
             const isRegistered = (state.wcifData.persons || []).some(p =>
@@ -1651,7 +1777,7 @@
 
         if (wcifCompetitors.length > 0) {
             const toAdd = wcifCompetitors.slice(0, state.numCompetitors - 1);
-            
+
             for (const p of toAdd) {
                 let prAvg = null;
                 let prSingle = null;
@@ -1661,7 +1787,7 @@
                     if (avgObj) prAvg = avgObj.best / 100;
                     if (singleObj) prSingle = singleObj.best / 100;
                 }
-                
+
                 let compAvg = prAvg || (prSingle ? prSingle * 1.2 : state.playerAvg + (Math.random() * 5));
                 compAvg = Math.max(compAvg, 0.5);
 
@@ -1678,7 +1804,7 @@
                     average: Infinity
                 });
             }
-            
+
             state.numCompetitors = state.competitors.length + 1;
         } else {
             const usedNames = new Set();
@@ -1859,10 +1985,10 @@
             const tr = document.createElement('tr');
             if (i === state.currentSolve) tr.classList.add('current-solve');
             // Only show scramble for current solve, hide future ones
-            const scrambleText = (i === state.currentSolve && state.scrambles[i]) 
-                ? truncateScramble(state.scrambles[i]) 
-                : (i < state.currentSolve && state.scrambles[i]) 
-                    ? truncateScramble(state.scrambles[i]) 
+            const scrambleText = (i === state.currentSolve && state.scrambles[i])
+                ? truncateScramble(state.scrambles[i])
+                : (i < state.currentSolve && state.scrambles[i])
+                    ? truncateScramble(state.scrambles[i])
                     : '<span class="scramble-hidden">Hidden</span>';
             tr.innerHTML = `
                 <td>${i + 1}</td>
@@ -1940,7 +2066,7 @@
     function renderCubeNet(event) {
         const container = $('#scramble-visual');
         container.innerHTML = '';
-        
+
         const puzzleMap = {
             '333': '3x3x3',
             '222': '2x2x2',
@@ -1968,7 +2094,7 @@
         }
 
         const scramble = state.scrambles[state.currentSolve];
-        
+
         const player = document.createElement('twisty-player');
         player.setAttribute('puzzle', puzzleType);
         player.setAttribute('experimental-setup-alg', scramble);
@@ -2050,7 +2176,7 @@
 
         const hasFinished = state.solves.length === state.numSolves;
         const computedAvg = calculateAverage(state.solves);
-        
+
         let prSingle = Infinity;
         let prAvgPlayer = null;
         if (state.playerData && state.playerData.personal_records[state.event]) {
@@ -2061,9 +2187,9 @@
                 prAvgPlayer = state.playerData.personal_records[state.event].average.best / 100;
             }
         }
-        
+
         const playerCountry = state.playerData?.person?.country_iso2 || state.playerData?.person?.country?.iso2 || '';
-        
+
         const playerData = {
             name: state.playerName,
             isPlayer: true,
