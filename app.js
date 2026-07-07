@@ -213,6 +213,7 @@
             const token = params.get('access_token');
             if (token) {
                 localStorage.setItem('wca_access_token', token);
+                window._justLoggedIn = true;
                 // Remove token from URL
                 window.history.replaceState(null, null, window.location.pathname);
             }
@@ -234,6 +235,17 @@
                 showToast(`Welcome back, ${data.me.name.split(' ')[0]}!`, 'success');
                 if ($('#login-modal')) $('#login-modal').style.display = 'none';
                 if ($('#signup-modal')) $('#signup-modal').style.display = 'none';
+
+                // Automatically load their WCA stats if they have a WCA ID
+                if (state.userProfile.wca_id) {
+                    await lookupWCAProfile(state.userProfile.wca_id, true);
+                    
+                    // If they just logged in, switch to stats view!
+                    if (window._justLoggedIn) {
+                        switchView('statistics');
+                        window._justLoggedIn = false;
+                    }
+                }
             } else {
                 localStorage.removeItem('wca_access_token');
             }
@@ -244,11 +256,25 @@
 
     function updateUIAfterLogin() {
         if (!state.userProfile) return;
-        const navBtn = $('#nav-login-btn');
+        let navBtn = $('#nav-login-btn') || $('#nav-profile-btn');
         if (navBtn) {
             const avatarUrl = state.userProfile.avatar?.url || 'https://www.worldcubeassociation.org/assets/missing_avatar_thumb-12654dd6f1aa6d458e80d41e6c4ea6cf79b7c53d1010e6fb3eb18ce86d9ed8df.png';
-            navBtn.innerHTML = `<img src="${avatarUrl}" alt="Profile" class="nav-avatar">`;
-            navBtn.title = "Profile";
+            
+            // Clone the button to remove old login listeners
+            const newBtn = navBtn.cloneNode(true);
+            newBtn.innerHTML = `<img src="${avatarUrl}" alt="Profile" class="nav-avatar">`;
+            newBtn.title = "Profile";
+            newBtn.id = 'nav-profile-btn';
+            navBtn.parentNode.replaceChild(newBtn, navBtn);
+            
+            newBtn.addEventListener('click', async () => {
+                if (state.userProfile && state.userProfile.wca_id) {
+                    await lookupWCAProfile(state.userProfile.wca_id, true);
+                    switchView('statistics');
+                } else {
+                    showToast('No WCA ID linked to this account.', 'info');
+                }
+            });
         }
     }
 
