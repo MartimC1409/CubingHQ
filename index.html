@@ -761,23 +761,7 @@
 
         <!-- ====== BATTLE VIEW ====== -->
         <div id="battle-view" class="view">
-            <!-- Battle Login Gate (shown when not logged in) -->
-            <div id="battle-login-gate" class="battle-login-gate" style="display:none;">
-                <div class="battle-gate-card">
-                    <div class="battle-gate-icon">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
-                    </div>
-                    <h2>Battle Mode</h2>
-                    <p>Compete against other speedcubers in real-time! Create or join a room and race to the best time.</p>
-                    <p class="battle-gate-sub">You must be logged in with your WCA account to enter Battle mode.</p>
-                    <button class="btn btn-primary btn-lg" id="battle-login-btn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                        Login with WCA to Battle
-                    </button>
-                </div>
-            </div>
-
-            <!-- Battle Lobby (shown when logged in) -->
+            <!-- Battle Lobby -->
             <div id="battle-lobby" class="battle-lobby-container" style="display:none;">
                 <div class="battle-lobby-header">
                     <div>
@@ -785,15 +769,21 @@
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
                             Battle Lobby
                         </h1>
-                        <p class="battle-lobby-subtitle">Compete against cubers in real time — same scramble, best time wins</p>
+                        <p class="battle-lobby-subtitle">Real-time speedcubing — join a room and race live</p>
                     </div>
-                    <button class="btn btn-primary battle-create-btn" id="battle-create-room-btn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Create Room
-                    </button>
+                    <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+                        <button class="btn btn-secondary" id="battle-refresh-btn" title="Refresh rooms">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            Refresh
+                        </button>
+                        <button class="btn btn-primary battle-create-btn" id="battle-create-room-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Create Room
+                        </button>
+                    </div>
                 </div>
                 <div class="battle-event-filters" id="battle-event-filters">
-                    <button class="battle-filter-chip active" data-event="all">All Events</button>
+                    <button class="battle-filter-chip active" data-event="all">All</button>
                     <button class="battle-filter-chip" data-event="3x3">3x3</button>
                     <button class="battle-filter-chip" data-event="2x2">2x2</button>
                     <button class="battle-filter-chip" data-event="4x4">4x4</button>
@@ -807,7 +797,9 @@
                     <button class="battle-filter-chip" data-event="skewb">Skewb</button>
                     <button class="battle-filter-chip" data-event="sq1">Sq-1</button>
                 </div>
-                <div class="battle-rooms-grid" id="battle-rooms-grid"><!-- Populated by JS --></div>
+                <div class="battle-rooms-grid" id="battle-rooms-grid">
+                    <div class="battle-lobby-loading"><div class="battle-loading-spinner"></div><p>Loading rooms...</p></div>
+                </div>
             </div>
 
             <!-- Battle Room (In-Game) -->
@@ -818,60 +810,86 @@
                         Leave Room
                     </button>
                     <div class="battle-room-info">
-                        <span class="battle-room-name-tag" id="battle-room-name-display">Room Name</span>
+                        <span class="battle-room-name-tag" id="battle-room-name-display">Room</span>
                         <span class="battle-room-event-badge" id="battle-room-event-badge">3x3</span>
-                        <span class="battle-round-counter" id="battle-round-counter">Round 1 / 5</span>
                     </div>
                     <div class="battle-room-status" id="battle-room-status-bar">
                         <span class="battle-status-dot"></span>
-                        <span id="battle-status-text">Waiting for players...</span>
+                        <span id="battle-status-text">Live</span>
                     </div>
                 </div>
                 <div class="battle-room-body">
-                    <!-- Left: Scramble + Timer -->
+                    <!-- Left: Event Selector + Scramble + Timer -->
                     <div class="battle-room-left">
+                        <div class="battle-event-selector-bar" id="battle-event-selector-bar">
+                            <span class="battle-event-selector-label">Event:</span>
+                            <div class="battle-event-chips" id="battle-event-chips">
+                                <button class="battle-event-chip active" data-event="3x3">3x3</button>
+                                <button class="battle-event-chip" data-event="2x2">2x2</button>
+                                <button class="battle-event-chip" data-event="4x4">4x4</button>
+                                <button class="battle-event-chip" data-event="5x5">5x5</button>
+                                <button class="battle-event-chip" data-event="6x6">6x6</button>
+                                <button class="battle-event-chip" data-event="7x7">7x7</button>
+                                <button class="battle-event-chip" data-event="oh">OH</button>
+                                <button class="battle-event-chip" data-event="clock">Clock</button>
+                                <button class="battle-event-chip" data-event="mega">Mega</button>
+                                <button class="battle-event-chip" data-event="pyra">Pyra</button>
+                                <button class="battle-event-chip" data-event="skewb">Skewb</button>
+                                <button class="battle-event-chip" data-event="sq1">Sq-1</button>
+                            </div>
+                            <button class="btn btn-secondary" id="battle-new-scramble-btn" style="white-space:nowrap;font-size:0.8rem;padding:0.4rem 0.8rem;display:none;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                New Scramble
+                            </button>
+                        </div>
                         <div class="battle-scramble-panel">
                             <div class="battle-scramble-label">SCRAMBLE</div>
-                            <div class="battle-scramble-text" id="battle-scramble-text">— Ready up to reveal —</div>
+                            <div class="battle-scramble-text" id="battle-scramble-text">Waiting for scramble...</div>
                             <div class="battle-scramble-viz">
                                 <twisty-player id="battle-twisty" puzzle="3x3x3" alg="" visualization="2D" background="none" control-panel="none" viewer-link="none" style="width:140px;height:140px;"></twisty-player>
                             </div>
                         </div>
                         <div class="battle-timer-panel" id="battle-timer-panel">
-                            <div class="battle-timer-status" id="battle-timer-status">Ready up to begin</div>
-                            <div class="battle-timer-time" id="battle-timer-time">0.00</div>
-                            <button class="battle-ready-btn" id="battle-ready-btn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                                Ready Up
-                            </button>
-                            <div class="battle-keyboard-hint">Hold Space to start timer</div>
-                        </div>
-                        <div class="battle-round-results" id="battle-round-results" style="display:none;">
-                            <div class="battle-results-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                                Round Results
+                            <!-- Mode selector -->
+                            <div class="battle-input-mode-bar">
+                                <button class="battle-mode-btn active" id="battle-mode-keyboard" title="Keyboard timer (spacebar)">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/></svg>
+                                    Keyboard
+                                </button>
+                                <button class="battle-mode-btn" id="battle-mode-typing" title="Type your time manually">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Typing
+                                </button>
                             </div>
-                            <div class="battle-results-table" id="battle-results-table"></div>
-                            <button class="btn btn-primary" id="battle-next-round-btn" style="margin-top:1rem;width:100%;">Next Round →</button>
+                            <!-- Keyboard mode -->
+                            <div id="battle-keyboard-mode">
+                                <div class="battle-timer-status" id="battle-timer-status">Hold Space to start timer</div>
+                                <div class="battle-timer-time" id="battle-timer-time">0.00</div>
+                                <div class="battle-keyboard-hint">Hold Space (0.5s) → Release to start &nbsp;·&nbsp; Press Space to stop</div>
+                            </div>
+                            <!-- Typing mode -->
+                            <div id="battle-typing-mode" style="display:none; flex-direction:column; align-items:center; gap:1rem; width:100%;">
+                                <div class="battle-timer-time" id="battle-typing-display">0.00</div>
+                                <div class="battle-typing-input-wrap">
+                                    <input type="text" id="battle-typing-input" class="battle-typing-input"
+                                        placeholder="e.g. 1234 = 12.34s" maxlength="8" inputmode="numeric">
+                                    <button class="btn btn-primary" id="battle-typing-submit">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Submit
+                                    </button>
+                                </div>
+                                <div class="battle-keyboard-hint">Type digits: 1234 = 12.34s &nbsp;·&nbsp; 10234 = 1:02.34 &nbsp;·&nbsp; Press Enter to submit</div>
+                            </div>
                         </div>
                     </div>
-                    <!-- Right: Players + History -->
+                    <!-- Right: Cross-table (per scramble per player) -->
                     <div class="battle-room-right">
-                        <div class="battle-players-panel">
-                            <div class="battle-panel-header">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                Players
-                            </div>
-                            <div class="battle-players-list" id="battle-players-list"></div>
+                        <div class="battle-panel-header">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            Results <span id="battle-scores-event-label" style="color:var(--clr-text-muted);font-size:0.75rem;font-weight:400;margin-left:4px;"></span>
                         </div>
-                        <div class="battle-scores-panel">
-                            <div class="battle-panel-header">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                                Score History
-                            </div>
-                            <div class="battle-scores-list" id="battle-scores-list">
-                                <div class="battle-scores-empty">No solves yet</div>
-                            </div>
+                        <div class="battle-cross-table-wrap" id="battle-cross-table-wrap">
+                            <div class="battle-scores-empty">No solves yet — start solving!</div>
                         </div>
                     </div>
                 </div>
@@ -882,7 +900,10 @@
         <div id="battle-create-modal" class="battle-modal-overlay" style="display:none;">
             <div class="battle-modal-card">
                 <div class="battle-modal-header">
-                    <h3>Create Battle Room</h3>
+                    <h3>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Create Battle Room
+                    </h3>
                     <button class="modal-close-btn" id="battle-create-close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
@@ -890,35 +911,18 @@
                 <div class="battle-modal-body">
                     <div class="form-group">
                         <label class="form-label" for="battle-room-name-input">Room Name <span style="color:var(--clr-accent)">*</span></label>
-                        <input type="text" id="battle-room-name-input" class="form-input" placeholder="e.g. Friday Night 3x3" maxlength="40">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="battle-event-select">Event</label>
-                        <select id="battle-event-select" class="form-input">
-                            <option value="3x3">3x3</option>
-                            <option value="2x2">2x2</option>
-                            <option value="4x4">4x4</option>
-                            <option value="5x5">5x5</option>
-                            <option value="6x6">6x6</option>
-                            <option value="7x7">7x7</option>
-                            <option value="oh">One-Handed (OH)</option>
-                            <option value="clock">Clock</option>
-                            <option value="mega">Megaminx</option>
-                            <option value="pyra">Pyraminx</option>
-                            <option value="skewb">Skewb</option>
-                            <option value="sq1">Square-1</option>
-                        </select>
+                        <input type="text" id="battle-room-name-input" class="form-input" placeholder="e.g. Friday Night Speed Run" maxlength="40">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Visibility</label>
                         <div class="battle-visibility-toggle">
                             <button class="battle-vis-btn active" id="battle-vis-public" data-vis="public">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                                Public
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                                Public Room
                             </button>
                             <button class="battle-vis-btn" id="battle-vis-private" data-vis="private">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                Private
+                                Private Room
                             </button>
                         </div>
                     </div>
@@ -926,27 +930,9 @@
                         <label class="form-label" for="battle-room-password">Room Password <span style="color:var(--clr-accent)">*</span></label>
                         <input type="password" id="battle-room-password" class="form-input" placeholder="Set a password for your room">
                     </div>
-                    <div class="form-group-row">
-                        <div class="form-group" style="flex:1;">
-                            <label class="form-label" for="battle-max-players">Max Players</label>
-                            <select id="battle-max-players" class="form-input">
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4" selected>4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="8">8</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex:1;">
-                            <label class="form-label" for="battle-rounds-select">Rounds</label>
-                            <select id="battle-rounds-select" class="form-input">
-                                <option value="1">Best of 1</option>
-                                <option value="3">Best of 3</option>
-                                <option value="5" selected>Best of 5</option>
-                            </select>
-                        </div>
-                    </div>
+                    <p style="font-size:0.82rem;color:var(--clr-text-muted);background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.15);border-radius:8px;padding:0.6rem 0.8rem;margin:0;">
+                        You will choose the event inside the room. Solves are saved per-event so you can switch events freely without losing history.
+                    </p>
                 </div>
                 <div class="battle-modal-footer">
                     <button class="btn btn-secondary" id="battle-create-cancel">Cancel</button>
@@ -971,7 +957,7 @@
                     </button>
                 </div>
                 <div class="battle-modal-body">
-                    <p style="color:var(--clr-text-muted); margin-bottom:1rem;">This room is password protected. Enter the password to join.</p>
+                    <p style="color:var(--clr-text-muted);">This room is password protected. Enter the password to join.</p>
                     <div class="form-group">
                         <label class="form-label" for="battle-pw-input">Password</label>
                         <input type="password" id="battle-pw-input" class="form-input" placeholder="Enter room password">

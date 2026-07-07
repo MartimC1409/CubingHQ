@@ -2884,153 +2884,348 @@
         document.addEventListener('keydown', updateActivity);
     }
 
-    // ========== BATTLE SYSTEM ==========
+
+    // ========== BATTLE SYSTEM (Real-time Firebase) ==========
+    const RTDB = 'https://simulatecubing-default-rtdb.firebaseio.com';
+    const BATTLE_PATH = '/battle/rooms';
+
     const BATTLE_EVENTS = {
-        '3x3':  { label: '3x3', puzzle: '3x3x3',  color: '#FF6B35', avgRange: [8000, 45000] },
-        '2x2':  { label: '2x2', puzzle: '2x2x2',  color: '#F7C948', avgRange: [2000, 18000] },
-        '4x4':  { label: '4x4', puzzle: '4x4x4',  color: '#2ECC71', avgRange: [28000, 120000] },
-        '5x5':  { label: '5x5', puzzle: '5x5x5',  color: '#3498DB', avgRange: [55000, 220000] },
-        '6x6':  { label: '6x6', puzzle: '6x6x6',  color: '#9B59B6', avgRange: [100000, 380000] },
-        '7x7':  { label: '7x7', puzzle: '7x7x7',  color: '#1ABC9C', avgRange: [160000, 500000] },
-        'oh':   { label: 'OH',  puzzle: '3x3x3',  color: '#E74C3C', avgRange: [14000, 80000] },
-        'clock':{ label: 'Clock', puzzle: 'clock', color: '#FF9FF3', avgRange: [6000, 30000] },
-        'mega': { label: 'Mega',  puzzle: 'megaminx', color: '#FEA47F', avgRange: [40000, 180000] },
-        'pyra': { label: 'Pyra',  puzzle: 'pyraminx', color: '#6C5CE7', avgRange: [3000, 22000] },
-        'skewb':{ label: 'Skewb', puzzle: 'skewb',  color: '#00CEC9', avgRange: [3500, 20000] },
-        'sq1':  { label: 'Sq-1',  puzzle: 'square1', color: '#FDCB6E', avgRange: [10000, 60000] },
+        '3x3':   { label: '3x3',      puzzle: '3x3x3',    color: '#FF6B35' },
+        '2x2':   { label: '2x2',      puzzle: '2x2x2',    color: '#F7C948' },
+        '4x4':   { label: '4x4',      puzzle: '4x4x4',    color: '#2ECC71' },
+        '5x5':   { label: '5x5',      puzzle: '5x5x5',    color: '#3498DB' },
+        '6x6':   { label: '6x6',      puzzle: '6x6x6',    color: '#9B59B6' },
+        '7x7':   { label: '7x7',      puzzle: '7x7x7',    color: '#1ABC9C' },
+        'oh':    { label: 'OH',        puzzle: '3x3x3',    color: '#E74C3C' },
+        'clock': { label: 'Clock',     puzzle: 'clock',    color: '#FF9FF3' },
+        'mega':  { label: 'Mega',      puzzle: 'megaminx', color: '#FEA47F' },
+        'pyra':  { label: 'Pyra',      puzzle: 'pyraminx', color: '#6C5CE7' },
+        'skewb': { label: 'Skewb',     puzzle: 'skewb',    color: '#00CEC9' },
+        'sq1':   { label: 'Sq-1',      puzzle: 'square1',  color: '#FDCB6E' },
     };
 
-    const BOT_NAMES = [
-        'Max Hilbert', 'Sofia Renner', 'Luca Bianchi', 'Yuki Tanaka', 'Marco Polo',
-        'Elena Vasquez', 'Kai Nguyen', 'Mia Schreiber', 'Aarav Patel', 'Olivia Müller',
-        'Nathan Kim', 'Zara Ahmed', 'Felix Stein', 'Priya Singh', 'Lucas Dubois',
-        'Hannah Berg', 'Diego Flores', 'Aisha Okafor', 'Riku Sato', 'Emilia Johansson'
-    ];
+    // ----- Firebase REST helpers -----
+    async function fbGet(path) {
+        try {
+            const r = await fetch(`${RTDB}${path}.json`);
+            return await r.json();
+        } catch (e) { console.error('fbGet error', e); return null; }
+    }
+    async function fbSet(path, data) {
+        try {
+            const r = await fetch(`${RTDB}${path}.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await r.json();
+        } catch (e) { console.error('fbSet error', e); return null; }
+    }
+    async function fbUpdate(path, data) {
+        try {
+            const r = await fetch(`${RTDB}${path}.json`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await r.json();
+        } catch (e) { console.error('fbUpdate error', e); return null; }
+    }
+    async function fbPush(path, data) {
+        try {
+            const r = await fetch(`${RTDB}${path}.json`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await r.json(); // { name: "-NxyzId" }
+        } catch (e) { console.error('fbPush error', e); return null; }
+    }
+    async function fbDelete(path) {
+        try { await fetch(`${RTDB}${path}.json`, { method: 'DELETE' }); } catch (e) {}
+    }
 
+    // ----- User identity -----
+    function getBattleUserId() {
+        if (state.userProfile && state.userProfile.wca_id) return 'wca_' + state.userProfile.wca_id;
+        let id = localStorage.getItem('battle_uid');
+        if (!id) { id = 'g_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); localStorage.setItem('battle_uid', id); }
+        return id;
+    }
+    function getBattleUserName() {
+        return (state.userProfile && (state.userProfile.name || state.userProfile.wca_id)) || 'Guest';
+    }
+
+    // ----- State -----
     const battleState = {
         initialized: false,
-        rooms: [],
-        pendingRoomId: null,
-        currentRoom: null,
-        playerIsReady: false,
+        filterEvent: 'all',
+        currentRoomId: null,
+        isHost: false,
+        lobbyPollId: null,
+        roomPollId: null,
         timerRunning: false,
         timerArmed: false,
         spaceHeld: false,
         spaceHoldTimeout: null,
         startTime: null,
         timerInterval: null,
-        roundResults: [],
-        filterEvent: 'all',
+        pendingRoomId: null,
+        currentRoomData: null,
+        inputMode: 'keyboard', // 'keyboard' | 'typing'
+        lastSeenScrambleIndex: -1,
     };
 
-    function battleRandInt(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
+    // ----- Scramble generator -----
+    function generateBattleScramble(event) {
+        const suf = ["", "'", "2"];
+        // Build a pool of moves and generate scramble avoiding same-face consecutive moves
+        function buildPool(faces) {
+            return faces.flatMap(f => suf.map(s => f + s));
+        }
+        function buildMoves(pool, length) {
+            const result = [];
+            let lastFace = '', secondLastFace = '';
+            for (let i = 0; i < length; i++) {
+                let move, face;
+                let attempts = 0;
+                do {
+                    move = pool[Math.floor(Math.random() * pool.length)];
+                    // Face is the letter(s) before any suffix
+                    face = move.replace(/['2]$/,'').replace(/w$/,'');
+                    attempts++;
+                    if (attempts > 200) break;
+                } while (face === lastFace || face === secondLastFace);
+                secondLastFace = lastFace;
+                lastFace = face;
+                result.push(move);
+            }
+            return result.join(' ');
+        }
+
+        // ---- 2x2 ----
+        if (event === '2x2') return buildMoves(buildPool(['U','R','F']), 10);
+
+        // ---- 3x3 / OH ----
+        if (event === '3x3' || event === 'oh') return buildMoves(buildPool(['U','D','R','L','F','B']), 20);
+
+        // ---- 4x4 — outer + Uw Rw Fw Bw Lw Dw (no inner Fw2/Bw2 equivalent redundancy) ----
+        if (event === '4x4') {
+            const outer = buildPool(['U','D','R','L','F','B']);
+            const wide  = buildPool(['Uw','Rw','Fw','Bw','Lw','Dw']);
+            return buildMoves([...outer, ...wide], 40);
+        }
+
+        // ---- 5x5 — outer + 2-wide + 3-wide ----
+        if (event === '5x5') {
+            const outer  = buildPool(['U','D','R','L','F','B']);
+            const wide2  = buildPool(['Uw','Rw','Fw','Bw','Lw','Dw']);
+            const wide3  = buildPool(['3Uw','3Rw','3Fw','3Bw','3Lw','3Dw']);
+            return buildMoves([...outer, ...wide2, ...wide3], 60);
+        }
+
+        // ---- 6x6 — outer + 2-wide + 3-wide ----
+        if (event === '6x6') {
+            const outer  = buildPool(['U','D','R','L','F','B']);
+            const wide2  = buildPool(['Uw','Rw','Fw','Bw','Lw','Dw']);
+            const wide3  = buildPool(['3Uw','3Rw','3Fw','3Bw','3Lw','3Dw']);
+            return buildMoves([...outer, ...wide2, ...wide3], 80);
+        }
+
+        // ---- 7x7 — outer + 2-wide + 3-wide + 4-wide ----
+        if (event === '7x7') {
+            const outer  = buildPool(['U','D','R','L','F','B']);
+            const wide2  = buildPool(['Uw','Rw','Fw','Bw','Lw','Dw']);
+            const wide3  = buildPool(['3Uw','3Rw','3Fw','3Bw','3Lw','3Dw']);
+            const wide4  = buildPool(['4Uw','4Rw','4Fw','4Bw','4Lw','4Dw']);
+            return buildMoves([...outer, ...wide2, ...wide3, ...wide4], 100);
+        }
+
+        // ---- Clock ----
+        if (event === 'clock') {
+            const pins = ['d', 'U', 'R', 'dR'];
+            const turns = [1,2,3,4,5,6,-1,-2,-3,-4,-5,-6];
+            const sides = ['U','D','L','R','UL','UR','DL','DR','ALL'];
+            let moves = [];
+            for (let i = 0; i < 9; i++) {
+                const face = sides[i % sides.length];
+                const t = turns[Math.floor(Math.random() * turns.length)];
+                moves.push(`${face}${t > 0 ? '+' : ''}${t}`);
+            }
+            return moves.join(' ');
+        }
+
+        // ---- Megaminx ----
+        if (event === 'mega') {
+            const megaMoves = [];
+            const dirs = ['+', '-'];
+            for (let i = 0; i < 70; i++) {
+                const face = ['U','R','D','L','BL','BR'][Math.floor(Math.random()*6)];
+                const d = dirs[Math.floor(Math.random()*2)];
+                megaMoves.push(`${face}${d}${d}`);
+            }
+            return megaMoves.join(' ');
+        }
+
+        // ---- Pyraminx ----
+        if (event === 'pyra') {
+            const tips  = buildPool(['u','l','r','b']);
+            const faces = buildPool(['U','L','R','B']);
+            return buildMoves(faces, 9) + ' ' + tips.slice(0,4).join(' ');
+        }
+
+        // ---- Skewb ----
+        if (event === 'skewb') return buildMoves(buildPool(['U','R','L','B']), 9);
+
+        // ---- Square-1 ----
+        if (event === 'sq1') {
+            let moves = [];
+            for (let i = 0; i < 11; i++) {
+                const u = Math.floor(Math.random() * 12) - 6;
+                const d = Math.floor(Math.random() * 12) - 6;
+                moves.push(`(${u},${d})`);
+                if (i < 10) moves.push('/');
+            }
+            return moves.join(' ');
+        }
+
+        // ---- fallback 3x3 ----
+        return buildMoves(buildPool(['U','D','R','L','F','B']), 20);
     }
 
     function battleFormatTime(ms) {
-        if (ms >= 60000) {
-            const m = Math.floor(ms / 60000);
-            const s = ((ms % 60000) / 1000).toFixed(2);
-            return `${m}:${parseFloat(s) < 10 ? '0' : ''}${s}`;
-        }
-        return (ms / 1000).toFixed(2);
+        if (ms >= 60000) { const m = Math.floor(ms/60000), s = ((ms%60000)/1000).toFixed(2); return `${m}:${parseFloat(s)<10?'0':''}${s}`; }
+        return (ms/1000).toFixed(2);
     }
 
-    function generateBattleScramble(event) {
-        const moves3 = ["U","U'","U2","D","D'","D2","R","R'","R2","L","L'","L2","F","F'","F2","B","B'","B2"];
-        const moves2 = ["U","U'","U2","R","R'","R2","F","F'","F2"];
-        const movesSkewb = ["U","U'","R","R'","L","L'","B","B'","F","F'"];
-        const movesPyra = ["U","U'","L","L'","R","R'","B","B'"];
-        const n = event === '4x4' ? 40 : event === '5x5' ? 60 : event === '6x6' ? 80 : event === '7x7' ? 100 : 20;
-        const pool = event === '2x2' ? moves2 : event === 'pyra' ? movesPyra : event === 'skewb' ? movesSkewb : moves3;
-        let s = [], last = '';
-        for (let i = 0; i < n; i++) {
-            let m;
-            do { m = pool[Math.floor(Math.random() * pool.length)]; } while (m.replace(/['2]/g,'') === last);
-            last = m.replace(/['2]/g,'');
-            s.push(m);
-        }
-        return s.join(' ');
-    }
-
-    function generateLobbyRooms() {
-        const eventKeys = Object.keys(BATTLE_EVENTS);
-        const rooms = [];
-        const usedNames = new Set();
-
-        const roomNames = [
-            'Friday Night Battles', 'Sub-10 Only 👑', 'Casual Cubing 🎲', 'Pro League Match',
-            'Beginners Welcome!', 'Speed Run Central', 'PB Hunters', 'Main Event Room',
-            'Warm-Up Room', 'Weekend Warriors', 'Daily Grind', 'Top Seeds Only',
-        ];
-
-        for (let i = 0; i < 10; i++) {
-            const evt = eventKeys[i % eventKeys.length];
-            const maxP = battleRandInt(2, 6);
-            const curP = battleRandInt(1, maxP - 1);
-            const botCount = curP;
-            const bots = [];
-            const usedBots = new Set();
-            for (let b = 0; b < botCount; b++) {
-                let bn;
-                do { bn = BOT_NAMES[battleRandInt(0, BOT_NAMES.length - 1)]; } while (usedBots.has(bn));
-                usedBots.add(bn);
-                bots.push({ name: bn, isBot: true, skill: Math.random() });
-            }
-
-            let rn;
-            do { rn = roomNames[battleRandInt(0, roomNames.length - 1)]; } while (usedNames.has(rn));
-            usedNames.add(rn);
-
-            const isPrivate = i % 5 === 4;
-            rooms.push({
-                id: 'room_' + i,
-                name: rn,
-                event: evt,
-                isPrivate,
-                password: isPrivate ? 'test123' : null,
-                maxPlayers: maxP,
-                players: bots,
-                totalRounds: 5,
-                currentRound: battleRandInt(0, 2),
-            });
-        }
-        return rooms;
-    }
-
+    // ----- Init -----
     function initBattle() {
-        // Check login
-        if (!state.userProfile) {
-            if ($('#battle-login-gate')) $('#battle-login-gate').style.display = 'flex';
-            if ($('#battle-lobby')) $('#battle-lobby').style.display = 'none';
-            if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
-
-            const loginBtn = $('#battle-login-btn');
-            if (loginBtn && !loginBtn._bound) {
-                loginBtn._bound = true;
-                loginBtn.addEventListener('click', () => {
-                    const loginModal = $('#login-modal');
-                    if (loginModal) loginModal.style.display = 'flex';
-                });
-            }
-            return;
-        }
-
-        // Logged in — show lobby
-        if ($('#battle-login-gate')) $('#battle-login-gate').style.display = 'none';
         if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
         if ($('#battle-lobby')) $('#battle-lobby').style.display = 'block';
 
         if (!battleState.initialized) {
-            battleState.rooms = generateLobbyRooms();
             battleState.initialized = true;
             bindBattleEvents();
+            document.addEventListener('keydown', battleKeyDown);
+            document.addEventListener('keyup', battleKeyUp);
         }
-
-        renderBattleLobby();
+        loadBattleLobby();
+        startLobbyPolling();
     }
 
+    // ----- Lobby polling -----
+    function startLobbyPolling() {
+        stopRoomPolling();
+        if (battleState.lobbyPollId) clearInterval(battleState.lobbyPollId);
+        battleState.lobbyPollId = setInterval(() => {
+            if (state.currentView === 'battle' && !battleState.currentRoomId) loadBattleLobby();
+        }, 4000);
+    }
+    function stopLobbyPolling() {
+        if (battleState.lobbyPollId) { clearInterval(battleState.lobbyPollId); battleState.lobbyPollId = null; }
+    }
+
+    // ----- Room polling -----
+    function startRoomPolling(roomId) {
+        stopLobbyPolling();
+        if (battleState.roomPollId) clearInterval(battleState.roomPollId);
+        battleState.roomPollId = setInterval(async () => {
+            if (state.currentView === 'battle' && battleState.currentRoomId === roomId) {
+                const data = await fbGet(`${BATTLE_PATH}/${roomId}`);
+                if (!data) { leaveBattleRoom(); return; }
+                battleState.currentRoomData = data;
+                renderBattleRoomView(data);
+            }
+        }, 2000);
+    }
+    function stopRoomPolling() {
+        if (battleState.roomPollId) { clearInterval(battleState.roomPollId); battleState.roomPollId = null; }
+    }
+
+    // ----- Load lobby -----
+    async function loadBattleLobby() {
+        const grid = $('#battle-rooms-grid');
+        if (!grid) return;
+        const data = await fbGet(BATTLE_PATH);
+        renderBattleLobby(data);
+    }
+
+    function renderBattleLobby(data) {
+        const grid = $('#battle-rooms-grid');
+        if (!grid) return;
+
+        // Prune stale rooms (inactive >30 min)
+        const rooms = [];
+        if (data) {
+            const now = Date.now();
+            Object.entries(data).forEach(([id, room]) => {
+                if (!room || (now - (room.updatedAt || room.createdAt || 0) > 30 * 60 * 1000)) return;
+                rooms.push({ id, ...room });
+            });
+        }
+
+        const filter = battleState.filterEvent;
+        const visible = filter === 'all' ? rooms : rooms.filter(r => r.event === filter);
+
+        if (visible.length === 0) {
+            grid.innerHTML = `<div class="battle-empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <p>No rooms found. <button class="btn btn-primary" style="margin-left:8px;" onclick="document.getElementById('battle-create-room-btn').click()">Create one!</button></p>
+            </div>`;
+            return;
+        }
+
+        const LOCK_CLOSED = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+        const LOCK_OPEN   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`;
+
+        grid.innerHTML = visible.map(room => {
+            const evtInfo = BATTLE_EVENTS[room.event] || { label: room.event || '?', color: '#888' };
+            const memberCount = room.members ? Object.keys(room.members).length : 0;
+
+            return `<div class="battle-room-card" data-room-id="${room.id}" style="--evt-color:${evtInfo.color}">
+                <div class="battle-privacy-badge ${room.isPrivate ? 'is-private' : 'is-public'}">
+                    ${room.isPrivate ? LOCK_CLOSED : LOCK_OPEN}
+                    <span>${room.isPrivate ? 'Private Room' : 'Public Room'}</span>
+                </div>
+                <div class="battle-room-card-event" style="background:${evtInfo.color}22;color:${evtInfo.color};border-color:${evtInfo.color}44">${evtInfo.label}</div>
+                <div class="battle-room-card-name">${room.name || 'Unnamed Room'}</div>
+                <div class="battle-room-card-host">Host: ${room.hostName || 'Unknown'}</div>
+                <div class="battle-room-card-footer">
+                    <div class="battle-room-card-players">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        ${memberCount} player${memberCount !== 1 ? 's' : ''}
+                    </div>
+                    <div class="battle-room-card-status battle-status--waiting">Active</div>
+                </div>
+                <button class="battle-join-btn" data-room-id="${room.id}">
+                    ${room.isPrivate ? '🔒 Join' : 'Join →'}
+                </button>
+            </div>`;
+        }).join('');
+
+        $$('.battle-join-btn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                const roomId = btn.dataset.roomId;
+                const room = visible.find(r => r.id === roomId);
+                if (!room) return;
+                if (room.isPrivate) {
+                    battleState.pendingRoomId = roomId;
+                    $('#battle-pw-input').value = '';
+                    $('#battle-pw-error').style.display = 'none';
+                    $('#battle-password-modal').style.display = 'flex';
+                } else {
+                    joinBattleRoom(roomId);
+                }
+            });
+        });
+    }
+
+    // ----- Bind static events -----
     function bindBattleEvents() {
+        // Refresh button
+        $('#battle-refresh-btn').addEventListener('click', loadBattleLobby);
+
         // Create room
         $('#battle-create-room-btn').addEventListener('click', () => {
             $('#battle-room-name-input').value = '';
@@ -3040,11 +3235,9 @@
             $('#battle-vis-private').classList.remove('active');
             $('#battle-create-modal').style.display = 'flex';
         });
-
         $('#battle-create-close').addEventListener('click', () => $('#battle-create-modal').style.display = 'none');
         $('#battle-create-cancel').addEventListener('click', () => $('#battle-create-modal').style.display = 'none');
 
-        // Visibility toggle
         $('#battle-vis-public').addEventListener('click', () => {
             $('#battle-vis-public').classList.add('active');
             $('#battle-vis-private').classList.remove('active');
@@ -3056,59 +3249,60 @@
             $('#battle-password-group').style.display = 'block';
         });
 
-        $('#battle-create-confirm').addEventListener('click', () => {
+        $('#battle-create-confirm').addEventListener('click', async () => {
             const name = $('#battle-room-name-input').value.trim();
             if (!name) { showToast('Please enter a room name', 'error'); return; }
             const isPrivate = $('#battle-vis-private').classList.contains('active');
             const password = $('#battle-room-password').value.trim();
-            if (isPrivate && !password) { showToast('Please set a password for the private room', 'error'); return; }
+            if (isPrivate && !password) { showToast('Please set a password', 'error'); return; }
 
-            const event = $('#battle-event-select').value;
-            const maxPlayers = parseInt($('#battle-max-players').value);
-            const totalRounds = parseInt($('#battle-rounds-select').value);
+            const userId = getBattleUserId();
+            const userName = getBattleUserName();
+            const now = Date.now();
+            const initialEvent = '3x3';
+            const scramble = generateBattleScramble(initialEvent);
 
-            const newRoom = {
-                id: 'room_user_' + Date.now(),
-                name,
-                event,
-                isPrivate,
+            const roomData = {
+                name, isPrivate,
                 password: isPrivate ? password : null,
-                maxPlayers,
-                players: [],
-                totalRounds,
-                currentRound: 0,
-                isUserRoom: true,
+                host: userId, hostName: userName,
+                event: initialEvent,
+                currentScrambleIndex: 0,
+                scrambles: { 0: { scramble, event: initialEvent, createdAt: now } },
+                createdAt: now, updatedAt: now,
+                members: { [userId]: { name: userName, joinedAt: now } },
+                solves: {}
             };
 
-            battleState.rooms.unshift(newRoom);
+            $('#battle-create-confirm').disabled = true;
+            $('#battle-create-confirm').textContent = 'Creating...';
+            const result = await fbPush(BATTLE_PATH, roomData);
+            $('#battle-create-confirm').disabled = false;
+            $('#battle-create-confirm').textContent = 'Create Room';
+
+            if (!result || !result.name) { showToast('Failed to create room. Try again.', 'error'); return; }
             $('#battle-create-modal').style.display = 'none';
-            enterBattleRoom(newRoom.id);
+            await enterBattleRoom(result.name, roomData);
         });
 
         // Password modal
-        $('#battle-pw-close').addEventListener('click', () => {
-            $('#battle-password-modal').style.display = 'none';
-            battleState.pendingRoomId = null;
-        });
-        $('#battle-pw-cancel').addEventListener('click', () => {
-            $('#battle-password-modal').style.display = 'none';
-            battleState.pendingRoomId = null;
-        });
-        $('#battle-pw-confirm').addEventListener('click', () => {
-            const room = battleState.rooms.find(r => r.id === battleState.pendingRoomId);
-            if (!room) return;
+        $('#battle-pw-close').addEventListener('click', () => { $('#battle-password-modal').style.display = 'none'; battleState.pendingRoomId = null; });
+        $('#battle-pw-cancel').addEventListener('click', () => { $('#battle-password-modal').style.display = 'none'; battleState.pendingRoomId = null; });
+        $('#battle-pw-confirm').addEventListener('click', async () => {
+            const roomId = battleState.pendingRoomId;
+            if (!roomId) return;
+            const room = await fbGet(`${BATTLE_PATH}/${roomId}`);
+            if (!room) { showToast('Room not found', 'error'); return; }
             const entered = $('#battle-pw-input').value;
-            if (entered === room.password) {
-                $('#battle-password-modal').style.display = 'none';
-                $('#battle-pw-error').style.display = 'none';
-                enterBattleRoom(room.id, true);
-            } else {
+            if (entered !== room.password) {
                 $('#battle-pw-error').style.display = 'flex';
+                return;
             }
+            $('#battle-password-modal').style.display = 'none';
+            $('#battle-pw-error').style.display = 'none';
+            joinBattleRoom(roomId, room);
         });
-        $('#battle-pw-input').addEventListener('keydown', e => {
-            if (e.key === 'Enter') $('#battle-pw-confirm').click();
-        });
+        $('#battle-pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('#battle-pw-confirm').click(); });
 
         // Event filter chips
         $$('.battle-filter-chip').forEach(chip => {
@@ -3116,244 +3310,436 @@
                 $$('.battle-filter-chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 battleState.filterEvent = chip.dataset.event;
-                renderBattleLobby();
+                loadBattleLobby();
             });
         });
 
-        // Room controls
+        // Leave room
         $('#battle-leave-btn').addEventListener('click', leaveBattleRoom);
-        $('#battle-ready-btn').addEventListener('click', toggleBattleReady);
-        $('#battle-next-round-btn').addEventListener('click', startNextBattleRound);
 
-        // Spacebar for battle timer
-        document.addEventListener('keydown', battleKeyDown);
-        document.addEventListener('keyup', battleKeyUp);
-    }
-
-    function renderBattleLobby() {
-        const grid = $('#battle-rooms-grid');
-        if (!grid) return;
-
-        const filter = battleState.filterEvent;
-        const visible = filter === 'all' ? battleState.rooms : battleState.rooms.filter(r => r.event === filter);
-
-        if (visible.length === 0) {
-            grid.innerHTML = `<div class="battle-empty-state">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                <p>No rooms found for this event. <button class="btn btn-primary" onclick="document.getElementById('battle-create-room-btn').click()">Create one!</button></p>
-            </div>`;
-            return;
-        }
-
-        grid.innerHTML = visible.map(room => {
-            const evtInfo = BATTLE_EVENTS[room.event] || { label: room.event, color: '#888' };
-            const playerCount = room.players.length + 1; // +1 for potential user
-            const isFull = playerCount > room.maxPlayers;
-            const statusText = room.currentRound > 0 ? `Round ${room.currentRound} in progress` : 'Waiting to start';
-            const statusClass = room.currentRound > 0 ? 'in-progress' : 'waiting';
-
-            return `<div class="battle-room-card ${isFull ? 'full' : ''}" data-room-id="${room.id}" style="--evt-color:${evtInfo.color}">
-                <div class="battle-room-card-header">
-                    <div class="battle-room-card-event" style="background:${evtInfo.color}22; color:${evtInfo.color}; border-color:${evtInfo.color}44">${evtInfo.label}</div>
-                    ${room.isPrivate ? `<div class="battle-room-private-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private</div>` : ''}
-                </div>
-                <div class="battle-room-card-name">${room.name}</div>
-                <div class="battle-room-card-host">Host: ${room.players[0] ? room.players[0].name : (state.userProfile ? state.userProfile.name : 'You')}</div>
-                <div class="battle-room-card-footer">
-                    <div class="battle-room-card-players">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        ${room.players.length}/${room.maxPlayers}
-                    </div>
-                    <div class="battle-room-card-status battle-status--${statusClass}">${statusText}</div>
-                </div>
-                <button class="battle-join-btn ${isFull ? 'disabled' : ''}" data-room-id="${room.id}" ${isFull ? 'disabled' : ''}>
-                    ${isFull ? 'Full' : room.isPrivate ? '🔒 Join' : 'Join →'}
-                </button>
-            </div>`;
-        }).join('');
-
-        // Bind join buttons
-        $$('.battle-join-btn:not(.disabled)').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const roomId = btn.dataset.roomId;
-                const room = battleState.rooms.find(r => r.id === roomId);
-                if (!room) return;
-                if (room.isPrivate) {
-                    battleState.pendingRoomId = roomId;
-                    $('#battle-pw-input').value = '';
-                    $('#battle-pw-error').style.display = 'none';
-                    $('#battle-password-modal').style.display = 'flex';
-                } else {
-                    enterBattleRoom(roomId);
-                }
+        // In-room: event chips (host only)
+        $$('.battle-event-chip').forEach(chip => {
+            chip.addEventListener('click', async () => {
+                if (!battleState.isHost) return;
+                const newEvent = chip.dataset.event;
+                const roomId = battleState.currentRoomId;
+                if (!roomId) return;
+                const scramble = generateBattleScramble(newEvent);
+                await fbUpdate(`${BATTLE_PATH}/${roomId}`, { event: newEvent, scramble, updatedAt: Date.now() });
+                // Update local UI immediately
+                $$('.battle-event-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
             });
+        });
+
+        // New scramble button (host only)
+        $('#battle-new-scramble-btn').addEventListener('click', async () => {
+            if (!battleState.isHost) return;
+            const roomId = battleState.currentRoomId;
+            const roomData = battleState.currentRoomData;
+            if (!roomId || !roomData) return;
+            const event = roomData.event || '3x3';
+            const newIdx = (roomData.currentScrambleIndex || 0) + 1;
+            const scramble = generateBattleScramble(event);
+            // Store new scramble in Firebase then bump index
+            await fbSet(`${BATTLE_PATH}/${roomId}/scrambles/${newIdx}`, { scramble, event, createdAt: Date.now() });
+            await fbUpdate(`${BATTLE_PATH}/${roomId}`, { currentScrambleIndex: newIdx, updatedAt: Date.now() });
         });
     }
 
-    function enterBattleRoom(roomId, skipPassword = false) {
-        const room = battleState.rooms.find(r => r.id === roomId);
-        if (!room) return;
+    // ----- Join room -----
+    async function joinBattleRoom(roomId, roomDataArg) {
+        const userId = getBattleUserId();
+        const userName = getBattleUserName();
+        const now = Date.now();
+        await fbUpdate(`${BATTLE_PATH}/${roomId}/members/${userId}`, { name: userName, joinedAt: now });
+        await fbUpdate(`${BATTLE_PATH}/${roomId}`, { updatedAt: now });
+        const roomData = roomDataArg || await fbGet(`${BATTLE_PATH}/${roomId}`);
+        if (!roomData) { showToast('Could not join room', 'error'); return; }
+        await enterBattleRoom(roomId, roomData);
+    }
 
-        // Add user to players if not already
-        const userName = state.userProfile ? state.userProfile.name : 'You';
-        if (!room.players.find(p => p.name === userName)) {
-            // Fill remaining slots with bots
-            const botsToAdd = Math.min(room.maxPlayers - 1 - room.players.length, battleRandInt(1, 3));
-            const usedNames = new Set(room.players.map(p => p.name));
-            for (let i = 0; i < botsToAdd; i++) {
-                let bn;
-                do { bn = BOT_NAMES[battleRandInt(0, BOT_NAMES.length - 1)]; } while (usedNames.has(bn));
-                usedNames.add(bn);
-                room.players.push({ name: bn, isBot: true, skill: Math.random(), scores: [] });
-            }
-        }
+    // ----- Enter room view -----
+    async function enterBattleRoom(roomId, roomData) {
+        const userId = getBattleUserId();
+        battleState.currentRoomId = roomId;
+        battleState.isHost = (roomData.host === userId);
+        battleState.currentRoomData = roomData;
 
-        battleState.currentRoom = {
-            ...room,
-            userPlayer: { name: userName, isBot: false, skill: 0.5, scores: [] },
-            round: 1,
-            scramble: null,
-            roundStarted: false,
-        };
-
-        battleState.playerIsReady = false;
+        // Reset timer
+        clearInterval(battleState.timerInterval);
         battleState.timerRunning = false;
         battleState.timerArmed = false;
+        const timeEl = $('#battle-timer-time');
+        if (timeEl) { timeEl.textContent = '0.00'; timeEl.className = 'battle-timer-time'; }
+        if ($('#battle-timer-status')) { $('#battle-timer-status').textContent = 'Hold Space to start timer'; $('#battle-timer-status').style.color = ''; }
 
-        // Show room view
+        // Show/hide room UI
         if ($('#battle-lobby')) $('#battle-lobby').style.display = 'none';
         if ($('#battle-room-view')) $('#battle-room-view').style.display = 'flex';
 
-        renderBattleRoomView();
-    }
+        // Init and default mode to keyboard
+        initBattleInputModeButtons();
+        setBattleInputMode('keyboard');
 
-    function renderBattleRoomView() {
-        const room = battleState.currentRoom;
-        if (!room) return;
-        const evtInfo = BATTLE_EVENTS[room.event] || { label: room.event, puzzle: '3x3x3', color: '#888' };
+        // Host controls
+        const newScrambleBtn = $('#battle-new-scramble-btn');
+        if (newScrambleBtn) newScrambleBtn.style.display = battleState.isHost ? 'flex' : 'none';
 
-        $('#battle-room-name-display').textContent = room.name;
-        $('#battle-room-event-badge').textContent = evtInfo.label;
-        $('#battle-room-event-badge').style.background = evtInfo.color + '22';
-        $('#battle-room-event-badge').style.color = evtInfo.color;
-        $('#battle-round-counter').textContent = `Round ${room.round} / ${room.totalRounds}`;
-
-        // Reset state
-        $('#battle-status-text').textContent = 'Waiting for players to ready up...';
-        $('#battle-scramble-text').textContent = '— Ready up to reveal —';
-        $('#battle-timer-time').textContent = '0.00';
-        $('#battle-timer-time').className = 'battle-timer-time';
-        $('#battle-timer-status').textContent = 'Ready up to begin';
-        $('#battle-timer-status').style.color = '';
-        $('#battle-timer-panel').style.display = 'flex';
-        $('#battle-round-results').style.display = 'none';
-        $('#battle-ready-btn').textContent = '';
-        $('#battle-ready-btn').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ready Up`;
-        $('#battle-ready-btn').classList.remove('is-ready');
-        battleState.playerIsReady = false;
-        battleState.roundResults = [];
-
-        // Set twisty puzzle
-        const twisty = $('#battle-twisty');
-        if (twisty) {
-            twisty.setAttribute('puzzle', evtInfo.puzzle);
-            twisty.setAttribute('alg', '');
-        }
-
-        renderBattlePlayers();
-        renderBattleScoreHistory();
-    }
-
-    function renderBattlePlayers() {
-        const room = battleState.currentRoom;
-        if (!room) return;
-        const list = $('#battle-players-list');
-        if (!list) return;
-
-        const allPlayers = [room.userPlayer, ...room.players];
-        list.innerHTML = allPlayers.map((p, i) => {
-            const status = p.isBot ? getBotStatus(p) : (battleState.playerIsReady ? 'ready' : 'waiting');
-            const statusLabel = { 'waiting': 'Waiting', 'ready': 'Ready ✓', 'solving': 'Solving...', 'finished': 'Done ✓' }[status] || 'Waiting';
-            const statusClass = { 'waiting': '', 'ready': 'ready', 'solving': 'solving', 'finished': 'finished' }[status] || '';
-            return `<div class="battle-player-row ${p.isBot ? '' : 'is-user'}">
-                <div class="battle-player-avatar" style="background:hsl(${(i * 47 + 120) % 360},65%,45%)">${(p.name||'?')[0].toUpperCase()}</div>
-                <div class="battle-player-info">
-                    <div class="battle-player-name">${p.name}${!p.isBot ? ' (You)' : ''}</div>
-                </div>
-                <div class="battle-player-status ${statusClass}">${statusLabel}</div>
-            </div>`;
-        }).join('');
-    }
-
-    function getBotStatus(bot) {
-        if (!battleState.currentRoom?.roundStarted) return Math.random() < 0.6 ? 'ready' : 'waiting';
-        return 'solving';
-    }
-
-    function toggleBattleReady() {
-        battleState.playerIsReady = !battleState.playerIsReady;
-        const btn = $('#battle-ready-btn');
-        if (battleState.playerIsReady) {
-            btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ready!`;
-            btn.classList.add('is-ready');
-        } else {
-            btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ready Up`;
-            btn.classList.remove('is-ready');
-        }
-        renderBattlePlayers();
-
-        // Auto-start after a short delay when user readies up
-        if (battleState.playerIsReady) {
-            $('#battle-status-text').textContent = 'Starting in 3 seconds...';
-            setTimeout(() => {
-                if (battleState.playerIsReady && battleState.currentRoom && !battleState.currentRoom.roundStarted) {
-                    startBattleRound();
-                }
-            }, 3000);
-        }
-    }
-
-    function startBattleRound() {
-        const room = battleState.currentRoom;
-        if (!room) return;
-        room.roundStarted = true;
-        battleState.roundResults = [];
-
-        const evtInfo = BATTLE_EVENTS[room.event] || { puzzle: '3x3x3' };
-        const scramble = generateBattleScramble(room.event);
-        room.scramble = scramble;
-
-        $('#battle-scramble-text').textContent = scramble;
-        $('#battle-status-text').textContent = 'Round in progress!';
-        $('#battle-timer-status').textContent = 'Hold Space to start timer';
-
-        const twisty = $('#battle-twisty');
-        if (twisty) twisty.setAttribute('alg', scramble);
-
-        renderBattlePlayers();
-
-        // Schedule bots to finish
-        const allBots = room.players;
-        allBots.forEach(bot => {
-            const evtRange = evtInfo.avgRange || [10000, 60000];
-            const skillFactor = 0.5 + bot.skill * 0.5;
-            const mean = evtRange[0] + (evtRange[1] - evtRange[0]) * (1 - bot.skill * 0.7);
-            const variance = mean * 0.25;
-            const solveTime = Math.max(evtRange[0] * 0.7, mean + (Math.random() - 0.5) * variance);
-            setTimeout(() => {
-                if (!battleState.currentRoom || !battleState.currentRoom.roundStarted) return;
-                battleState.roundResults.push({ name: bot.name, isBot: true, time: solveTime });
-                checkBattleRoundComplete();
-            }, solveTime);
+        // Enable/disable event chips based on host status
+        $$('.battle-event-chip').forEach(c => {
+            c.disabled = !battleState.isHost;
+            c.style.opacity = battleState.isHost ? '1' : '0.5';
+            c.style.cursor = battleState.isHost ? 'pointer' : 'default';
         });
+
+        renderBattleRoomView(roomData);
+        startRoomPolling(roomId);
     }
 
+
+    // ----- Render room view from data -----
+    function renderBattleRoomView(roomData) {
+        if (!roomData) return;
+        const userId = getBattleUserId();
+        const event = roomData.event || '3x3';
+        const evtInfo = BATTLE_EVENTS[event] || { label: event, puzzle: '3x3x3', color: '#888' };
+        const currentIdx = roomData.currentScrambleIndex || 0;
+        const scrambles = roomData.scrambles || {};
+        const members = roomData.members || {};
+
+        // Top bar
+        if ($('#battle-room-name-display')) $('#battle-room-name-display').textContent = roomData.name || 'Room';
+        const badge = $('#battle-room-event-badge');
+        if (badge) {
+            badge.textContent = evtInfo.label;
+            badge.style.background = evtInfo.color + '22';
+            badge.style.color = evtInfo.color;
+        }
+        if ($('#battle-scores-event-label')) $('#battle-scores-event-label').textContent = `(${evtInfo.label})`;
+
+        // Event chips
+        $$('.battle-event-chip').forEach(c => c.classList.toggle('active', c.dataset.event === event));
+
+        // Scramble — from scrambles map (shared for all users)
+        const scrambleEl = $('#battle-scramble-text');
+        const currentScrambleObj = scrambles[currentIdx];
+        const currentScramble = currentScrambleObj ? currentScrambleObj.scramble : null;
+        if (scrambleEl) {
+            scrambleEl.textContent = currentScramble || 'Waiting for scramble...';
+        }
+        const twisty = $('#battle-twisty');
+        if (twisty && currentScramble) {
+            twisty.setAttribute('puzzle', evtInfo.puzzle);
+            twisty.setAttribute('alg', currentScramble);
+        }
+
+        // Auto-reset timer when scramble index changes
+        if (currentIdx !== battleState.lastSeenScrambleIndex) {
+            battleState.lastSeenScrambleIndex = currentIdx;
+            clearInterval(battleState.timerInterval);
+            battleState.timerRunning = false;
+            const timeEl = $('#battle-timer-time');
+            if (timeEl) { timeEl.textContent = '0.00'; timeEl.className = 'battle-timer-time'; }
+            const statusEl = $('#battle-timer-status');
+            if (statusEl) { statusEl.textContent = 'Hold Space to start timer'; statusEl.style.color = ''; }
+            const typingDisp = $('#battle-typing-display');
+            if (typingDisp) { typingDisp.textContent = '0.00'; typingDisp.className = 'battle-timer-time'; }
+            const typingInp = $('#battle-typing-input');
+            if (typingInp) typingInp.value = '';
+        }
+
+        // ---- Cross-table ----
+        const tableWrap = $('#battle-cross-table-wrap');
+        if (!tableWrap) return;
+
+        // Ordered player IDs: host first, then others, me always highlighted
+        const playerIds = Object.keys(members);
+        if (playerIds.length === 0) { tableWrap.innerHTML = '<div class="battle-scores-empty">No players yet</div>'; return; }
+
+        // Get all scramble indices (newest first)
+        const allIndices = Object.keys(scrambles).map(Number).sort((a,b) => b - a);
+        const eventSolves = ((roomData.solves || {})[event]) || {};
+
+        // Per-player stats across all scrambles
+        function getPlayerTimes(pid) {
+            const arr = [];
+            allIndices.forEach(idx => {
+                const s = (eventSolves[idx] || {})[pid];
+                if (s && s.time > 0) arr.push({ idx, time: s.time });
+            });
+            return arr; // in newest-first order by allIndices
+        }
+
+        function calcAo(times, n) {
+            // times: array of ms values (already in order, we take last n)
+            if (times.length < n) return null;
+            const slice = times.slice(0, n); // newest n
+            const sorted = slice.slice().sort((a,b) => a-b);
+            // Remove best and worst
+            const trimmed = sorted.slice(1, -1);
+            return trimmed.length ? trimmed.reduce((a,b)=>a+b,0)/trimmed.length : null;
+        }
+
+        const playerStats = {}; // pid -> { times, wins, mean, single, ao5, ao12, ao50, ao100 }
+        playerIds.forEach(pid => {
+            const entries = getPlayerTimes(pid);
+            const times = entries.map(e => e.time);
+            const sorted = times.slice().sort((a,b)=>a-b);
+            playerStats[pid] = {
+                times,
+                wins: 0,
+                mean: times.length ? times.reduce((a,b)=>a+b,0)/times.length : null,
+                single: sorted[0] || null,
+                ao5:   calcAo(times, 5),
+                ao12:  calcAo(times, 12),
+                ao50:  calcAo(times, 50),
+                ao100: calcAo(times, 100),
+            };
+        });
+
+        // Count wins per scramble
+        allIndices.forEach(idx => {
+            const rowData = eventSolves[idx] || {};
+            let bestT = Infinity, bestPid = null;
+            playerIds.forEach(pid => {
+                const s = rowData[pid];
+                if (s && s.time > 0 && s.time < bestT) { bestT = s.time; bestPid = pid; }
+            });
+            if (bestPid) playerStats[bestPid].wins++;
+        });
+
+        // Build table HTML
+        const fmtStat = (ms) => ms !== null ? battleFormatTime(ms) : '—';
+
+        let html = '<table class="bct">';
+
+        // ---- Header: # | player names ----
+        html += '<thead><tr class="bct-header-row"><th class="bct-th-num">#</th>';
+        playerIds.forEach((pid, i) => {
+            const m = members[pid] || {};
+            const isMe = pid === userId;
+            const isHost = pid === roomData.host;
+            const color = `hsl(${(i * 67 + 180) % 360},55%,45%)`;
+            html += `<th class="bct-th-player ${isMe ? 'bct-me' : ''}" style="--pcol:${color}">
+                <span class="bct-player-dot" style="background:${color}"></span>
+                ${m.name || pid}${isHost ? ' 👑' : ''}${isMe ? '<br><span class="bct-you-tag">(You)</span>' : ''}
+            </th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        // ---- Stats rows: mean, wins ----
+        const statRows = [
+            { label: 'mean',  get: (pid) => fmtStat(playerStats[pid].mean) },
+            { label: 'wins',  get: (pid) => playerStats[pid].wins || 0 },
+        ];
+        statRows.forEach(row => {
+            html += `<tr class="bct-stat-row"><td class="bct-td-num">${row.label}</td>`;
+            playerIds.forEach(pid => {
+                const val = row.get(pid);
+                const isBest = row.label === 'mean'
+                    ? playerStats[pid].mean !== null && playerIds.every(p2 => p2 === pid || playerStats[p2].mean === null || playerStats[pid].mean <= playerStats[p2].mean)
+                    : row.label === 'wins'
+                    ? playerIds.every(p2 => p2 === pid || (playerStats[pid].wins || 0) >= (playerStats[p2].wins || 0))
+                    : false;
+                html += `<td class="bct-td-stat ${isBest && playerIds.length > 1 ? 'bct-best-stat' : ''}">${val}</td>`;
+            });
+            html += '</tr>';
+        });
+
+        // ---- Divider ----
+        html += `<tr class="bct-divider-row"><td colspan="${playerIds.length + 1}"></td></tr>`;
+
+        // ---- Solve rows (newest first) ----
+        if (allIndices.length === 0) {
+            html += `<tr><td colspan="${playerIds.length + 1}" class="bct-empty">No solves yet — solve the scramble!</td></tr>`;
+        } else {
+            allIndices.forEach(idx => {
+                const rowData = eventSolves[idx] || {};
+                const isCurrent = idx === currentIdx;
+
+                // Find winner of this scramble
+                let bestT = Infinity, bestPid = null;
+                playerIds.forEach(pid => {
+                    const s = rowData[pid];
+                    if (s && s.time > 0 && s.time < bestT) { bestT = s.time; bestPid = pid; }
+                });
+
+                html += `<tr class="bct-row ${isCurrent ? 'bct-current' : ''}">`;
+                html += `<td class="bct-td-num">${idx + 1}${isCurrent ? '<span class="bct-current-dot"></span>' : ''}</td>`;
+                playerIds.forEach(pid => {
+                    const s = rowData[pid];
+                    const hasSolve = s && s.time > 0;
+                    const isWinner = pid === bestPid && hasSolve && playerIds.length > 1;
+                    const isMe = pid === userId;
+                    html += `<td class="bct-td-time ${isWinner ? 'bct-winner' : ''} ${isMe ? 'bct-me-time' : ''} ${!hasSolve && isCurrent ? 'bct-pending' : ''}">
+                        ${hasSolve ? battleFormatTime(s.time) : (isCurrent ? '·' : '')}
+                    </td>`;
+                });
+                html += '</tr>';
+            });
+        }
+
+        // ---- Footer: single, ao5, ao12, ao50, ao100 ----
+        html += `<tr class="bct-divider-row"><td colspan="${playerIds.length + 1}"></td></tr>`;
+        ['single','ao5','ao12','ao50','ao100'].forEach(stat => {
+            html += `<tr class="bct-footer-row"><td class="bct-td-num">${stat}</td>`;
+            playerIds.forEach(pid => {
+                const val = playerStats[pid][stat];
+                // Best among players who have this stat
+                const vals = playerIds.map(p => playerStats[p][stat]).filter(v => v !== null);
+                const isBest = val !== null && (vals.length === 0 || val <= Math.min(...vals)) && playerIds.length > 1;
+                html += `<td class="bct-td-stat ${isBest ? 'bct-best-stat' : ''}">${fmtStat(val)}</td>`;
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        tableWrap.innerHTML = html;
+    }
+
+    // ----- Leave room -----
+    async function leaveBattleRoom() {
+        const roomId = battleState.currentRoomId;
+        const userId = getBattleUserId();
+
+        clearInterval(battleState.timerInterval);
+        battleState.timerRunning = false;
+        stopRoomPolling();
+
+        if (roomId) {
+            await fbDelete(`${BATTLE_PATH}/${roomId}/members/${userId}`);
+            // If host and no members left, delete room
+            const remaining = await fbGet(`${BATTLE_PATH}/${roomId}/members`);
+            if (!remaining || Object.keys(remaining).length === 0) {
+                await fbDelete(`${BATTLE_PATH}/${roomId}`);
+            } else if (battleState.isHost) {
+                // Transfer host to first remaining member
+                const newHostId = Object.keys(remaining)[0];
+                const newHostName = (remaining[newHostId] || {}).name || 'Unknown';
+                await fbUpdate(`${BATTLE_PATH}/${roomId}`, { host: newHostId, hostName: newHostName, updatedAt: Date.now() });
+            }
+        }
+
+        battleState.currentRoomId = null;
+        battleState.isHost = false;
+        battleState.currentRoomData = null;
+
+        if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
+        if ($('#battle-lobby')) $('#battle-lobby').style.display = 'block';
+
+        loadBattleLobby();
+        startLobbyPolling();
+    }
+
+    // ----- Timer keyboard handling -----
+    // ---- Input mode switching (Keyboard / Typing) ----
+    function setBattleInputMode(mode) {
+        // mode: 'keyboard' | 'typing'
+        battleState.inputMode = mode;
+        const kbMode  = $('#battle-keyboard-mode');
+        const tyMode  = $('#battle-typing-mode');
+        const kbBtn   = $('#battle-mode-keyboard');
+        const tyBtn   = $('#battle-mode-typing');
+
+        if (mode === 'keyboard') {
+            if (kbMode) kbMode.style.display = '';
+            if (tyMode) tyMode.style.display = 'none';
+            if (kbBtn) kbBtn.classList.add('active');
+            if (tyBtn) tyBtn.classList.remove('active');
+        } else {
+            if (kbMode) kbMode.style.display = 'none';
+            if (tyMode) { tyMode.style.display = 'flex'; }
+            if (tyBtn) tyBtn.classList.add('active');
+            if (kbBtn) kbBtn.classList.remove('active');
+            const inp = $('#battle-typing-input');
+            if (inp) { inp.value = ''; inp.focus(); }
+            const disp = $('#battle-typing-display');
+            if (disp) { disp.textContent = '0.00'; disp.className = 'battle-timer-time'; }
+        }
+        // Stop any running timer when switching
+        if (battleState.timerRunning) {
+            clearInterval(battleState.timerInterval);
+            battleState.timerRunning = false;
+        }
+    }
+
+    function initBattleInputModeButtons() {
+        const kbBtn = $('#battle-mode-keyboard');
+        const tyBtn = $('#battle-mode-typing');
+        if (kbBtn && !kbBtn._bound) {
+            kbBtn._bound = true;
+            kbBtn.addEventListener('click', () => setBattleInputMode('keyboard'));
+        }
+        if (tyBtn && !tyBtn._bound) {
+            tyBtn._bound = true;
+            tyBtn.addEventListener('click', () => setBattleInputMode('typing'));
+        }
+
+        // Typing input — parse time on every keystroke
+        const inp = $('#battle-typing-input');
+        const disp = $('#battle-typing-display');
+        if (inp && !inp._bound) {
+            inp._bound = true;
+            inp.addEventListener('input', () => {
+                const parsed = parseTypedTime(inp.value);
+                if (disp) {
+                    disp.textContent = parsed !== null ? battleFormatTime(parsed) : inp.value || '0.00';
+                    disp.className = 'battle-timer-time' + (parsed !== null ? ' pb' : '');
+                }
+            });
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const submitBtn = $('#battle-typing-submit');
+                    if (submitBtn) submitBtn.click();
+                }
+            });
+        }
+
+        const submitBtn = $('#battle-typing-submit');
+        if (submitBtn && !submitBtn._bound) {
+            submitBtn._bound = true;
+            submitBtn.addEventListener('click', async () => {
+                const inp2 = $('#battle-typing-input');
+                if (!inp2) return;
+                const parsed = parseTypedTime(inp2.value);
+                if (parsed === null || parsed <= 0) {
+                    showToast('Invalid time format. Use digits: 1234 = 12.34s', 'error');
+                    return;
+                }
+                await submitBattleSolve(parsed);
+                inp2.value = '';
+                const disp2 = $('#battle-typing-display');
+                if (disp2) { disp2.textContent = '0.00'; disp2.className = 'battle-timer-time'; }
+            });
+        }
+    }
+
+    // Parse typed time: digits only, interpreted as centiseconds
+    // "1234" → 12.34s = 12340ms
+    // "10234" → 1:02.34 = 62340ms
+    // "12345" → 1:23.45 = 83450ms
+    function parseTypedTime(raw) {
+        const digits = raw.replace(/\D/g, '');
+        if (!digits || digits.length === 0) return null;
+        const n = parseInt(digits, 10);
+        // interpret as centiseconds (last 2 digits = cs, rest = seconds)
+        const cs = n % 100;
+        const totalSec = Math.floor(n / 100);
+        const ms = totalSec * 1000 + cs * 10;
+        if (ms <= 0 || ms > 3600000) return null; // sanity: >0 and <1hr
+        return ms;
+    }
+
+    // ---- Keyboard timer ----
     function battleKeyDown(e) {
         if (state.currentView !== 'battle') return;
-        if (!battleState.currentRoom || !battleState.currentRoom.roundStarted) return;
-        if ($('#battle-round-results') && $('#battle-round-results').style.display !== 'none') return;
+        if (!battleState.currentRoomId) return;
+        if (battleState.inputMode !== 'keyboard') return;
         if (e.code !== 'Space') return;
+        // Don't intercept if focus is on an input
+        if (document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
         e.preventDefault();
 
         if (battleState.timerRunning) {
@@ -3361,19 +3747,20 @@
         } else if (!battleState.spaceHeld) {
             battleState.spaceHeld = true;
             battleState.timerArmed = false;
-            $('#battle-timer-status').textContent = 'Holding...';
-            $('#battle-timer-status').style.color = 'var(--clr-warning)';
+            const statusEl = $('#battle-timer-status');
+            if (statusEl) { statusEl.textContent = 'Holding...'; statusEl.style.color = '#F1C40F'; }
             battleState.spaceHoldTimeout = setTimeout(() => {
                 battleState.timerArmed = true;
-                $('#battle-timer-status').textContent = 'Ready!';
-                $('#battle-timer-status').style.color = 'var(--clr-success)';
+                if (statusEl) { statusEl.textContent = 'Release to start!'; statusEl.style.color = '#2ECC71'; }
             }, 500);
         }
     }
 
     function battleKeyUp(e) {
         if (state.currentView !== 'battle') return;
+        if (battleState.inputMode !== 'keyboard') return;
         if (e.code !== 'Space') return;
+        if (document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
         e.preventDefault();
 
         if (battleState.spaceHeld && !battleState.timerRunning) {
@@ -3381,8 +3768,8 @@
             if (battleState.timerArmed) {
                 startBattleTimer();
             } else {
-                $('#battle-timer-status').textContent = 'Hold Space to start timer';
-                $('#battle-timer-status').style.color = '';
+                const statusEl = $('#battle-timer-status');
+                if (statusEl) { statusEl.textContent = 'Hold Space to start timer'; statusEl.style.color = ''; }
             }
         }
         battleState.spaceHeld = false;
@@ -3393,217 +3780,42 @@
         battleState.startTime = performance.now();
         battleState.timerRunning = true;
         const timeEl = $('#battle-timer-time');
-        timeEl.className = 'battle-timer-time running';
-        $('#battle-timer-status').textContent = 'Solving!';
-        $('#battle-timer-status').style.color = '';
+        if (timeEl) timeEl.className = 'battle-timer-time running';
+        const statusEl = $('#battle-timer-status');
+        if (statusEl) { statusEl.textContent = 'Solving!'; statusEl.style.color = ''; }
         battleState.timerInterval = setInterval(() => {
             const elapsed = performance.now() - battleState.startTime;
-            timeEl.textContent = battleFormatTime(elapsed);
+            if (timeEl) timeEl.textContent = battleFormatTime(elapsed);
         }, 30);
     }
 
-    function stopBattleTimer() {
+    async function stopBattleTimer() {
         if (!battleState.timerRunning) return;
         clearInterval(battleState.timerInterval);
         battleState.timerRunning = false;
         const elapsed = performance.now() - battleState.startTime;
         const timeEl = $('#battle-timer-time');
-        timeEl.textContent = battleFormatTime(elapsed);
-        timeEl.className = 'battle-timer-time pb';
-        $('#battle-timer-status').textContent = 'Done! Waiting for others...';
-        $('#battle-timer-status').style.color = 'var(--clr-success)';
-
-        const userName = state.userProfile ? state.userProfile.name : 'You';
-        battleState.roundResults.push({ name: userName, isBot: false, time: elapsed });
-        checkBattleRoundComplete();
+        if (timeEl) { timeEl.textContent = battleFormatTime(elapsed); timeEl.className = 'battle-timer-time pb'; }
+        const statusEl = $('#battle-timer-status');
+        if (statusEl) { statusEl.textContent = `Done! ${battleFormatTime(elapsed)}`; statusEl.style.color = '#2ECC71'; }
+        await submitBattleSolve(elapsed);
     }
 
-    function checkBattleRoundComplete() {
-        const room = battleState.currentRoom;
-        if (!room) return;
-        const totalExpected = room.players.length + 1;
-        if (battleState.roundResults.length >= totalExpected) {
-            setTimeout(() => showBattleRoundResults(), 500);
-        }
-    }
-
-    function showBattleRoundResults() {
-        const room = battleState.currentRoom;
-        if (!room) return;
-
-        // Sort by time
-        const sorted = [...battleState.roundResults].sort((a, b) => a.time - b.time);
-        const userName = state.userProfile ? state.userProfile.name : 'You';
-
-        // Add to score history
-        if (!room.userPlayer.scores) room.userPlayer.scores = [];
-        const userResult = sorted.find(r => r.name === userName);
-        if (userResult) room.userPlayer.scores.push(userResult.time);
-        room.players.forEach(bot => {
-            const botResult = sorted.find(r => r.name === bot.name);
-            if (botResult) {
-                if (!bot.scores) bot.scores = [];
-                bot.scores.push(botResult.time);
-            }
+    // ---- Shared submit ----
+    async function submitBattleSolve(elapsedMs) {
+        const roomId = battleState.currentRoomId;
+        const userId = getBattleUserId();
+        const roomData = battleState.currentRoomData;
+        if (!roomId || !roomData) return;
+        const event = roomData.event || '3x3';
+        const idx = roomData.currentScrambleIndex || 0;
+        // Use fbSet so each user has exactly one solve per scramble (overwrite if re-submitted)
+        await fbSet(`${BATTLE_PATH}/${roomId}/solves/${event}/${idx}/${userId}`, {
+            time: elapsedMs,
+            submittedAt: Date.now()
         });
-
-        const rankEmojis = ['🥇', '🥈', '🥉'];
-
-        $('#battle-results-table').innerHTML = sorted.map((r, i) => `
-            <div class="battle-result-row ${r.name === userName ? 'is-user' : ''}">
-                <span class="battle-result-rank">${rankEmojis[i] || `#${i+1}`}</span>
-                <span class="battle-result-name">${r.name}${!r.isBot ? ' (You)' : ''}</span>
-                <span class="battle-result-time">${battleFormatTime(r.time)}</span>
-            </div>
-        `).join('');
-
-        $('#battle-timer-panel').style.display = 'none';
-        $('#battle-round-results').style.display = 'flex';
-
-        const isLastRound = room.round >= room.totalRounds;
-        const nextBtn = $('#battle-next-round-btn');
-        if (isLastRound) {
-            nextBtn.textContent = 'See Final Results 🏆';
-        } else {
-            nextBtn.textContent = `Next Round (${room.round + 1}/${room.totalRounds}) →`;
-        }
-
-        renderBattleScoreHistory();
-    }
-
-    function renderBattleScoreHistory() {
-        const room = battleState.currentRoom;
-        const list = $('#battle-scores-list');
-        if (!list || !room) return;
-
-        const allPlayers = [room.userPlayer, ...room.players];
-        const userName = state.userProfile ? state.userProfile.name : 'You';
-
-        // Compute total wins per player
-        const rounds = room.userPlayer.scores ? room.userPlayer.scores.length : 0;
-        if (rounds === 0) {
-            list.innerHTML = '<div class="battle-scores-empty">No solves yet</div>';
-            return;
-        }
-
-        // Build per-round leaderboard rows
-        let html = '';
-        for (let r = 0; r < rounds; r++) {
-            const roundTimes = allPlayers
-                .filter(p => p.scores && p.scores[r] !== undefined)
-                .map(p => ({ name: p.name, isBot: p.isBot, time: p.scores[r] }))
-                .sort((a, b) => a.time - b.time);
-            const winner = roundTimes[0];
-            html += `<div class="battle-score-round"><div class="battle-score-round-label">Round ${r+1}</div>`;
-            roundTimes.forEach((rt, i) => {
-                html += `<div class="battle-score-entry ${rt.name === userName ? 'is-user' : ''}">
-                    <span class="battle-score-rank">#${i+1}</span>
-                    <span class="battle-score-name">${rt.name.split(' ')[0]}</span>
-                    <span class="battle-score-time">${battleFormatTime(rt.time)}</span>
-                </div>`;
-            });
-            html += `</div>`;
-        }
-        list.innerHTML = html;
-    }
-
-    function startNextBattleRound() {
-        const room = battleState.currentRoom;
-        if (!room) return;
-
-        if (room.round >= room.totalRounds) {
-            // Show final screen
-            showBattleFinalResults();
-            return;
-        }
-
-        room.round++;
-        room.roundStarted = false;
-        battleState.playerIsReady = false;
-        battleState.timerRunning = false;
-        clearInterval(battleState.timerInterval);
-
-        $('#battle-round-counter').textContent = `Round ${room.round} / ${room.totalRounds}`;
-        $('#battle-timer-panel').style.display = 'flex';
-        $('#battle-round-results').style.display = 'none';
-        $('#battle-scramble-text').textContent = '— Ready up to reveal —';
-        $('#battle-timer-time').textContent = '0.00';
-        $('#battle-timer-time').className = 'battle-timer-time';
-        $('#battle-timer-status').textContent = 'Ready up to begin';
-        $('#battle-timer-status').style.color = '';
-        $('#battle-ready-btn').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ready Up`;
-        $('#battle-ready-btn').classList.remove('is-ready');
-        $('#battle-status-text').textContent = 'Waiting for players to ready up...';
-
-        const twisty = $('#battle-twisty');
-        if (twisty) twisty.setAttribute('alg', '');
-
-        renderBattlePlayers();
-    }
-
-    function showBattleFinalResults() {
-        const room = battleState.currentRoom;
-        if (!room) return;
-
-        const userName = state.userProfile ? state.userProfile.name : 'You';
-        const allPlayers = [room.userPlayer, ...room.players];
-
-        // Count wins
-        const winCounts = {};
-        allPlayers.forEach(p => { winCounts[p.name] = 0; });
-        const rounds = room.userPlayer.scores ? room.userPlayer.scores.length : 0;
-        for (let r = 0; r < rounds; r++) {
-            const roundTimes = allPlayers
-                .filter(p => p.scores && p.scores[r] !== undefined)
-                .sort((a, b) => a.scores[r] - b.scores[r]);
-            if (roundTimes.length > 0) winCounts[roundTimes[0].name] = (winCounts[roundTimes[0].name] || 0) + 1;
-        }
-
-        // Average times
-        const playerStats = allPlayers.map(p => ({
-            name: p.name,
-            isBot: p.isBot,
-            wins: winCounts[p.name] || 0,
-            avg: p.scores && p.scores.length > 0 ? p.scores.reduce((a,b) => a+b, 0) / p.scores.length : Infinity,
-        })).sort((a, b) => b.wins - a.wins || a.avg - b.avg);
-
-        const rankEmojis = ['🥇', '🥈', '🥉'];
-        const userRank = playerStats.findIndex(p => p.name === userName);
-
-        $('#battle-results-table').innerHTML = `
-            <div class="battle-final-header">🏆 Final Standings</div>
-            ${playerStats.map((p, i) => `
-                <div class="battle-result-row ${p.name === userName ? 'is-user' : ''}">
-                    <span class="battle-result-rank">${rankEmojis[i] || `#${i+1}`}</span>
-                    <span class="battle-result-name">${p.name}${!p.isBot ? ' (You)' : ''}</span>
-                    <span class="battle-result-time">${p.wins}W · ${p.avg < Infinity ? battleFormatTime(p.avg) + ' avg' : 'N/A'}</span>
-                </div>
-            `).join('')}
-        `;
-        $('#battle-next-round-btn').textContent = 'Back to Lobby';
-        $('#battle-next-round-btn').onclick = () => leaveBattleRoom();
-        $('#battle-round-results').style.display = 'flex';
-        $('#battle-timer-panel').style.display = 'none';
-
-        if (userRank === 0) {
-            showToast('🏆 You won the battle! GG!', 'success');
-        } else {
-            showToast(`You finished #${userRank + 1}. Better luck next time!`, 'info');
-        }
-    }
-
-    function leaveBattleRoom() {
-        clearInterval(battleState.timerInterval);
-        battleState.timerRunning = false;
-        battleState.currentRoom = null;
-        battleState.playerIsReady = false;
-
-        if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
-        if ($('#battle-lobby')) $('#battle-lobby').style.display = 'block';
-
-        // Refresh rooms
-        battleState.rooms = generateLobbyRooms();
-        renderBattleLobby();
+        await fbUpdate(`${BATTLE_PATH}/${roomId}`, { updatedAt: Date.now() });
+        showToast(`Solve recorded: ${battleFormatTime(elapsedMs)}`, 'success');
     }
 
     // ========== START ==========
