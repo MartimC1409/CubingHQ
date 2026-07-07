@@ -1334,6 +1334,40 @@ body {
     border-bottom-color: rgba(99, 102, 241, 0.2);
 }
 
+.leaderboard-table .lb-status { text-align: center; }
+
+.status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 60px;
+    text-align: center;
+}
+
+.status-badge.solving {
+    background: rgba(255, 170, 0, 0.15);
+    color: var(--clr-warning);
+}
+
+.status-badge.waiting {
+    background: rgba(100, 100, 100, 0.15);
+    color: var(--clr-text-muted);
+}
+
+.status-badge.finished {
+    background: rgba(0, 200, 83, 0.15);
+    color: var(--clr-success);
+}
+
+.status-badge.user {
+    background: var(--clr-primary-glow);
+    color: var(--clr-primary);
+}
+
 .leaderboard-table tr:not(.user-row):hover {
     background: var(--clr-bg-card-hover);
 }

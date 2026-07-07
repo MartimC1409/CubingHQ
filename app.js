@@ -192,6 +192,7 @@
         inspectionValue: 15,
         timerInterval: null,
         inspectionInterval: null,
+        rtInterval: null,
         selectedPenalty: 'none',
         currentView: 'home',
         history: [],
@@ -325,6 +326,11 @@
     };
 
     function switchView(viewName, updateHash = true) {
+        if (viewName !== 'dashboard' && state.rtInterval) {
+            clearInterval(state.rtInterval);
+            state.rtInterval = null;
+        }
+
         $$('.view').forEach(v => v.classList.remove('active'));
         $(`#${viewName}-view`).classList.add('active');
         state.currentView = viewName;
@@ -1760,6 +1766,10 @@
 
         switchView('dashboard');
         showToast(`🏁 Simulation started! ${EVENT_NAMES[state.event]} - ${ROUND_NAMES[state.round]}`, 'info');
+        
+        if (state.rtInterval) clearInterval(state.rtInterval);
+        state.rtInterval = setInterval(updateRealTimeSimulation, 500);
+
         saveSimState();
     }
 
@@ -1862,7 +1872,9 @@
                     avg: compAvg,
                     solves: [],
                     best: Infinity,
-                    average: Infinity
+                    average: Infinity,
+                    status: 'waiting',
+                    statusUntil: Date.now() + Math.random() * 30000
                 });
             }
 
@@ -1892,33 +1904,65 @@
                     avg: clampedAvg,
                     solves: [],
                     best: Infinity,
-                    average: Infinity
+                    average: Infinity,
+                    status: 'waiting',
+                    statusUntil: Date.now() + Math.random() * 30000
                 });
             }
         }
     }
 
-    // Generate one solve for all competitors (called each time the user submits)
-    function generateCompetitorSolveForAll() {
+    // Update the real-time simulation state for competitors
+    function updateRealTimeSimulation() {
+        if (!state.competitors || state.competitors.length === 0) return;
+
+        const now = Date.now();
+        let changed = false;
+
         const variation = EVENT_VARIATION[state.event] || 0.12;
+
         state.competitors.forEach(comp => {
-            if (comp.solves.length >= state.numSolves) return;
+            if (comp.status === 'finished') return;
 
-            const solveVariation = comp.avg * variation;
-            let time = comp.avg + (Math.random() * solveVariation * 2 - solveVariation);
-            time = Math.max(0.5, time);
-            const isDNF = Math.random() < 0.03;
-            const isPlus2 = !isDNF && Math.random() < 0.05;
+            if (now >= comp.statusUntil) {
+                if (comp.status === 'waiting') {
+                    comp.status = 'solving';
+                    
+                    const solveVariation = comp.avg * variation;
+                    let time = comp.avg + (Math.random() * solveVariation * 2 - solveVariation);
+                    time = Math.max(0.5, time);
+                    comp.nextSolveTime = time;
 
-            comp.solves.push({
-                time: Math.round(time * 100) / 100,
-                penalty: isDNF ? 'dnf' : (isPlus2 ? '+2' : 'none'),
-                result: isDNF ? Infinity : (isPlus2 ? Math.round((time + 2) * 100) / 100 : Math.round(time * 100) / 100)
-            });
+                    comp.statusUntil = now + (time * 1000);
+                    changed = true;
+                } else if (comp.status === 'solving') {
+                    const isDNF = Math.random() < 0.03;
+                    const isPlus2 = !isDNF && Math.random() < 0.05;
+                    const time = comp.nextSolveTime || comp.avg;
 
-            comp.best = getCompBest(comp.solves);
-            comp.average = comp.solves.length === state.numSolves ? calculateAverage(comp.solves) : Infinity;
+                    comp.solves.push({
+                        time: Math.round(time * 100) / 100,
+                        penalty: isDNF ? 'dnf' : (isPlus2 ? '+2' : 'none'),
+                        result: isDNF ? Infinity : (isPlus2 ? Math.round((time + 2) * 100) / 100 : Math.round(time * 100) / 100)
+                    });
+
+                    comp.best = getCompBest(comp.solves);
+                    comp.average = comp.solves.length === state.numSolves ? calculateAverage(comp.solves) : Infinity;
+
+                    if (comp.solves.length >= state.numSolves) {
+                        comp.status = 'finished';
+                    } else {
+                        comp.status = 'waiting';
+                        comp.statusUntil = now + Math.random() * 30000;
+                    }
+                    changed = true;
+                }
+            }
         });
+
+        if (changed) {
+            renderLeaderboard();
+        }
     }
 
     function getCompBest(solves) {
@@ -2002,8 +2046,6 @@
 
         state.currentSolve++;
 
-        // Generate one solve for all competitors to match the user's pace
-        generateCompetitorSolveForAll();
 
         updateScorecard();
         updateGoalTracker();
@@ -2305,12 +2347,26 @@
             const prStr = comp.prAvg ? formatTime(comp.prAvg) : (comp.prSingle ? formatTime(comp.prSingle) : '—');
             const flagHtml = comp.country ? countryFlagImg(comp.country, 16) : '';
 
+            let statusBadge = '';
+            if (comp.isPlayer) {
+                statusBadge = '<span class="status-badge user">You</span>';
+            } else {
+                if (comp.status === 'solving') {
+                    statusBadge = '<span class="status-badge solving">Solving</span>';
+                } else if (comp.status === 'waiting') {
+                    statusBadge = '<span class="status-badge waiting">Waiting</span>';
+                } else if (comp.status === 'finished') {
+                    statusBadge = '<span class="status-badge finished">Finished</span>';
+                }
+            }
+
             tr.innerHTML = `
                 <td class="lb-rank">${medal || rank}</td>
                 <td class="lb-name">${flagHtml} ${comp.name}${comp.isPlayer ? ' (You)' : ''}</td>
                 <td class="lb-pr">${prStr}</td>
                 <td class="lb-best">${bestStr}</td>
                 <td class="lb-avg">${avgStr}</td>
+                <td class="lb-status">${statusBadge}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -2320,6 +2376,8 @@
 
     // ========== ROUND COMPLETION ==========
     function finishRound() {
+        if (state.rtInterval) clearInterval(state.rtInterval);
+        
         if (state.soundEnabled) playBeep(523, 200);
 
         const avg = calculateAverage(state.solves);
