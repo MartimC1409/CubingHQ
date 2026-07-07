@@ -3292,6 +3292,16 @@
 
     // ----- Bind static events -----
     function bindBattleEvents() {
+        const kbMode = #battle-keyboard-mode;
+        if (kbMode) {
+            kbMode.addEventListener('touchstart', battlePointerDown, { passive: false });
+            kbMode.addEventListener('touchend', battlePointerUp, { passive: false });
+            kbMode.addEventListener('touchcancel', battlePointerUp, { passive: false });
+            kbMode.addEventListener('mousedown', battlePointerDown);
+            kbMode.addEventListener('mouseup', battlePointerUp);
+            kbMode.addEventListener('mouseleave', battlePointerUp);
+        }
+
         // Refresh button
         $('#battle-refresh-btn').addEventListener('click', loadBattleLobby);
 
@@ -3845,7 +3855,49 @@
         battleState.timerArmed = false;
     }
 
-    function startBattleTimer() {
+    
+    function battlePointerDown(e) {
+        if (state.currentView !== 'battle') return;
+        if (!battleState.currentRoomId) return;
+        if (battleState.inputMode !== 'keyboard') return;
+        if (e.target && e.target.closest && e.target.closest('button')) return;
+        if (document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+        e.preventDefault();
+
+        if (battleState.timerRunning) {
+            stopBattleTimer();
+        } else if (!battleState.spaceHeld) {
+            battleState.spaceHeld = true;
+            battleState.timerArmed = false;
+            const statusEl = #battle-timer-status;
+            if (statusEl) { statusEl.textContent = 'Holding...'; statusEl.style.color = '#F1C40F'; }
+            battleState.spaceHoldTimeout = setTimeout(() => {
+                battleState.timerArmed = true;
+                if (statusEl) { statusEl.textContent = 'Release to start!'; statusEl.style.color = '#2ECC71'; }
+            }, 500);
+        }
+    }
+
+    function battlePointerUp(e) {
+        if (state.currentView !== 'battle') return;
+        if (battleState.inputMode !== 'keyboard') return;
+        if (e.target && e.target.closest && e.target.closest('button')) return;
+        if (document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+        e.preventDefault();
+
+        if (battleState.spaceHeld && !battleState.timerRunning) {
+            clearTimeout(battleState.spaceHoldTimeout);
+            if (battleState.timerArmed) {
+                startBattleTimer();
+            } else {
+                const statusEl = #battle-timer-status;
+                if (statusEl) { statusEl.textContent = 'Hold Space/Touch to start timer'; statusEl.style.color = ''; }
+            }
+        }
+        battleState.spaceHeld = false;
+        battleState.timerArmed = false;
+    }
+\n    function startBattleTimer() {
         battleState.startTime = performance.now();
         battleState.timerRunning = true;
         const timeEl = $('#battle-timer-time');
