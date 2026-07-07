@@ -340,6 +340,7 @@
         state.currentView = viewName;
         
         if (viewName === 'dashboard' && state.soundEnabled) {
+            ambientNoise.currentTime = 300; // Start at 5 minute mark
             ambientNoise.play().catch(e => console.warn('Audio play failed', e));
         } else {
             ambientNoise.pause();
@@ -1735,16 +1736,26 @@
         const prs = state.playerData.personal_records;
         const eventPR = prs[currentEvent];
 
-        // Maintain playerAvg for simulation logic based on currently selected event
+        // Set playerAvg to a realistic CURRENT average, not just the all-time PR.
+        // PR avg is the best ever — current performance is typically ~10-20% slower.
+        // For events without an official average (BLD, FMC, MBLD), use single * 1.1 as proxy.
         if (eventPR) {
-            if (eventPR.single) {
-                state.playerAvg = eventPR.single.best / 100; // fallback
-            }
+            let baseAvg = null;
             if (eventPR.average) {
-                state.playerAvg = eventPR.average.best / 100;
+                baseAvg = eventPR.average.best / 100;
+            } else if (eventPR.single) {
+                baseAvg = eventPR.single.best / 100 * 1.1;
+            }
+            if (baseAvg !== null) {
+                // Apply a small realistic buffer: current performance is slightly above PR
+                state.playerAvg = baseAvg * 1.12;
+                state.playerPRAvg = baseAvg;      // store the actual PR for display
+                state.playerPRSingle = eventPR.single ? eventPR.single.best / 100 : null;
             }
         } else {
             state.playerAvg = 15; // default fallback
+            state.playerPRAvg = null;
+            state.playerPRSingle = null;
         }
 
         const prTableBody = $('#pr-table-body');
@@ -1760,22 +1771,38 @@
                 const rec = prs[evt];
                 const s = rec.single;
                 const a = rec.average;
-                
-                const sTime = s ? formatTime(s.best / 100) : '—';
-                const aTime = a ? formatTime(a.best / 100) : '—';
-                const sRank = s ? s.country_rank : '—';
-                const aRank = a ? a.country_rank : '—';
-                
+
+                let sTime, aTime;
+                if (evt === '333fm') {
+                    sTime = s ? String(s.best) : '—';
+                    aTime = a ? (a.best / 100).toFixed(2) : '—';
+                } else if (evt === '333mbf') {
+                    sTime = s ? decodeMBLD(s.best) : '—';
+                    aTime = '—';
+                } else {
+                    sTime = s ? formatTime(s.best / 100) : '—';
+                    aTime = a ? formatTime(a.best / 100) : '—';
+                }
+
+                const sNR = s ? s.country_rank : '—';
+                const aNR = a ? a.country_rank : '—';
+                const sWR = s ? s.world_rank : '—';
+                const aWR = a ? a.world_rank : '—';
+
+                // Pick the best rank to show (use average's rank if available, else single)
+                const dispNR = (aNR !== '—') ? aNR : sNR;
+                const dispWR = (aWR !== '—') ? aWR : sWR;
+
                 const isCurrent = evt === currentEvent;
                 const activeStyle = isCurrent ? 'background: var(--clr-primary-glow);' : '';
-                
+
                 return `
                     <tr class="records-row" style="${activeStyle}">
                         <td class="rec-event-name">${EVENT_NAMES[evt] || evt}</td>
-                        <td style="font-size: 0.75rem; color: var(--clr-text-muted); text-align: center;">${sRank !== '—' ? '#' + sRank : '—'}</td>
                         <td class="rec-time rec-single" style="text-align: center;">${sTime}</td>
                         <td class="rec-time" style="text-align: center;">${aTime}</td>
-                        <td style="font-size: 0.75rem; color: var(--clr-text-muted); text-align: center;">${aRank !== '—' ? '#' + aRank : '—'}</td>
+                        <td style="font-size: 0.8rem; color: var(--clr-primary); font-weight: 600; text-align: center;">${dispNR !== '—' ? '#' + dispNR : '—'}</td>
+                        <td style="font-size: 0.8rem; color: var(--clr-primary); font-weight: 600; text-align: center;">${dispWR !== '—' ? '#' + dispWR : '—'}</td>
                     </tr>
                 `;
             }).join('');
@@ -2339,14 +2366,18 @@
     }
 
     function updateGoalTracker() {
-        const goalTarget = state.goalTime || state.playerAvg;
+        // goalTarget is the user-set goal, or if none, the actual PR avg (not the simulation estimate)
+        const prAvgForDisplay = state.playerPRAvg || state.playerAvg;
+        const goalTarget = state.goalTime || prAvgForDisplay;
         $('#goal-target-avg').textContent = formatTime(goalTarget);
 
-        // Show PR average
+        // Show PR average accurately (from playerPRAvg set in updatePRDisplay)
         if (state.playerData) {
             const eventPR = state.playerData.personal_records[state.event];
             if (eventPR && eventPR.average) {
                 $('#goal-pr-avg').textContent = formatTime(eventPR.average.best / 100);
+            } else if (eventPR && eventPR.single) {
+                $('#goal-pr-avg').textContent = formatTime(eventPR.single.best / 100);
             } else {
                 $('#goal-pr-avg').textContent = '—';
             }
