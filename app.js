@@ -3292,7 +3292,7 @@
 
     // ----- Bind static events -----
     function bindBattleEvents() {
-        const kbMode = #battle-keyboard-mode;
+        const kbMode = $('#battle-keyboard-mode');
         if (kbMode) {
             kbMode.addEventListener('touchstart', battlePointerDown, { passive: false });
             kbMode.addEventListener('touchend', battlePointerUp, { passive: false });
@@ -3869,7 +3869,7 @@
         } else if (!battleState.spaceHeld) {
             battleState.spaceHeld = true;
             battleState.timerArmed = false;
-            const statusEl = #battle-timer-status;
+            const statusEl = $('#battle-timer-status');
             if (statusEl) { statusEl.textContent = 'Holding...'; statusEl.style.color = '#F1C40F'; }
             battleState.spaceHoldTimeout = setTimeout(() => {
                 battleState.timerArmed = true;
@@ -3890,14 +3890,14 @@
             if (battleState.timerArmed) {
                 startBattleTimer();
             } else {
-                const statusEl = #battle-timer-status;
+                const statusEl = $('#battle-timer-status');
                 if (statusEl) { statusEl.textContent = 'Hold Space/Touch to start timer'; statusEl.style.color = ''; }
             }
         }
         battleState.spaceHeld = false;
         battleState.timerArmed = false;
     }
-\n    function startBattleTimer() {
+    function startBattleTimer() {
         battleState.startTime = performance.now();
         battleState.timerRunning = true;
         const timeEl = $('#battle-timer-time');
