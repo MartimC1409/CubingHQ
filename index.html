@@ -27,6 +27,11 @@
 
       gtag('config', 'G-YQSNC2LYVS');
     </script>
+    
+    <!-- Google AdSense Verification & Auto Ads -->
+    <meta name="google-adsense-account" content="ca-pub-1447384831345579">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
+     crossorigin="anonymous"></script>
 </head>
 <body>
     <!-- Animated Background -->
@@ -99,17 +104,16 @@
     </div>    <!-- Login Modal (Premium Redesign) -->
     <div id="login-modal" class="modal auth-modal" style="display:none;">
         <div class="modal-content glass-panel">
-            <div class="modal-header">
-                <h2>Welcome Back</h2>
-                <p class="auth-subtitle">Login to access your personalized simulation data.</p>
-                <button id="login-close-btn" class="modal-close-btn">
+            <div class="modal-header" style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <h2 style="margin: 0;">Welcome!</h2>
+                <p class="auth-subtitle" style="margin: 0; font-size: 0.9em; opacity: 0.8;">Login to access your personalized simulation data.</p>
+                <button id="login-close-btn" class="modal-close-btn" style="position: absolute; right: 20px; top: 20px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
-            <div class="modal-body" style="text-align: center; padding-bottom: var(--space-xl);">
+            <div class="modal-body" style="text-align: center; padding-bottom: var(--space-xl); padding-top: var(--space-md);">
                 <div class="login-methods" style="justify-content: center; display: flex;">
-                    <button id="wca-login-btn" class="btn auth-provider-btn wca-auth-btn" style="width: 100%; max-width: 300px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    <button id="wca-login-btn" class="btn auth-provider-btn wca-auth-btn" style="width: 100%; max-width: 300px; display: flex; align-items: center; justify-content: center;">
                         Login with WCA
                     </button>
                 </div>

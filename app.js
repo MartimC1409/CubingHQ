@@ -474,6 +474,8 @@
                 initBattle();
             });
         }
+        
+        // Guest battle removed
 
         // Algorithms View Logic (Native + TwistyPlayer)
         const algEventSelect = $('#alg-event-select');
@@ -3174,8 +3176,14 @@
     async function loadBattleLobby() {
         const grid = $('#battle-rooms-grid');
         if (!grid) return;
+        
+        const refreshIcon = $('#battle-refresh-btn') ? $('#battle-refresh-btn').querySelector('svg') : null;
+        if (refreshIcon) refreshIcon.classList.add('spinning-icon');
+        
         const data = await fbGet(BATTLE_PATH);
         renderBattleLobby(data);
+        
+        if (refreshIcon) refreshIcon.classList.remove('spinning-icon');
     }
 
     function renderBattleLobby(data) {

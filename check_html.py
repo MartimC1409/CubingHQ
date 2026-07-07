@@ -1,23 +1,18 @@
-HTML_OLD = """    <script src="https://cdn.cubing.net/js/cubing/twisty" type="module"></script>
+HTML_OLD = """    <!-- Google AdSense Auto Ads -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
+     crossorigin="anonymous"></script>
 </head>"""
 
-HTML_NEW = """    <script src="https://cdn.cubing.net/js/cubing/twisty" type="module"></script>
-    
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YQSNC2LYVS"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-YQSNC2LYVS');
-    </script>
+HTML_NEW = """    <!-- Google AdSense Verification & Auto Ads -->
+    <meta name="google-adsense-account" content="ca-pub-1447384831345579">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
+     crossorigin="anonymous"></script>
 </head>"""
 
 content = open('d:/AI-TESTE/index.html', encoding='utf-8').read().replace('\r\n', '\n')
 if HTML_OLD in content:
     content = content.replace(HTML_OLD, HTML_NEW)
     open('d:/AI-TESTE/index.html', 'w', encoding='utf-8', newline='\n').write(content)
-    print("Replaced Google Analytics in HTML")
+    print("Added adsense meta tag")
 else:
     print("Not found")
