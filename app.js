@@ -159,7 +159,11 @@
     };
 
     // ========== STATE ==========
-    const ambientNoise = new Audio('competition_noise.mp3');\nambientNoise.loop = true;\nambientNoise.volume = 0.4;\n\nconst state = {
+    const ambientNoise = new Audio('competition_noise.mp3');
+    ambientNoise.loop = true;
+    ambientNoise.volume = 0.4;
+
+    const state = {
         // Config
         compId: '',
         compName: '',
