@@ -1,5 +1,63 @@
 const ALGORITHMS = {
     "2x2": {
+        "Ortega Method": {
+            "OLL": [
+                {
+                    "name": "Dot (All Twisted)",
+                    "alg": "F R U R' U' F' f R U R' U' f'"
+                },
+                {
+                    "name": "Cross (Solved OLL)",
+                    "alg": "skip"
+                },
+                {
+                    "name": "I Shape (Line)",
+                    "alg": "f R U R' U' f'"
+                },
+                {
+                    "name": "L Shape (Angle/Backward L)",
+                    "alg": "F R U R' U' F'"
+                },
+                {
+                    "name": "Lightning / S Bolt",
+                    "alg": "R U R' U' R' F R F'"
+                },
+                {
+                    "name": "Anti S / Anti Lightning",
+                    "alg": "F R' F' R U R U' R'"
+                },
+                {
+                    "name": "U Shape (Back Bar)",
+                    "alg": "R U2 R' U' R U' R'"
+                }
+            ],
+            "PBL": [
+                {
+                    "name": "Solved (Skip)",
+                    "alg": "skip"
+                },
+                {
+                    "name": "Adj Top / Adj Bot (Same Side)",
+                    "alg": "R U' R F2 R' U R'"
+                },
+                {
+                    "name": "Adj Top / Adj Bot (Opposite Side)",
+                    "alg": "R2 F2 R2"
+                },
+                {
+                    "name": "Adj Top / Diag Bot",
+                    "alg": "F2 R2 F2"
+                },
+                {
+                    "name": "Diag Top / Adj Bot",
+                    "alg": "R2 B2 R2"
+                },
+                {
+                    "name": "Diag Top / Diag Bot (Diagonal Swap Both)",
+                    "alg": "R2 F2 R2 U R2 F2 R2"
+                }
+            ]
+        },
         "EG Method": {
             "CLL": [
                 {
@@ -2724,23 +2782,100 @@ const ALGORITHMS = {
         ],
         "PLL Parity": [
             {
-                "name": "Opposite Parity",
-                "alg": "2R2 U2 2R2 Uw2 2R2 Uw2"
+                "name": "Opposite Edge Swap (Pure Parity)",
+                "alg": "Rw2 B2 Rw' U2 Rw' U2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw2 B2 Rw2"
             },
             {
-                "name": "Adjacent Parity",
-                "alg": "R' U R U' 2R2 U2 2R2 Uw2 2R2 Uw2 U' R' U' R"
+                "name": "Adjacent Edge Swap (Pure Parity)",
+                "alg": "Uw Rw2 Uw2 Rw2 Uw' Rw2 Uw2 Rw2 Uw"
             },
             {
-                "name": "O-Perm",
-                "alg": "2R2 U2 2R2 Uw2 2R2 Uw2 R U R' F' R U R' U' R' F R2 U' R' U'"
+                "name": "U Perm a (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U' R' U' R U R D R' U' R D' R' U2 R' U'"
             },
             {
-                "name": "W-Perm",
-                "alg": "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R' 2R2 U2 2R2 Uw2 2R2 Uw2"
+                "name": "U Perm b (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R2 U R' U R U2 R' U R2 U' R' U' R U' R2"
+            },
+            {
+                "name": "Z Perm (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 M' U M2 U M2 U M' U2 M2"
+            },
+            {
+                "name": "H Perm (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 M2 U M2 U2 M2 U M2"
+            },
+            {
+                "name": "A Perm a (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 x R' U R' D2 R U' R' D2 R2 x'"
+            },
+            {
+                "name": "A Perm b (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 x R2 D2 R U R' D2 R U' R x'"
+            },
+            {
+                "name": "E Perm (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 x' R U' R' D R U R' D' R U R' D R U' R' D' x"
+            },
+            {
+                "name": "T Perm (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U R' U' R' F R2 U' R' U' R U R' F'"
+            },
+            {
+                "name": "F Perm (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R"
+            },
+            {
+                "name": "Y Perm (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 F R U' R' U' R U R' F' R U R' U' R' F R F'"
+            },
+            {
+                "name": "J Perm a (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U L' U2 R U' R' U2 R L"
+            },
+            {
+                "name": "J Perm b (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U R' F' R U R' U' R' F R2 U' R' U'"
+            },
+            {
+                "name": "R Perm a (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U' R' U' R U R D R' U' R D' R' U2 R' U'"
+            },
+            {
+                "name": "R Perm b (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U2 R U2 R' F R U R' U' R' F' R2"
+            },
+            {
+                "name": "V Perm (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U R' U' y R' F' R2 U' R' U R' F R F"
+            },
+            {
+                "name": "N Perm a (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U R U' R' F' U' F R U R' F R' F' R U' R"
+            },
+            {
+                "name": "N Perm b (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U R' F R F' R U' R' F' U F R U R' U' R"
+            },
+            {
+                "name": "G Perm a (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R2 U R' U R' U' R U' R2 D U' R' U R D'"
+            },
+            {
+                "name": "G Perm b (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U' R U D' R2 U R' U R U' R U' R2 D"
+            },
+            {
+                "name": "G Perm c (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R2 U' R U' R U R' U R2 D' U R U' R' D"
+            },
+            {
+                "name": "G Perm d (Parity)",
+                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U R' U' D R2 U' R U' R' U R' U R2 D'"
             }
         ]
     },
+
     "5x5": {
         "L2E": [
             {
@@ -2804,7 +2939,7 @@ const ALGORITHMS = {
                 "alg": "R U R' U R U R'"
             },
             {
-                "name": "AntiSune",
+                "name": "Anti-Sune",
                 "alg": "R U' R' U' R U' R'"
             },
             {
@@ -2816,367 +2951,367 @@ const ALGORITHMS = {
                 "alg": "L U R U' R' L'"
             },
             {
-                "name": "Sledge",
+                "name": "Sledge (FR-FL)",
                 "alg": "R' L R L'"
             },
             {
-                "name": "Sledge",
+                "name": "Sledge (FR-BL)",
                 "alg": "L U' R' L R L2'"
             },
             {
-                "name": "Sledge",
+                "name": "Sledge (FR-BR)",
                 "alg": "U R' U L' U' L R"
             },
             {
-                "name": "Hedge",
+                "name": "Hedge (FL-FR)",
                 "alg": "L R' L' R"
             },
             {
-                "name": "Hedge",
+                "name": "Hedge (FL-BR)",
                 "alg": "U' L U' R U R' L'"
             },
             {
-                "name": "Hedge",
+                "name": "Hedge (FL-BL)",
                 "alg": "R' U L R' L' R2"
             },
             {
-                "name": "Clockwise",
+                "name": "Clockwise 3-Cycle (FRU→BRU→BLU)",
                 "alg": "L R' L' R2 U' R'"
             },
             {
-                "name": "Clockwise",
+                "name": "Clockwise 3-Cycle (FRU→BLU→FLU)",
                 "alg": "U' L2 R' L' R L'"
             },
             {
-                "name": "Clockwise",
+                "name": "Clockwise 3-Cycle (FRU→FLU→BRU)",
                 "alg": "U R' L R' L' R2"
             },
             {
-                "name": "Counterclockwise",
+                "name": "Counter-Clockwise 3-Cycle (FRU→BLU→BRU)",
                 "alg": "R' L R L2' U L"
             },
             {
-                "name": "Counterclockwise",
+                "name": "Counter-Clockwise 3-Cycle (FRU→FLU→BLU)",
                 "alg": "U' L R' L R L2'"
             },
             {
-                "name": "Counterclockwise",
+                "name": "Counter-Clockwise 3-Cycle (FRU→BRU→FLU)",
                 "alg": "U R2' L R L' R"
             },
             {
-                "name": "Righty",
+                "name": "Righty (FR flipped only)",
                 "alg": "R U' R'"
             },
             {
-                "name": "Righty",
+                "name": "Righty-L (FL flipped only)",
                 "alg": "L U' L'"
             },
             {
-                "name": "Lefty",
+                "name": "Lefty (FL flipped only)",
                 "alg": "L' U L"
             },
             {
-                "name": "Lefty",
+                "name": "Lefty-R (FR flipped only)",
                 "alg": "R' U R"
             },
             {
-                "name": "Sexy",
+                "name": "Sexy (FR flip with AUF)",
                 "alg": "U' R U R'"
             },
             {
-                "name": "Sexy",
+                "name": "Sexy-L (FL flip with AUF)",
                 "alg": "U' L U L'"
             },
             {
-                "name": "Left Sexy",
+                "name": "Left Sexy (FL flip with reverse AUF)",
                 "alg": "U L' U' L"
             },
             {
-                "name": "Left Sexy",
+                "name": "Left Sexy-R (FR flip with reverse AUF)",
                 "alg": "U R' U' R"
             },
             {
-                "name": "2 Flip",
+                "name": "2-Flip (FR+FL flipped)",
                 "alg": "R' L R L' U L' U' L"
             },
             {
-                "name": "DR Flip",
+                "name": "DR-Flip (FR+DR flipped) v1",
                 "alg": "L' U L U' R U' R'"
             },
             {
-                "name": "DR Flip",
+                "name": "DR-Flip (FR+DR flipped) v2",
                 "alg": "L U' L R' L' R L'"
             },
             {
-                "name": "DR Flip",
+                "name": "DR-Flip (FR+DR flipped) v3",
                 "alg": "R' U' L' U' L2 R' L' R2"
             },
             {
-                "name": "DL Flip",
+                "name": "DL-Flip (FL+DL flipped) v1",
                 "alg": "R' L R L' R U' R'"
             },
             {
-                "name": "DL Flip",
+                "name": "DL-Flip (FL+DL flipped) v2",
                 "alg": "L U R U R2' L R L2'"
             },
             {
-                "name": "DL Flip",
+                "name": "DL-Flip (FL+DL flipped) v3",
                 "alg": "R' U R' L R L' R"
             },
             {
-                "name": "DB Flip",
+                "name": "DB-Flip (BR+BL flipped) v1",
                 "alg": "R U R' U L' U' L"
             },
             {
-                "name": "DB Flip",
+                "name": "DB-Flip (BR+BL flipped) v2",
                 "alg": "L R' L R L' U L'"
             },
             {
-                "name": "DB Flip",
+                "name": "DB-Flip (BR+BL flipped) v3",
                 "alg": "R' L R' L' R U' R"
             },
             {
-                "name": "4 Flip",
+                "name": "4-Flip (All edges flipped) v1",
                 "alg": "L' U L R U' R' L' U L R U' R'"
             },
             {
-                "name": "4 Flip",
+                "name": "4-Flip (All edges flipped) v2",
                 "alg": "L R U' R' L' U L R U' R' L'"
             },
             {
-                "name": "4 Flip",
+                "name": "4-Flip (All edges flipped) v3",
                 "alg": "R' L' U L R U' R' L' U L R"
             },
             {
-                "name": "Right Polish Flip",
+                "name": "Right Polish Flip v1",
                 "alg": "R U' R' L' U' L"
             },
             {
-                "name": "Right Polish Flip",
+                "name": "Right Polish Flip v2",
                 "alg": "U' L R U' R' L' U' L U L'"
             },
             {
-                "name": "Right Polish Flip",
+                "name": "Right Polish Flip v3",
                 "alg": "R' L' U L R U' R' U R"
             },
             {
-                "name": "Left Polish Flip",
+                "name": "Left Polish Flip v1",
                 "alg": "L' U L R U R'"
             },
             {
-                "name": "Left Polish Flip",
+                "name": "Left Polish Flip v2",
                 "alg": "L R U' R' L' U L U' L'"
             },
             {
-                "name": "Left Polish Flip",
+                "name": "Left Polish Flip v3",
                 "alg": "U R' L' U L R U R' U' R"
             },
             {
-                "name": "SUS",
+                "name": "SUS (swap + flip) v1",
                 "alg": "R' L R L' U' R' L R L'"
             },
             {
-                "name": "SUS",
+                "name": "SUS (swap + flip) v2",
                 "alg": "L R U' R2' L R L2'"
             },
             {
-                "name": "SUS",
+                "name": "SUS (swap + flip) v3",
                 "alg": "R2' L R L2' U' L R"
             },
             {
-                "name": "Anti SUS",
+                "name": "Anti-SUS v1",
                 "alg": "L R' L' R U L R' L' R"
             },
             {
-                "name": "Anti SUS",
+                "name": "Anti-SUS v2",
                 "alg": "L2 R' L' R2 U R' L'"
             },
             {
-                "name": "Anti SUS",
+                "name": "Anti-SUS v3",
                 "alg": "R' L' U L2 R' L' R2"
             },
             {
-                "name": "Good Niky",
+                "name": "Good Niky v1",
                 "alg": "R U' R' L' U L"
             },
             {
-                "name": "Good Niky",
+                "name": "Good Niky v2",
                 "alg": "L R U R' L'"
             },
             {
-                "name": "Good Niky",
+                "name": "Good Niky v3",
                 "alg": "R' L' U L R"
             },
             {
-                "name": "Good Sochi",
+                "name": "Good Sochi v1",
                 "alg": "L' U L R U' R'"
             },
             {
-                "name": "Good Sochi",
+                "name": "Good Sochi v2",
                 "alg": "L R U' R' L'"
             },
             {
-                "name": "Good Sochi",
+                "name": "Good Sochi v3",
                 "alg": "R' L' U' L R"
             },
             {
-                "name": "Super Sledge",
+                "name": "Super Sledge v1",
                 "alg": "R U' R2' L R L'"
             },
             {
-                "name": "Super Sledge",
+                "name": "Super Sledge v2",
                 "alg": "L U R' L R L2'"
             },
             {
-                "name": "Super Sledge",
+                "name": "Super Sledge v3",
                 "alg": "R' L' U L2 R' L' R U' R"
             },
             {
-                "name": "Super Hedge",
+                "name": "Super Hedge v1",
                 "alg": "L' U L2' R' L' R"
             },
             {
-                "name": "Super Hedge",
+                "name": "Super Hedge v2",
                 "alg": "L R U R2' L R L' U L'"
             },
             {
-                "name": "Super Hedge",
+                "name": "Super Hedge v3",
                 "alg": "R' U' L R' L' R2"
             },
             {
-                "name": "Bad Niky",
+                "name": "Bad Niky v1",
                 "alg": "R U' R' U' L' U L"
             },
             {
-                "name": "Bad Niky",
+                "name": "Bad Niky v2",
                 "alg": "U L U R U' R' U' L'"
             },
             {
-                "name": "Bad Niky",
+                "name": "Bad Niky v3",
                 "alg": "R' U' L' U' L U R"
             },
             {
-                "name": "Bad Sochi",
+                "name": "Bad Sochi v1",
                 "alg": "L' U L U R U' R'"
             },
             {
-                "name": "Bad Sochi",
+                "name": "Bad Sochi v2",
                 "alg": "L U R U R' U' L'"
             },
             {
-                "name": "Bad Sochi",
+                "name": "Bad Sochi v3",
                 "alg": "U' R' U' L' U L U R"
             },
             {
-                "name": "Right Spam",
+                "name": "Right Spam v1",
                 "alg": "R U R' U R' L R L'"
             },
             {
-                "name": "Right Spam",
+                "name": "Right Spam v2",
                 "alg": "L U R U' R' U L'"
             },
             {
-                "name": "Right Spam",
+                "name": "Right Spam v3",
                 "alg": "R' L' U L2 R' L' R U R"
             },
             {
-                "name": "Left Spam",
+                "name": "Left Spam v1",
                 "alg": "L' U' L U' L R' L' R"
             },
             {
-                "name": "Left Spam",
+                "name": "Left Spam v2",
                 "alg": "L R U' R2' L R L' U' L'"
             },
             {
-                "name": "Left Spam",
+                "name": "Left Spam v3",
                 "alg": "R' U' L' U L U' R"
             },
             {
-                "name": "Bad Sledge",
+                "name": "Bad Sledge v1",
                 "alg": "L R' L' R U' R U' R'"
             },
             {
-                "name": "Bad Sledge",
+                "name": "Bad Sledge v2",
                 "alg": "L R U R' U L'"
             },
             {
-                "name": "Bad Sledge",
+                "name": "Bad Sledge v3",
                 "alg": "R' U' R' L R L2' U' L R"
             },
             {
-                "name": "Bad Hedge",
+                "name": "Bad Hedge v1",
                 "alg": "R' L R L' U L' U L"
             },
             {
-                "name": "Bad Hedge",
+                "name": "Bad Hedge v2",
                 "alg": "L U L R' L' R2 U R' L'"
             },
             {
-                "name": "Bad Hedge",
+                "name": "Bad Hedge v3",
                 "alg": "R' L' U' L U' R"
             },
             {
-                "name": "Bad Sexy",
+                "name": "Bad Sexy v1",
                 "alg": "L' U' L U' R U' R'"
             },
             {
-                "name": "Bad Sexy",
+                "name": "Bad Sexy v2",
                 "alg": "U L2 R' L' R2 U' R' L'"
             },
             {
-                "name": "Bad Sexy",
+                "name": "Bad Sexy v3",
                 "alg": "R' L' U' L2 R' L' R2"
             },
             {
-                "name": "Bad Ugly",
+                "name": "Bad Ugly v1",
                 "alg": "R U R' U L' U L"
             },
             {
-                "name": "Bad Ugly",
+                "name": "Bad Ugly v2",
                 "alg": "L R U R2' L R L2'"
             },
             {
-                "name": "Bad Ugly",
+                "name": "Bad Ugly v3",
                 "alg": "U' R2' L R L2' U L R"
             },
             {
-                "name": "Bad Righty",
+                "name": "Bad Righty v1",
                 "alg": "L' U L U' R U R'"
             },
             {
-                "name": "Bad Righty",
+                "name": "Bad Righty v2",
                 "alg": "L U' L R' L' R U' L'"
             },
             {
-                "name": "Bad Righty",
+                "name": "Bad Righty v3",
                 "alg": "R' U' L R' L' R U' R"
             },
             {
-                "name": "Bad Lefty",
+                "name": "Bad Lefty v1",
                 "alg": "R U' R' U L' U' L"
             },
             {
-                "name": "Bad Lefty",
+                "name": "Bad Lefty v2",
                 "alg": "L U R' L R L' U L'"
             },
             {
-                "name": "Bad Lefty",
+                "name": "Bad Lefty v3",
                 "alg": "R' U R' L R L' U R"
             },
             {
-                "name": "Double Sexy",
+                "name": "Double Sexy (FR+BL cycle) v1",
                 "alg": "R U' R' U' R U R'"
             },
             {
-                "name": "Double Sexy",
+                "name": "Double Sexy (FL+BR cycle) v2",
                 "alg": "L U' L' U' L U L'"
             },
             {
-                "name": "Double Ugly",
+                "name": "Double Ugly v1",
                 "alg": "L' U L U L' U' L"
             },
             {
-                "name": "Double Ugly",
+                "name": "Double Ugly v2",
                 "alg": "R' U R U R' U' R"
             }
         ]
@@ -3184,12 +3319,92 @@ const ALGORITHMS = {
     "Megaminx": {
         "PLL": [
             {
-                "name": "A-Perm",
-                "alg": "R2 U2 R2' U R2 U2 R2'"
+                "name": "Skip (Solved)",
+                "alg": "skip"
             },
             {
-                "name": "U-Perm",
-                "alg": "R2 U' R' U' R U R U R U' R"
+                "name": "U Perm (3-cycle clockwise)",
+                "alg": "R U' R U R U R U' R' U' R2"
+            },
+            {
+                "name": "U Perm Mirror (3-cycle counter-clockwise)",
+                "alg": "R2 U R U R' U' R' U' R' U R'"
+            },
+            {
+                "name": "A Perm (3-corner clockwise)",
+                "alg": "R' F R' B2 R F' R' B2 R2"
+            },
+            {
+                "name": "A Perm Mirror (3-corner counter-clockwise)",
+                "alg": "R2 B2 R F R' B2 R F' R"
+            },
+            {
+                "name": "Z Perm (2-edge swap adjacent)",
+                "alg": "M2 U M2 U M' U2 M2 U2 M' U2"
+            },
+            {
+                "name": "H Perm (2 opposite edge swaps)",
+                "alg": "M2 U M2 U2 M2 U M2"
+            },
+            {
+                "name": "E Perm (2-corner + 2-edge opposite swap)",
+                "alg": "R B' R' F R B R' F' R B R' F R B' R' F'"
+            },
+            {
+                "name": "T Perm (1-edge + 1-corner adjacent swap)",
+                "alg": "R U R' U' R' F R2 U' R' U' R U R' F'"
+            },
+            {
+                "name": "Y Perm (diagonal corner swap + edge swap)",
+                "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F'"
+            },
+            {
+                "name": "J Perm a (corner + edge adjacent swap)",
+                "alg": "R' U L' U2 R U' R' U2 R L"
+            },
+            {
+                "name": "J Perm b (mirror J Perm)",
+                "alg": "L U' R U2 L' U L U2 L' R'"
+            },
+            {
+                "name": "F Perm (adjacent corner + edge swap)",
+                "alg": "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R"
+            },
+            {
+                "name": "R Perm a (3-cycle corners + edge)",
+                "alg": "R U R' F' R U2 R' U2 R' F R U R U2 R' U'"
+            },
+            {
+                "name": "R Perm b (mirror R Perm a)",
+                "alg": "R' U2 R U2 R' F R U R' U' R' F' R2 U'"
+            },
+            {
+                "name": "V Perm (diagonal corner swap)",
+                "alg": "R' U R' U' y R' F' R2 U' R' U R' F R F"
+            },
+            {
+                "name": "N Perm a (two corner 3-cycles)",
+                "alg": "R' U R' U' R' U' R' U R U R2 U R' U R U2 R' U'"
+            },
+            {
+                "name": "N Perm b (mirror N Perm a)",
+                "alg": "U R U' R U R U R U' R' U' R2 U' R' U' R U' R'"
+            },
+            {
+                "name": "G Perm a (3-cycle edges + 3-cycle corners)",
+                "alg": "R2 U R' U R' U' R U' R2 D U' R' U R D'"
+            },
+            {
+                "name": "G Perm b (mirror G Perm a)",
+                "alg": "R' U' R U D' R2 U R' U R U' R U' R2 D"
+            },
+            {
+                "name": "G Perm c (inverse G Perm a)",
+                "alg": "R2 F2 R U2 R U2 R' F R U R' U' R' F R2"
+            },
+            {
+                "name": "G Perm d (inverse G Perm b)",
+                "alg": "R U R' U' D R2 U' R U' R' U R' U R2 D'"
             }
         ]
     }

@@ -746,11 +746,133 @@
                         <select id="alg-subgroup-select" class="form-input" style="width: 150px; padding: 0.5rem; display: none;">
                             <!-- Populated by JS -->
                         </select>
+                        <button id="alg-practice-btn" class="btn btn-primary" style="display: flex; align-items: center; gap: 6px; padding: 0.5rem 1.25rem; font-size: 0.9rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+                            Practice
+                        </button>
                     </div>
                 </div>
                 <div style="flex-grow: 1; overflow-y: auto; padding: var(--space-xl); background: var(--clr-bg);">
                     <div id="algorithms-grid" class="setup-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-md);">
                         <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== PRACTICE TRAINER OVERLAY ====== -->
+            <div id="alg-trainer-overlay" class="alg-trainer-overlay" style="display:none;">
+                <!-- Top Bar -->
+                <div class="alg-trainer-topbar">
+                    <button id="trainer-back-btn" class="trainer-back-btn" title="Back to algorithm browser">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                        Exit Practice
+                    </button>
+                    <div class="trainer-topbar-center">
+                        <span class="trainer-set-name" id="trainer-set-name">PLL Practice</span>
+                        <span class="trainer-case-count" id="trainer-case-count">0 cases</span>
+                    </div>
+                    <button id="trainer-settings-btn" class="trainer-icon-btn" title="Settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </button>
+                </div>
+
+                <!-- Scramble Bar -->
+                <div class="alg-trainer-scramble-bar">
+                    <div class="alg-trainer-scramble-label">SCRAMBLE</div>
+                    <div class="alg-trainer-scramble" id="trainer-scramble">—</div>
+                </div>
+
+                <!-- Main Area -->
+                <div class="alg-trainer-body">
+                    <!-- Left: Timer Area -->
+                    <div class="alg-trainer-main">
+                        <div class="trainer-case-viz" id="trainer-case-viz">
+                            <twisty-player id="trainer-twisty" puzzle="3x3x3" alg="" visualization="2D" background="none" control-panel="none" viewer-link="none" style="width:160px;height:160px;"></twisty-player>
+                        </div>
+                        <div class="trainer-timer-display" id="trainer-timer-display">
+                            <span class="trainer-timer-status" id="trainer-timer-status">Press Space to start</span>
+                            <span class="trainer-timer-time" id="trainer-timer-time">0.00</span>
+                        </div>
+                        <div class="trainer-action-bar">
+                            <button id="trainer-hint-btn" class="trainer-action-btn" title="Show hint (H)">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                Hint
+                            </button>
+                            <button id="trainer-skip-btn" class="trainer-action-btn" title="Skip (S)">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                                Skip
+                            </button>
+                            <button id="trainer-redo-btn" class="trainer-action-btn" title="Redo last (R)">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+                                Redo
+                            </button>
+                        </div>
+                        <div class="trainer-keyboard-hint">Space = start/stop timer</div>
+                    </div>
+
+                    <!-- Right: Time List -->
+                    <div class="alg-trainer-sidebar">
+                        <div class="trainer-sidebar-header">
+                            <span>Session</span>
+                            <button id="trainer-clear-times-btn" class="trainer-clear-btn" title="Clear times">Clear</button>
+                        </div>
+                        <div class="trainer-stats-row">
+                            <div class="trainer-stat">
+                                <span class="trainer-stat-label">Mean</span>
+                                <span class="trainer-stat-value" id="trainer-stat-mean">—</span>
+                            </div>
+                            <div class="trainer-stat">
+                                <span class="trainer-stat-label">Best</span>
+                                <span class="trainer-stat-value" id="trainer-stat-best">—</span>
+                            </div>
+                            <div class="trainer-stat">
+                                <span class="trainer-stat-label">Count</span>
+                                <span class="trainer-stat-value" id="trainer-stat-count">0</span>
+                            </div>
+                        </div>
+                        <div class="trainer-times-list" id="trainer-times-list">
+                            <div class="trainer-times-empty">No solves yet — start practicing!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== HINT MODAL ====== -->
+            <div id="alg-hint-modal" class="alg-hint-modal" style="display:none;">
+                <div class="alg-hint-content">
+                    <button id="alg-hint-close" class="alg-hint-close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                    <div class="alg-hint-case-name" id="alg-hint-case-name">Case Name</div>
+                    <div class="alg-hint-viz">
+                        <twisty-player id="hint-twisty" puzzle="3x3x3" alg="" visualization="2D" background="none" control-panel="none" viewer-link="none" style="width:200px;height:200px;"></twisty-player>
+                    </div>
+                    <div class="alg-hint-alg-label">Algorithm</div>
+                    <code class="alg-hint-alg" id="alg-hint-alg">—</code>
+                    <div class="alg-hint-footer">Press H or click anywhere outside to close</div>
+                </div>
+            </div>
+
+            <!-- ====== CASE SELECTION MODAL ====== -->
+            <div id="alg-case-select-modal" class="alg-case-select-modal" style="display:none;">
+                <div class="alg-case-select-content">
+                    <div class="alg-case-select-header">
+                        <h3 id="case-select-title">Select Cases to Practice</h3>
+                        <button id="case-select-close" class="alg-hint-close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div class="case-select-toolbar">
+                        <button id="case-select-all-btn" class="btn btn-secondary" style="font-size:0.8rem;padding:0.4rem 0.8rem;">Select All</button>
+                        <button id="case-select-none-btn" class="btn btn-secondary" style="font-size:0.8rem;padding:0.4rem 0.8rem;">Deselect All</button>
+                        <span id="case-select-count-label" style="color:var(--clr-text-muted);font-size:0.85rem;margin-left:auto;">0 selected</span>
+                    </div>
+                    <div class="alg-case-select-grid" id="alg-case-select-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="alg-case-select-footer">
+                        <button id="case-select-cancel-btn" class="btn btn-secondary">Cancel</button>
+                        <button id="case-select-start-btn" class="btn btn-primary">Start Practice</button>
                     </div>
                 </div>
             </div>

@@ -443,8 +443,316 @@
             });
         }
 
+        // ====== PRACTICE TRAINER ======
+        const trainerState = {
+            active: false,
+            algList: [],      // [{name, alg}]
+            selectedIdxs: new Set(),
+            currentCase: null,
+            times: [],
+            timerRunning: false,
+            startTime: null,
+            timerInterval: null,
+            currentEvent: '3x3',
+            currentSetName: '',
+            lastCase: null,
+        };
 
-        // Event chips
+        function getPuzzleName(event) {
+            if (event === '2x2') return '2x2x2';
+            if (event === '4x4') return '4x4x4';
+            if (event === '5x5') return '5x5x5';
+            if (event === 'Pyraminx') return 'pyraminx';
+            if (event === 'Megaminx') return 'megaminx';
+            return '3x3x3';
+        }
+
+        function getInverse(alg) {
+            if (!alg || alg === 'skip') return '';
+            const moves = alg.trim().split(/\s+/);
+            return moves.reverse().map(m => {
+                if (m.endsWith("'")) return m.slice(0, -1);
+                if (m.endsWith('2')) return m;
+                return m + "'";
+            }).join(' ');
+        }
+
+        function formatTimeSec(ms) {
+            const s = ms / 1000;
+            return s.toFixed(2);
+        }
+
+        // Open case selection modal
+        function openCaseSelectModal() {
+            if (typeof ALGORITHMS === 'undefined') return;
+            const event = algEventSelect.value;
+            const activeBtn = document.querySelector('.alg-cat-btn.active');
+            const subset = activeBtn ? activeBtn.dataset.category : null;
+            const subgroupVal = algSubgroupSelect.style.display !== 'none' ? algSubgroupSelect.value : null;
+
+            if (!subset) { showToast('Select an algorithm category first', 'error'); return; }
+
+            let algData = ALGORITHMS[event] && ALGORITHMS[event][subset];
+            if (!algData) return;
+            if (!Array.isArray(algData) && subgroupVal) algData = algData[subgroupVal];
+            if (!Array.isArray(algData)) { showToast('Select a subgroup first', 'error'); return; }
+
+            const validAlgs = algData.filter(a => a.alg && a.alg !== 'skip');
+            trainerState.algList = validAlgs;
+            trainerState.currentEvent = event;
+
+            const label = subgroupVal ? `${subset} ${subgroupVal}` : subset;
+            trainerState.currentSetName = `${event} ${label}`;
+
+            // Select all by default
+            trainerState.selectedIdxs = new Set(validAlgs.map((_, i) => i));
+
+            renderCaseSelectGrid();
+            $('#case-select-title').textContent = `Select Cases — ${trainerState.currentSetName}`;
+            $('#alg-case-select-modal').style.display = 'flex';
+            updateCaseSelectCount();
+        }
+
+        function renderCaseSelectGrid() {
+            const grid = $('#alg-case-select-grid');
+            grid.innerHTML = '';
+            trainerState.algList.forEach((alg, i) => {
+                const card = document.createElement('div');
+                card.className = 'case-select-card' + (trainerState.selectedIdxs.has(i) ? ' selected' : '');
+                card.dataset.idx = i;
+                card.innerHTML = `
+                    <div class="case-select-checkbox"></div>
+                    <div class="case-select-name">${alg.name}</div>
+                `;
+                card.addEventListener('click', () => {
+                    if (trainerState.selectedIdxs.has(i)) {
+                        trainerState.selectedIdxs.delete(i);
+                        card.classList.remove('selected');
+                    } else {
+                        trainerState.selectedIdxs.add(i);
+                        card.classList.add('selected');
+                    }
+                    updateCaseSelectCount();
+                });
+                grid.appendChild(card);
+            });
+        }
+
+        function updateCaseSelectCount() {
+            $('#case-select-count-label').textContent = `${trainerState.selectedIdxs.size} selected`;
+        }
+
+        // Start trainer session
+        function startTrainerSession() {
+            if (trainerState.selectedIdxs.size === 0) {
+                showToast('Select at least 1 case', 'error');
+                return;
+            }
+            $('#alg-case-select-modal').style.display = 'none';
+            trainerState.times = [];
+            trainerState.timerRunning = false;
+            trainerState.active = true;
+            clearInterval(trainerState.timerInterval);
+
+            // Show overlay
+            $('#alg-trainer-overlay').style.display = 'flex';
+
+            // Update header
+            $('#trainer-set-name').textContent = trainerState.currentSetName;
+            $('#trainer-case-count').textContent = `${trainerState.selectedIdxs.size} cases`;
+
+            // Update puzzle type
+            const puzzle = getPuzzleName(trainerState.currentEvent);
+            $('#trainer-twisty').setAttribute('puzzle', puzzle);
+            $('#hint-twisty').setAttribute('puzzle', puzzle);
+
+            renderTimeList();
+            loadNextCase();
+        }
+
+        function getRandomCase() {
+            const keys = Array.from(trainerState.selectedIdxs);
+            if (keys.length === 0) return null;
+            const idx = keys[Math.floor(Math.random() * keys.length)];
+            return trainerState.algList[idx];
+        }
+
+        function loadNextCase(forceCase = null) {
+            const c = forceCase || getRandomCase();
+            if (!c) return;
+            trainerState.currentCase = c;
+            trainerState.lastCase = c;
+
+            // Show scramble (inverse of alg)
+            const scramble = getInverse(c.alg);
+            $('#trainer-scramble').textContent = scramble || '(no scramble)';
+
+            // Show case in twisty-player (show inverse so you see scrambled state)
+            const twisty = $('#trainer-twisty');
+            twisty.setAttribute('alg', c.alg === 'skip' ? '' : c.alg);
+
+            // Reset timer display
+            resetTimerDisplay();
+        }
+
+        function resetTimerDisplay() {
+            $('#trainer-timer-time').textContent = '0.00';
+            $('#trainer-timer-time').className = 'trainer-timer-time';
+            $('#trainer-timer-status').textContent = 'Press Space to start';
+            trainerState.timerRunning = false;
+            clearInterval(trainerState.timerInterval);
+        }
+
+        function startTimer() {
+            trainerState.startTime = performance.now();
+            trainerState.timerRunning = true;
+            const timeEl = $('#trainer-timer-time');
+            const statusEl = $('#trainer-timer-status');
+            timeEl.className = 'trainer-timer-time running';
+            statusEl.textContent = 'Solving...';
+            trainerState.timerInterval = setInterval(() => {
+                const elapsed = performance.now() - trainerState.startTime;
+                timeEl.textContent = formatTimeSec(elapsed);
+            }, 30);
+        }
+
+        function stopTimer() {
+            if (!trainerState.timerRunning) return;
+            clearInterval(trainerState.timerInterval);
+            trainerState.timerRunning = false;
+            const elapsed = performance.now() - trainerState.startTime;
+            const timeEl = $('#trainer-timer-time');
+            timeEl.textContent = formatTimeSec(elapsed);
+            timeEl.className = 'trainer-timer-time';
+            $('#trainer-timer-status').textContent = 'Press Space for next case';
+            addTime(elapsed, trainerState.currentCase ? trainerState.currentCase.name : '?');
+        }
+
+        function addTime(ms, caseName) {
+            const isPB = trainerState.times.length === 0 || ms < Math.min(...trainerState.times.map(t => t.ms));
+            trainerState.times.unshift({ ms, caseName, isPB });
+            renderTimeList();
+        }
+
+        function renderTimeList() {
+            const list = $('#trainer-times-list');
+            const times = trainerState.times;
+            if (times.length === 0) {
+                list.innerHTML = '<div class="trainer-times-empty">No solves yet — start practicing!</div>';
+                $('#trainer-stat-mean').textContent = '—';
+                $('#trainer-stat-best').textContent = '—';
+                $('#trainer-stat-count').textContent = '0';
+                return;
+            }
+
+            list.innerHTML = times.map((t, i) => `
+                <div class="trainer-time-entry">
+                    <span class="trainer-time-num">${times.length - i}</span>
+                    <span class="trainer-time-case" title="${t.caseName}">${t.caseName}</span>
+                    <span class="trainer-time-val${t.isPB ? ' pb' : ''}">${formatTimeSec(t.ms)}</span>
+                </div>
+            `).join('');
+
+            const msArr = times.map(t => t.ms);
+            const mean = msArr.reduce((a, b) => a + b, 0) / msArr.length;
+            const best = Math.min(...msArr);
+            $('#trainer-stat-mean').textContent = formatTimeSec(mean);
+            $('#trainer-stat-best').textContent = formatTimeSec(best);
+            $('#trainer-stat-count').textContent = times.length;
+        }
+
+        function showHintModal() {
+            const c = trainerState.currentCase;
+            if (!c) return;
+            $('#alg-hint-case-name').textContent = c.name;
+            $('#alg-hint-alg').textContent = c.alg || '—';
+            const hintTwisty = $('#hint-twisty');
+            hintTwisty.setAttribute('puzzle', getPuzzleName(trainerState.currentEvent));
+            hintTwisty.setAttribute('alg', c.alg === 'skip' ? '' : c.alg);
+            $('#alg-hint-modal').style.display = 'flex';
+        }
+
+        function closeHintModal() {
+            $('#alg-hint-modal').style.display = 'none';
+        }
+
+        function exitTrainer() {
+            trainerState.active = false;
+            clearInterval(trainerState.timerInterval);
+            trainerState.timerRunning = false;
+            $('#alg-trainer-overlay').style.display = 'none';
+        }
+
+        // Trainer button events
+        $('#alg-practice-btn').addEventListener('click', openCaseSelectModal);
+        $('#case-select-close').addEventListener('click', () => { $('#alg-case-select-modal').style.display = 'none'; });
+        $('#case-select-cancel-btn').addEventListener('click', () => { $('#alg-case-select-modal').style.display = 'none'; });
+        $('#case-select-start-btn').addEventListener('click', startTrainerSession);
+        $('#case-select-all-btn').addEventListener('click', () => {
+            trainerState.algList.forEach((_, i) => trainerState.selectedIdxs.add(i));
+            document.querySelectorAll('.case-select-card').forEach(c => c.classList.add('selected'));
+            updateCaseSelectCount();
+        });
+        $('#case-select-none-btn').addEventListener('click', () => {
+            trainerState.selectedIdxs.clear();
+            document.querySelectorAll('.case-select-card').forEach(c => c.classList.remove('selected'));
+            updateCaseSelectCount();
+        });
+
+        $('#trainer-back-btn').addEventListener('click', exitTrainer);
+        $('#trainer-hint-btn').addEventListener('click', showHintModal);
+        $('#trainer-skip-btn').addEventListener('click', () => { loadNextCase(); });
+        $('#trainer-redo-btn').addEventListener('click', () => {
+            if (trainerState.lastCase) loadNextCase(trainerState.lastCase);
+        });
+        $('#trainer-clear-times-btn').addEventListener('click', () => {
+            trainerState.times = [];
+            renderTimeList();
+        });
+
+        // Hint modal close
+        $('#alg-hint-close').addEventListener('click', closeHintModal);
+        $('#alg-hint-modal').addEventListener('click', (e) => {
+            if (e.target === $('#alg-hint-modal')) closeHintModal();
+        });
+
+        // Space bar timer + keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (!trainerState.active) return;
+            if ($('#alg-hint-modal').style.display !== 'none' || $('#alg-case-select-modal').style.display !== 'none') return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (trainerState.timerRunning) {
+                    stopTimer();
+                    setTimeout(() => loadNextCase(), 800);
+                } else {
+                    startTimer();
+                }
+            } else if (e.key === 'h' || e.key === 'H') {
+                showHintModal();
+            } else if (e.key === 's' || e.key === 'S') {
+                if (!trainerState.timerRunning) loadNextCase();
+            } else if (e.key === 'Escape') {
+                closeHintModal();
+            }
+        });
+
+        // Click on main area = space bar equivalent
+        $('#alg-trainer-overlay').addEventListener('click', (e) => {
+            if (!trainerState.active) return;
+            // Only if click is directly on the main area (not buttons)
+            const target = e.target;
+            if (target.closest('button') || target.closest('.alg-trainer-sidebar') || target.closest('.alg-trainer-topbar') || target.closest('.alg-trainer-scramble-bar')) return;
+            if (trainerState.timerRunning) {
+                stopTimer();
+                setTimeout(() => loadNextCase(), 800);
+            } else {
+                startTimer();
+            }
+        });
+
+
         $$('.event-chip').forEach(chip => {
             chip.addEventListener('click', () => {
                 if (chip.classList.contains('disabled')) return;
