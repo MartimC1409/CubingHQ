@@ -1503,12 +1503,11 @@
             state.playerWcaId = data.person.wca_id;
             state.playerName = data.person.name;
 
-            if (!quiet) {
-                // Display info
-                if ($('#wca-display-name')) $('#wca-display-name').textContent = data.person.name;
-                if ($('#wca-display-country')) $('#wca-display-country').textContent = data.person.country ? data.person.country.name : 'N/A';
-                if ($('#wca-display-medals')) $('#wca-display-medals').textContent = `🥇${data.medals.gold} 🥈${data.medals.silver} 🥉${data.medals.bronze}`;
-                if ($('#wca-display-comps')) $('#wca-display-comps').textContent = `${data.competition_count} competitions`;
+            // Display info ALWAYS (so if user visits stats or setup page, it's populated)
+            if ($('#wca-display-name')) $('#wca-display-name').textContent = data.person.name;
+            if ($('#wca-display-country')) $('#wca-display-country').textContent = data.person.country ? data.person.country.name : 'N/A';
+            if ($('#wca-display-medals')) $('#wca-display-medals').textContent = `🥇${data.medals.gold} 🥈${data.medals.silver} 🥉${data.medals.bronze}`;
+            if ($('#wca-display-comps')) $('#wca-display-comps').textContent = `${data.competition_count} competitions`;
 
                 // Avatar
                 const avatar = data.person.avatar;
@@ -1613,8 +1612,11 @@
 
                 if ($('#wca-info-display')) $('#wca-info-display').style.display = 'block';
                 if ($('#wca-error-display')) $('#wca-error-display').style.display = 'none';
-                showToast(`✅ Found: ${data.person.name}`, 'success');
-            }
+                
+                if (!quiet) {
+                    showToast(`✅ Found: ${data.person.name}`, 'success');
+                }
+            // End of removed if (!quiet) block
 
         } catch (err) {
             console.error('Error fetching WCA profile:', err);
