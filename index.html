@@ -95,79 +95,12 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
-            <div class="modal-body">
-                <div class="login-methods">
-                    <button id="wca-login-btn" class="btn auth-provider-btn wca-auth-btn">
+            <div class="modal-body" style="text-align: center; padding-bottom: var(--space-xl);">
+                <div class="login-methods" style="justify-content: center; display: flex;">
+                    <button id="wca-login-btn" class="btn auth-provider-btn wca-auth-btn" style="width: 100%; max-width: 300px;">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                        Continue with WCA
+                        Login with WCA
                     </button>
-                </div>
-                
-                <div class="auth-divider">
-                    <span>OR</span>
-                </div>
-                
-                <form id="login-form" class="auth-form">
-                    <div class="form-floating">
-                        <input type="email" id="login-email" class="form-input" placeholder=" " required>
-                        <label for="login-email">Email Address</label>
-                    </div>
-                    <div class="form-floating">
-                        <input type="password" id="login-password" class="form-input" placeholder=" " required>
-                        <label for="login-password">Password</label>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary auth-submit-btn">Sign In</button>
-                </form>
-                
-                <div class="auth-footer">
-                    Don't have an account? <a href="#" id="show-signup-link" class="auth-link">Sign up</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Signup Modal (Premium Redesign) -->
-    <div id="signup-modal" class="modal auth-modal" style="display:none;">
-        <div class="modal-content glass-panel">
-            <div class="modal-header">
-                <h2>Create Account</h2>
-                <p class="auth-subtitle">Join SimulateCubing to track your progress.</p>
-                <button id="signup-close-btn" class="modal-close-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="login-methods">
-                    <button id="wca-signup-btn" class="btn auth-provider-btn wca-auth-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                        Sign up with WCA
-                    </button>
-                </div>
-                
-                <div class="auth-divider">
-                    <span>OR</span>
-                </div>
-                
-                <form id="signup-form" class="auth-form">
-                    <div class="form-floating">
-                        <input type="email" id="signup-email" class="form-input" placeholder=" " required>
-                        <label for="signup-email">Email Address</label>
-                    </div>
-                    <div class="form-floating">
-                        <input type="password" id="signup-password" class="form-input" placeholder=" " required>
-                        <label for="signup-password">Password</label>
-                    </div>
-                    <div class="form-floating">
-                        <input type="password" id="signup-confirm-password" class="form-input" placeholder=" " required>
-                        <label for="signup-confirm-password">Confirm Password</label>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary auth-submit-btn">Create Account</button>
-                </form>
-                
-                <div class="auth-footer">
-                    Already have an account? <a href="#" id="show-login-link" class="auth-link">Log in</a>
                 </div>
             </div>
         </div>
@@ -580,14 +513,14 @@
             <div class="container">
                 <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-xl); margin-top: var(--space-xl);">
                     <div class="hero-badge">STATISTICS</div>
-                    <h1 class="hero-title">Your Simulation <span class="gradient-text">Performance</span></h1>
-                    <p class="hero-subtitle">Track your progress and personal records across all simulations.</p>
+                    <h1 class="hero-title">Official WCA <span class="gradient-text">Profile</span></h1>
+                    <p class="hero-subtitle">View official World Cube Association statistics, medal counts, and personal records.</p>
                 </div>
                 <div id="stats-placeholder" class="setup-card" style="padding: 4rem 2rem; text-align: center; border: 1px solid var(--clr-border); background: var(--clr-surface);">
                     <div style="font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.8;">📊</div>
-                    <h2 style="font-size: 1.5rem; font-weight: 60; color: var(--clr-text); margin-bottom: var(--space-sm);">No Data Yet</h2>
+                    <h2 style="font-size: 1.5rem; font-weight: 60; color: var(--clr-text); margin-bottom: var(--space-sm);">No Profile Loaded</h2>
                     <p style="color: var(--clr-text-muted); font-size: 1.1rem; max-width: 400px; margin: 0 auto; line-height: 1.6;">
-                        Look up your WCA ID on the setup page to view your official WCA statistics!
+                        Log in with WCA or look up a WCA ID on the setup page to view official statistics!
                     </p>
                 </div>
                 <div id="stats-content" style="display: none;">
@@ -599,6 +532,13 @@
                             <span style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; font-family: var(--font-mono); border: 1px solid rgba(255,255,255,0.1);"><span style="opacity: 0.5; margin-right: 5px;">ID</span><strong id="stats-wcaid" style="color: var(--clr-text);"></strong></span>
                             <span style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.1);"><span style="opacity: 0.5; margin-right: 5px;">🌍</span><strong id="stats-country">Country</strong></span>
                             <span id="stats-gender-badge" style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.1); display: none;"><span style="opacity: 0.5; margin-right: 5px;">👤</span><strong id="stats-gender">Gender</strong></span>
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;" id="logout-container">
+                            <button id="logout-btn" class="btn btn-secondary btn-sm" style="border: 1px solid rgba(255,100,100,0.5); color: #ff8888;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: text-bottom;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                Logout
+                            </button>
                         </div>
                         
                         <div style="display: flex; gap: 3rem; color: var(--clr-text-muted); font-size: 1.1rem; border-top: 1px solid var(--clr-border); padding-top: 1.5rem; width: 100%; max-width: 400px; justify-content: center;">

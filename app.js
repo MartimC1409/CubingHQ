@@ -377,9 +377,8 @@
 
     // ========== EVENT BINDINGS ==========
     function bindEvents() {
-        // Login and Signup Modals
+        // Login Modal
         const loginModal = $('#login-modal');
-        const signupModal = $('#signup-modal');
 
         if ($('#nav-login-btn')) {
             $('#nav-login-btn').addEventListener('click', () => {
@@ -393,53 +392,37 @@
             });
         }
 
-        if ($('#signup-close-btn')) {
-            $('#signup-close-btn').addEventListener('click', () => {
-                if (signupModal) signupModal.style.display = 'none';
-            });
-        }
-
-        if ($('#show-signup-link')) {
-            $('#show-signup-link').addEventListener('click', (e) => {
-                e.preventDefault();
-                if (loginModal) loginModal.style.display = 'none';
-                if (signupModal) signupModal.style.display = 'flex';
-            });
-        }
-
-        if ($('#show-login-link')) {
-            $('#show-login-link').addEventListener('click', (e) => {
-                e.preventDefault();
-                if (signupModal) signupModal.style.display = 'none';
-                if (loginModal) loginModal.style.display = 'flex';
-            });
-        }
-
         window.addEventListener('click', (e) => {
             if (e.target === loginModal) loginModal.style.display = 'none';
-            if (e.target === signupModal) signupModal.style.display = 'none';
         });
-
-        if ($('#login-form')) {
-            $('#login-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                loginModal.style.display = 'none';
-            });
-        }
-
-        if ($('#signup-form')) {
-            $('#signup-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                signupModal.style.display = 'none';
-            });
-        }
 
         if ($('#wca-login-btn')) {
             $('#wca-login-btn').addEventListener('click', handleWCALogin);
         }
 
-        if ($('#wca-signup-btn')) {
-            $('#wca-signup-btn').addEventListener('click', handleWCALogin);
+        if ($('#logout-btn')) {
+            $('#logout-btn').addEventListener('click', () => {
+                localStorage.removeItem('wca_access_token');
+                state.userProfile = null;
+                
+                // Reset Profile button back to Login button
+                const profileBtn = $('#nav-profile-btn');
+                if (profileBtn) {
+                    const loginBtn = profileBtn.cloneNode(true);
+                    loginBtn.id = 'nav-login-btn';
+                    loginBtn.innerHTML = `Login`;
+                    loginBtn.title = "Login";
+                    loginBtn.className = "btn btn-primary btn-sm";
+                    profileBtn.parentNode.replaceChild(loginBtn, profileBtn);
+                    
+                    loginBtn.addEventListener('click', () => {
+                        if (loginModal) loginModal.style.display = 'flex';
+                    });
+                }
+                
+                switchView('home');
+                showToast('Logged out successfully', 'success');
+            });
         }
 
         // Theme
@@ -1393,15 +1376,17 @@
     }
 
     // ========== WCA API: PERSON LOOKUP ==========
-    async function lookupWCAProfile() {
-        const wcaId = $('#wca-id').value.trim().toUpperCase();
+    async function lookupWCAProfile(overrideWcaId = null, quiet = false) {
+        const wcaId = (typeof overrideWcaId === 'string' ? overrideWcaId : $('#wca-id').value).trim().toUpperCase();
         if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
 
-        // Show loading
-        $('#wca-info-display').style.display = 'none';
-        $('#wca-error-display').style.display = 'none';
-        $('#wca-loading').style.display = 'flex';
-        $('#search-wca-btn').classList.add('loading');
+        if (!quiet) {
+            // Show loading
+            $('#wca-info-display').style.display = 'none';
+            $('#wca-error-display').style.display = 'none';
+            $('#wca-loading').style.display = 'flex';
+            $('#search-wca-btn').classList.add('loading');
+        }
 
         try {
             const res = await fetch(`${WCA_API}/persons/${wcaId}`);
@@ -1514,12 +1499,16 @@
         } catch (err) {
             console.error('Error fetching WCA profile:', err);
             state.playerData = null;
-            $('#wca-info-display').style.display = 'none';
-            $('#wca-error-display').style.display = 'flex';
-            $('#wca-error-text').textContent = `WCA ID "${wcaId}" not found. Error: ${err.message}`;
+            if (!quiet) {
+                $('#wca-info-display').style.display = 'none';
+                $('#wca-error-display').style.display = 'flex';
+                $('#wca-error-text').textContent = `WCA ID "${wcaId}" not found. Error: ${err.message}`;
+            }
         } finally {
-            $('#wca-loading').style.display = 'none';
-            $('#search-wca-btn').classList.remove('loading');
+            if (!quiet) {
+                $('#wca-loading').style.display = 'none';
+                $('#search-wca-btn').classList.remove('loading');
+            }
         }
     }
 
