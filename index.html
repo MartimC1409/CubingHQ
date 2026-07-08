@@ -67,6 +67,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Home
         </button>
+        <button class="nav-btn" id="nav-timer-btn" title="Timer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Timer
+        </button>
         <button class="nav-btn" id="nav-simulation-btn" title="Comp Simulation">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Comp Sim
@@ -122,6 +126,202 @@
     </div>
 
     <main id="app-main">
+        <!-- ========== TIMER VIEW (csTimer Clone) ========== -->
+        <section id="timer-view" class="view">
+            <div class="cstimer-layout">
+                <!-- LEFT: Session tabs + Stats summary -->
+                <aside class="cstimer-left">
+                    <div class="cs-session-tabs" id="cs-session-tabs">
+                        <!-- Session tabs injected by timer.js -->
+                    </div>
+                    <div class="cs-panel">
+                        <div class="cs-panel-header">
+                            <h3 class="cs-panel-title">
+                                <span id="cs-session-title">Session</span>
+                                <button id="cs-btn-rename-session" class="cs-icon-btn" title="Rename session">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                            </h3>
+                            <div class="cs-event-line">
+                                <span class="cs-event-label" id="cs-event-label">3x3x3</span>
+                                <span class="cs-event-naming" id="cs-event-naming">Average of 5</span>
+                            </div>
+                        </div>
+                        <div class="cs-stats-summary" id="cs-stats-summary">
+                            <!-- Populated by timer.js -->
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- CENTER: Timer + Scramble -->
+                <main class="cstimer-center">
+                    <div class="cs-scramble-bar">
+                        <div class="cs-scramble-text" id="cs-scramble-text">—</div>
+                        <div class="cs-scramble-actions">
+                            <button id="cs-btn-new-scramble" class="cs-btn-secondary" title="New scramble (press space when idle)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                New Scramble
+                            </button>
+                        </div>
+                    </div>
+
+                    <twisty-player id="cs-twisty" puzzle="3x3x3" alg="" visualization="2D" background="none" control-panel="none" viewer-link="none" class="cs-twisty"></twisty-player>
+
+                    <div class="cs-timer-display-area" id="cs-timer-display-area">
+                        <div class="cs-status-text" id="cs-status-text">Hold Space / Tap</div>
+                        <div class="cs-timer-display" id="timer-display-text">0.00</div>
+                        <div class="cs-timer-hint">Space = start/stop · 1=OK · 2=+2 · 3=DNF · Ctrl+Z=delete last</div>
+                    </div>
+
+                    <div class="cs-manual-entry" id="cs-manual-entry" style="display:none;">
+                        <div class="cs-manual-hint">Type time and press Enter<br><small>e.g. <code>1234</code> = 12.34s &nbsp;·&nbsp; <code>1:05.30</code> = 1m 5.30s</small></div>
+                        <div class="cs-manual-input-row">
+                            <input type="text" id="cs-manual-input" class="cs-manual-input" placeholder="Type time..." autocomplete="off" inputmode="numeric">
+                            <button id="cs-manual-submit" class="cs-btn-primary">Submit</button>
+                        </div>
+                    </div>
+
+                    <div class="cs-bottom-bar">
+                        <button id="cs-btn-clear-session" class="cs-btn-ghost" title="Clear all solves in current session">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                            Clear Session
+                        </button>
+                        <button id="cs-btn-export" class="cs-btn-ghost" title="Export JSON backup">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Export
+                        </button>
+                        <button id="cs-btn-import" class="cs-btn-ghost" title="Import JSON backup">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Import
+                        </button>
+                        <input type="file" id="cs-import-file" accept="application/json" style="display:none">
+                        <button id="cs-btn-fullscreen" class="cs-btn-ghost" title="Fullscreen">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                        </button>
+                    </div>
+                </main>
+
+                <!-- RIGHT: Solve list + Settings -->
+                <aside class="cstimer-right">
+                    <div class="cs-panel cs-solve-list-panel">
+                        <div class="cs-panel-header">
+                            <h3 class="cs-panel-title">Time List</h3>
+                            <div class="cs-panel-actions">
+                                <button class="cs-icon-btn" id="cs-btn-delete-last" title="Delete last solve (Ctrl+Z)">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="cs-solve-list" id="cs-solve-list">
+                            <div class="cs-empty">No solves yet — press space to start!</div>
+                        </div>
+                    </div>
+
+                    <div class="cs-panel cs-settings-panel">
+                        <div class="cs-panel-header"><h3 class="cs-panel-title">Settings</h3></div>
+
+                        <details class="cs-settings-group" open>
+                            <summary>Timer</summary>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-event">Event</label>
+                                <select id="cs-setting-event" class="cs-input">
+                                    <option value="333">3x3x3</option>
+                                    <option value="222">2x2x2</option>
+                                    <option value="444">4x4x4</option>
+                                    <option value="555">5x5x5</option>
+                                    <option value="666">6x6x6</option>
+                                    <option value="777">7x7x7</option>
+                                    <option value="333oh">3x3 OH</option>
+                                    <option value="pyram">Pyraminx</option>
+                                    <option value="skewb">Skewb</option>
+                                    <option value="sq1">Square-1</option>
+                                    <option value="minx">Megaminx</option>
+                                    <option value="clock">Clock</option>
+                                </select>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-hold-delay">Hold (ms)</label>
+                                <input type="number" id="cs-setting-hold-delay" value="300" min="0" max="1000" step="50" class="cs-input cs-input-num">
+                            </div>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-inspection">Inspection</label>
+                                <select id="cs-setting-inspection" class="cs-input">
+                                    <option value="off">Off</option>
+                                    <option value="on">On (15s)</option>
+                                </select>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-voice">Voice cues</label>
+                                <select id="cs-setting-voice" class="cs-input">
+                                    <option value="off">Off</option>
+                                    <option value="on">On (8s, 12s)</option>
+                                </select>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-manual-mode">Manual entry</label>
+                                <label class="cs-toggle">
+                                    <input type="checkbox" id="cs-setting-manual-mode">
+                                    <span class="cs-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </details>
+
+                        <details class="cs-settings-group">
+                            <summary>Display</summary>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-show-last">Show solves</label>
+                                <select id="cs-setting-show-last" class="cs-input">
+                                    <option value="0">All</option>
+                                    <option value="5">Last 5</option>
+                                    <option value="10">Last 10</option>
+                                    <option value="20">Last 20</option>
+                                    <option value="50">Last 50</option>
+                                </select>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label>Hide time while solving</label>
+                                <label class="cs-toggle">
+                                    <input type="checkbox" id="cs-setting-hide-time">
+                                    <span class="cs-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label>Hide scramble while solving</label>
+                                <label class="cs-toggle">
+                                    <input type="checkbox" id="cs-setting-hide-scramble">
+                                    <span class="cs-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </details>
+
+                        <details class="cs-settings-group">
+                            <summary>Data</summary>
+                            <div class="cs-setting-desc">Auto-saves locally and syncs to cloud when signed in.</div>
+                            <button class="cs-btn-block cs-btn-secondary" onclick="window.TimerModule && TimerModule.exportCSV && TimerModule.exportCSV()">Export current session as CSV</button>
+                            <button class="cs-btn-block cs-btn-warn" id="cs-btn-clear-session-2">Clear current session data</button>
+                        </details>
+
+                        <details class="cs-settings-group">
+                            <summary>About</summary>
+                            <div class="cs-about">
+                                <p><strong>SimTimer</strong> — a csTimer-inspired speedcubing practice tool.</p>
+                                <p>Features:</p>
+                                <ul class="cs-about-list">
+                                    <li>Hold spacebar → tap to start (configurable hold)</li>
+                                    <li>WCA-style 15s inspection with optional voice</li>
+                                    <li>Per-solve penalty marking (1=OK, 2=+2, 3=DNF)</li>
+                                    <li>Multiple sessions, all saved locally + optionally cloud</li>
+                                    <li>Statistics: best Ao5/Ao12/Ao100, single PBs, std dev, success %</li>
+                                    <li>Click any time to edit, click penalty to cycle</li>
+                                    <li>Export/Import JSON backup</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
         <!-- ========== HOME VIEW ========== -->
         <section id="home-view" class="view active">
             <div class="setup-container" style="text-align: center; margin-top: var(--space-xl);">
@@ -1158,6 +1358,8 @@
     
     
     <script src="algorithms.js"></script>
+    <link rel="stylesheet" href="timer.css">
+    <script src="timer.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

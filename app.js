@@ -466,6 +466,14 @@
             renderHistory();
             switchView('history');
         });
+        const timerNav = $('#nav-timer-btn');
+        if (timerNav && !timerNav._scBound) {
+            timerNav.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.href = 'timer.html';
+            });
+            timerNav._scBound = true;
+        }
 
         $('#nav-records-btn').addEventListener('click', () => {
             switchView('records');
@@ -3950,4 +3958,17 @@
         }
         init();
     });
+    // =========================================================================
+    // csTimer Clone navigation hook (delegates to timer.js)
+    // =========================================================================
+    function initTimerView() {
+        if (window.TimerModule) {
+            if (!window.TimerModule.state || !window.TimerModule.state.loaded) {
+                window.TimerModule.init();
+            } else {
+                window.TimerModule.onEnter();
+            }
+        }
+    }
+
 })();

@@ -4014,3 +4014,258 @@ body {
     .battle-event-chip { font-size: 0.68rem; padding: 0.2rem 0.45rem; }
     #battle-twisty { width: 90px !important; height: 90px !important; }
 }
+
+/* ==========================================================================
+   TIMER VIEW (csTimer Clone)
+   ========================================================================== */
+.timer-view-container {
+    display: flex;
+    flex-direction: row;
+    height: calc(100vh - 140px); /* Leave space for header/nav */
+    gap: var(--space-lg);
+    padding: var(--space-md);
+    margin-top: 20px;
+}
+
+.timer-sidebar {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    overflow-y: auto;
+}
+
+.timer-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    user-select: none;
+}
+
+.timer-scramble {
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-align: center;
+    max-width: 80%;
+    margin-bottom: auto;
+    margin-top: 20px;
+    line-height: 1.4;
+    color: var(--text-main);
+}
+
+.timer-display-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.timer-display {
+    font-size: clamp(6rem, 15vw, 15rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -2px;
+    color: var(--text-main);
+    transition: color 0.1s ease;
+}
+
+.timer-display.timer-red {
+    color: var(--clr-danger);
+}
+
+.timer-display.timer-green {
+    color: var(--clr-success);
+}
+
+.timer-hint {
+    margin-top: auto;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+/* Stats Panel */
+.timer-stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.timer-stats-grid .stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-sm);
+    background: rgba(255,255,255,0.03);
+    border-radius: var(--radius-md);
+}
+
+/* Solves List */
+.timer-solves-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+}
+
+.timer-solves-list {
+    flex: 1;
+    overflow-y: auto;
+    margin-top: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.timer-solve-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.02);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.timer-solve-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.timer-solve-item .solve-index {
+    color: var(--text-muted);
+    width: 30px;
+}
+
+.timer-solve-item .solve-time {
+    font-weight: 600;
+    color: var(--clr-primary);
+}
+
+/* Responsive Timer View */
+@media (max-width: 900px) {
+    .timer-view-container {
+        flex-direction: column-reverse;
+        height: auto;
+    }
+    .timer-sidebar {
+        flex: none;
+        width: 100%;
+    }
+    .timer-main {
+        min-height: 400px;
+    }
+}
+
+/* ==========================================================================
+   THEMES
+   ========================================================================== */
+
+/* Ocean Theme */
+[data-theme="ocean"] {
+    --bg-main: #0B192C;
+    --bg-card: #1A2E46;
+    --text-main: #E2E8F0;
+    --text-muted: #94A3B8;
+    
+    --clr-primary: #38BDF8;
+    --clr-primary-hover: #0EA5E9;
+    --clr-accent: #14B8A6;
+    
+    --clr-primary-glow: rgba(56, 189, 248, 0.15);
+    --clr-accent-glow: rgba(20, 184, 166, 0.15);
+}
+
+/* Matrix Theme */
+[data-theme="matrix"] {
+    --bg-main: #050505;
+    --bg-card: #0A0A0A;
+    --text-main: #10B981;
+    --text-muted: #065F46;
+    
+    --clr-primary: #10B981;
+    --clr-primary-hover: #059669;
+    --clr-accent: #34D399;
+    
+    --clr-primary-glow: rgba(16, 185, 129, 0.15);
+    --clr-accent-glow: rgba(52, 211, 153, 0.15);
+}
+
+/* Sunset Theme */
+[data-theme="sunset"] {
+    --bg-main: #1C1917;
+    --bg-card: #292524;
+    --text-main: #FEF3C7;
+    --text-muted: #D6D3D1;
+    
+    --clr-primary: #F97316;
+    --clr-primary-hover: #EA580C;
+    --clr-accent: #E11D48;
+    
+    --clr-primary-glow: rgba(249, 115, 22, 0.15);
+    --clr-accent-glow: rgba(225, 29, 72, 0.15);
+}
+
+/* ==========================================================================
+   csTimer CLONE — Layout & components for #timer-view (NEW)
+   ========================================================================== */
+.cstimer-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    height: calc(100vh - 80px);
+    gap: var(--space-md);
+    padding: var(--space-md);
+    margin-top: 0;
+    background: transparent;
+}
+
+.cstimer-left, .cstimer-right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    overflow: hidden;
+    min-height: 0;
+}
+
+.cstimer-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    user-select: none;
+    padding: var(--space-md);
+    position: relative;
+    min-width: 0;
+}
+
+.cs-session-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: var(--space-xs);
+    background: var(--clr-bg-card);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+}
+
+.cs-session-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--clr-text-secondary);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+
