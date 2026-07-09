@@ -186,14 +186,15 @@
     }
 
     function generateClock() {
-        const pins = ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'];
+        const prePins  = ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'];
+        const postPins = ['U', 'R', 'D', 'L', 'ALL']; // after y2, corner pins don't exist
         const moves = [];
-        pins.forEach(pin => {
+        prePins.forEach(pin => {
             const v = Math.floor(Math.random() * 12) - 5;
             moves.push(`${pin}${v >= 0 ? v + '+' : Math.abs(v) + '-'}`);
         });
         moves.push('y2');
-        pins.forEach(pin => {
+        postPins.forEach(pin => {
             const v = Math.floor(Math.random() * 12) - 5;
             moves.push(`${pin}${v >= 0 ? v + '+' : Math.abs(v) + '-'}`);
         });

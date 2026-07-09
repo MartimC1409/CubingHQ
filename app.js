@@ -163,6 +163,8 @@
     const ambientNoise = new Audio('competition_noise.mp3');
     ambientNoise.loop = true;
     ambientNoise.volume = 0.4;
+    let compNoiseMuted = false;
+    let compNoiseVolume = 0.4;
 
     const state = {
         // Config
@@ -1036,6 +1038,62 @@
         // Dashboard buttons
         $('#back-to-setup-btn').addEventListener('click', () => { clearSimState(); switchView('setup'); });
         $('#fullscreen-btn').addEventListener('click', toggleFullscreen);
+
+        // Volume control
+        const volSlider = $('#comp-volume-slider');
+        const muteBtn = $('#mute-noise-btn');
+        const muteOn = $('#mute-icon-on');
+        const muteOff = $('#mute-icon-off');
+
+        if (volSlider) {
+            // Restore saved volume
+            const savedVol = localStorage.getItem('sc-comp-volume');
+            if (savedVol !== null) {
+                compNoiseVolume = parseFloat(savedVol);
+                ambientNoise.volume = compNoiseVolume;
+                volSlider.value = Math.round(compNoiseVolume * 100);
+            }
+            // Restore saved mute state
+            const savedMuted = localStorage.getItem('sc-comp-muted');
+            if (savedMuted === 'true') {
+                compNoiseMuted = true;
+                ambientNoise.volume = 0;
+                if (muteOn) muteOn.style.display = 'none';
+                if (muteOff) muteOff.style.display = 'block';
+                if (muteBtn) {
+                    muteBtn.style.color = 'var(--clr-danger)';
+                    muteBtn.title = 'Unmute competition noise';
+                }
+            }
+
+            volSlider.addEventListener('input', () => {
+                compNoiseVolume = parseInt(volSlider.value) / 100;
+                if (!compNoiseMuted) {
+                    ambientNoise.volume = compNoiseVolume;
+                }
+                localStorage.setItem('sc-comp-volume', compNoiseVolume);
+            });
+        }
+
+        if (muteBtn) {
+            muteBtn.addEventListener('click', () => {
+                compNoiseMuted = !compNoiseMuted;
+                localStorage.setItem('sc-comp-muted', compNoiseMuted);
+                if (compNoiseMuted) {
+                    ambientNoise.volume = 0;
+                    if (muteOn) muteOn.style.display = 'none';
+                    if (muteOff) muteOff.style.display = 'block';
+                    muteBtn.style.color = 'var(--clr-danger)';
+                    muteBtn.title = 'Unmute competition noise';
+                } else {
+                    ambientNoise.volume = compNoiseVolume;
+                    if (muteOn) muteOn.style.display = 'block';
+                    if (muteOff) muteOff.style.display = 'none';
+                    muteBtn.style.color = '';
+                    muteBtn.title = 'Mute competition noise';
+                }
+            });
+        }
 
         // Toggle scramble colors
         const toggleColorsBtn = $('#toggle-scramble-colors-btn');
@@ -2102,14 +2160,15 @@
     }
 
     function generateClockScramble() {
-        const pins = ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'];
+        const prePins  = ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'];
+        const postPins = ['U', 'R', 'D', 'L', 'ALL']; // after y2, corner pins don't exist
         const moves = [];
-        pins.forEach(pin => {
+        prePins.forEach(pin => {
             const val = Math.floor(Math.random() * 12) - 5;
             moves.push(`${pin}${val >= 0 ? val + '+' : Math.abs(val) + '-'}`);
         });
         moves.push('y2');
-        pins.forEach(pin => {
+        postPins.forEach(pin => {
             const val = Math.floor(Math.random() * 12) - 5;
             moves.push(`${pin}${val >= 0 ? val + '+' : Math.abs(val) + '-'}`);
         });
@@ -3367,6 +3426,7 @@
         currentRoomData: null,
         inputMode: 'keyboard', // 'keyboard' | 'typing'
         lastSeenScrambleIndex: -1,
+        autoAdvancedIndex: -1,
     };
 
     // ----- Scramble generator -----
@@ -3529,6 +3589,27 @@
                 if (!data) { leaveBattleRoom(); return; }
                 battleState.currentRoomData = data;
                 renderBattleRoomView(data);
+                // Auto-advance: when all players submitted, host creates next scramble
+                if (battleState.isHost && data.currentScrambleIndex !== undefined) {
+                    const currentIdx = data.currentScrambleIndex || 0;
+                    if (currentIdx > battleState.autoAdvancedIndex) {
+                        const members = data.members || {};
+                        const playerIds = Object.keys(members);
+                        const event = data.event || '3x3';
+                        const eventSolves = ((data.solves || {})[event]) || {};
+                        const allSubmitted = playerIds.length > 0 && playerIds.every(pid => {
+                            const s = (eventSolves[currentIdx] || {})[pid];
+                            return s && s.time > 0;
+                        });
+                        if (allSubmitted) {
+                            const newIdx = currentIdx + 1;
+                            const scramble = generateBattleScramble(event);
+                            await fbSet(`${BATTLE_PATH}/${roomId}/scrambles/${newIdx}`, { scramble, event, createdAt: Date.now() });
+                            await fbUpdate(`${BATTLE_PATH}/${roomId}`, { currentScrambleIndex: newIdx, updatedAt: Date.now() });
+                            battleState.autoAdvancedIndex = currentIdx;
+                        }
+                    }
+                }
             }
         }, 2000);
     }
@@ -3788,6 +3869,7 @@
         battleState.currentRoomId = roomId;
         battleState.isHost = (roomData.host === userId);
         battleState.currentRoomData = roomData;
+        battleState.autoAdvancedIndex = -1;
 
         // Reset timer
         clearInterval(battleState.timerInterval);
@@ -4055,6 +4137,7 @@
         battleState.currentRoomId = null;
         battleState.isHost = false;
         battleState.currentRoomData = null;
+        battleState.autoAdvancedIndex = -1;
 
         if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
 
@@ -4275,6 +4358,9 @@
         const statusEl = $('#battle-timer-status');
         if (statusEl) { statusEl.textContent = `Done! ${battleFormatTime(elapsed)}`; statusEl.style.color = '#2ECC71'; }
         await submitBattleSolve(elapsed);
+        // Reset timer so user can start next attempt (while waiting for others)
+        if (timeEl) { timeEl.textContent = '0.00'; timeEl.className = 'battle-timer-time'; }
+        if (statusEl) { statusEl.textContent = 'Hold Space to start timer'; statusEl.style.color = ''; }
     }
 
     // ---- Shared submit ----
