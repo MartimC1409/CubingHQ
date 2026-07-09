@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <link rel="icon" type="image/x-icon" href="https://assets.worldcubeassociation.org/assets/9d245c5/assets/wca-88377afc09278ef9e3f6633209f73f64854f88db28cdc757a9f1c5fb4a244eb7.ico" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" href='https://assets.worldcubeassociation.org/assets/9d245c5/assets/android-touch-icon-58854ba68fea987bfb22997bcf9c09bf6cc100613da5bd83af1e656e25934094.png'/>
+  <link rel="apple-touch-icon" href='https://assets.worldcubeassociation.org/assets/9d245c5/assets/apple-touch-icon-58854ba68fea987bfb22997bcf9c09bf6cc100613da5bd83af1e656e25934094.png'/>
+
+  <meta name="og:image" content='https://assets.worldcubeassociation.org/assets/9d245c5/assets/og-wca_logo-a16e33dae16d181b8a96fee6f4a6743970a0bffdc5bbcc937d7e0d1cc154f0b5.png'/>
+
+  <meta name="description" content="The World Cube Association governs competitions for mechanical puzzles that are operated by twisting groups of pieces, commonly known as 'twisty puzzles'. The most famous of these puzzles is the Rubik's Cube, invented by professor Rubik from Hungary. A selection of these puzzles are chosen as official events of the WCA.">
+
+  <title>World Cube Association</title>
+  <script>
+    window.wca = {
+      currentLocale: 'en',
+    };
+  </script>
+
+
+    <link rel="stylesheet" href="https://assets.worldcubeassociation.org/assets/9d245c5/assets/application-db518d108cfa0be62e8519703b927db4a19747dd56548dbf9df4ebfccf4371a2.css" media="all" />
+
+
+
+  <script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/runtime-74bbb80616664ebf985a.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/jquery-2e94e31f7f3cb4198879.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/vendor-528cc07a5f80b3565f0f.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/189-c9e491d6ed0146b1487e.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/9625-4b6f1283423d786a30db.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/2543-e2c4cbef4b05c9a47609.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/4127-d5599d038b0d6f0f6c6a.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/441-e1f576bca30b869956f0.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/6484-979d47dbce69b767d90c.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/6169-460474fb259d4ad02eed.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/3995-094017f548641013854c.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/4754-a6ecf167fc0b5bb8ad29.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/application-2a02acfb2f4a173de635.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/global_styles-f458297eadcdbfdea7d3.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/i18n-4dca356a78c92fecd92c.js"></script>
+<script src="https://assets.worldcubeassociation.org/assets/9d245c5/packs/js/lodash_utils-58dbc3b3071b77709fae.js"></script>
+  <link rel="stylesheet" href="https://assets.worldcubeassociation.org/assets/9d245c5/packs/css/4216-75049948.css" />
+<link rel="stylesheet" href="https://assets.worldcubeassociation.org/assets/9d245c5/packs/css/6272-e70a2411.css" />
+<link rel="stylesheet" href="https://assets.worldcubeassociation.org/assets/9d245c5/packs/css/189-75d10733.css" />
+<link rel="stylesheet" href="https://assets.worldcubeassociation.org/assets/9d245c5/packs/css/7638-1802628a.css" />
+<link rel="stylesheet" href="https://assets.worldcubeassociation.org/assets/9d245c5/packs/css/5663-2d8f3ca4.css" />
+
+    <script src="https://assets.worldcubeassociation.org/assets/9d245c5/assets/application-74d114dd42646ff2f46e3e0c00170ba008525fc04ad92834909ffd58e22c2c99.js"></script>
+
+
+  <meta name="csrf-param" content="authenticity_token" />
+<meta name="csrf-token" content="7hHjVy5f27ZrwQsIE3JH5aZUk9ONzyHC8wLtE0uV27EyLC7RlCsnAoFzMy67HR07RwDcDqakG28lzZqkNfcaYg" />
+  
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="https://www.worldcubeassociation.org/rss.xml" />
+    <script data-ad-client="ca-pub-8682718775826560" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <!-- New Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-QB1H9R123K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      window.wca.gtag = gtag;
+      gtag('js', new Date());
+      gtag('config', 'G-QB1H9R123K', { 'anonymize_ip': true });
+      // as per https://developers.google.com/tag-platform/security/guides/consent?consentmode=advanced
+      //   this is being overridden by the `cookies-eu-acknowledged` event listener of our cookie banner
+      const consentValue = 'denied';
+      gtag('consent', 'default', {
+        'ad_storage': consentValue,
+        'ad_user_data': consentValue,
+        'ad_personalization': consentValue,
+        'analytics_storage': consentValue,
+      });
+    </script>
+</head>
+<body data-rails-controller-name="errors" data-rails-controller-action-name="show" class="">
+
+    <div class="navbar navbar-default navbar-static-top" role="navigation">
+  <div class="brand">
+    <a href="/" ><img src="https://assets.worldcubeassociation.org/assets/9d245c5/assets/WCA Logo-4ef000323c6a9a407cdf07647a31c0ef4dc847f2352a9a136ef3e809e95bdeab.svg" /></a>
+  </div>
+  <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+  </button>
+  <div class="navbar-collapse collapse disabled">
+    <ul class="nav navbar-nav">
+      <li class="top-nav logo">
+        <a href="/"><img src="https://assets.worldcubeassociation.org/assets/9d245c5/assets/WCA Logo-4ef000323c6a9a407cdf07647a31c0ef4dc847f2352a9a136ef3e809e95bdeab.svg" /></a>
+      </li>
+      <li class="dropdown ">
+        <a href="#" class="dropdown-toggle top-nav" data-toggle="dropdown" data-hover="dropdown">
+          <i class="icon info circle "></i> <span class="hidden-sm hidden-md">Information</span> <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          <li><a href="/about"><i class="icon file alternate "></i> About the WCA</a></li>
+          <li><a href="/documents"><i class="icon copy "></i> WCA Documents</a></li>
+          <li><a href="/officers-and-board"><i class="icon sitemap "></i> WCA Officers &amp; Board</a></li>
+          <li><a href="/delegates"><i class="icon sitemap "></i> WCA Delegates</a></li>
+          <li><a href="/teams-committees"><i class="icon id card "></i> Teams and Committees</a></li>
+          <li><a href="/organizations"><i class="icon flag "></i> Regional Organizations</a></li>
+          <li><a href="/translators"><i class="icon language "></i> Translators</a></li>
+          <li class="divider"></li>
+          <li><a href="/faq"><i class="icon question circle "></i> Frequently Asked Questions</a></li>
+          <li><a href="/education"><i class="icon graduation cap "></i> Educational resources</a></li>
+          <li><a href="/contact"><i class="icon envelope "></i> Contact</a></li>
+          <li><a href="/speedcubing-history"><i class="icon history "></i> Speedcubing History</a></li>
+          <li><a href="/media-instagram"><i class="icon camera "></i> Media Submission</a></li>
+          <li><a href="/privacy"><i class="icon user secret "></i> Privacy</a></li>
+          <li><a href="/disclaimer"><i class="icon exclamation circle "></i> Disclaimer</a></li>
+          <li class="divider"></li>
+          <li><a href="/score-tools"><i class="icon wrench "></i> Tools</a></li>
+          <li><a href="/logo"><i><img width="16px" src="https://assets.worldcubeassociation.org/assets/9d245c5/assets/WCA Logo-4ef000323c6a9a407cdf07647a31c0ef4dc847f2352a9a136ef3e809e95bdeab.svg" /></i> Logo</a></li>
+        </ul>
+      </li>
+      <li class="dropdown ">
+        <a href="#" class="dropdown-toggle top-nav" data-toggle="dropdown" data-hover="dropdown">
+          <i class="icon cube "></i><span class="hidden-sm hidden-md"> Competitions</span>
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          <li><a href="/competitions"><i class="icon globe "></i> All</a></li>
+          <li><a href="/competitions/mine"><i class="icon list "></i> My Competitions</a></li>
+        </ul>
+      </li>
+      <li class="dropdown ">
+        <a href="#" class="dropdown-toggle top-nav" data-toggle="dropdown" data-hover="dropdown">
+          <i class="icon list ol "></i>
+          <span class="hidden-sm hidden-md">Results</span>
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          <li><a href="/results/rankings/333/single"><i class="icon signal fa-rotate-90"></i> Rankings</a></li>
+          <li><a href="/results/records"><i class="icon trophy "></i> Records</a></li>
+          <li><a href="/persons"><i class="icon users "></i> Persons</a></li>
+          <li class="divider"></li>
+          <li><a href="https://statistics.worldcubeassociation.org/"><i class="icon chart area "></i> Statistics</a></li>
+          <li><a href="/media"><i class="icon film "></i> Multimedia</a></li>
+          <li class="divider"></li>
+          <li><a href="/export/results"><i class="icon download "></i> Results Export</a></li>
+          <li><a href="/export/developer"><i class="icon computer "></i> Developer Export</a></li>
+        </ul>
+      </li>
+      <li class="dropdown ">
+        <a href="#" class="dropdown-toggle top-nav" data-toggle="dropdown" data-hover="dropdown">
+          <i class="icon book "></i> <span class="hidden-sm hidden-md">Regulations</span> <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          <li><a href="/regulations/about"><i class="icon info circle "></i> About the Regulations</a></li>
+          <li class="divider"></li>
+          <li><a href="/regulations"><i class="icon book "></i> Regulations</a></li>
+          <li class="divider"></li>
+          <li><a href="/regulations/scrambles/"><i class="icon random "></i> Scrambles</a></li>
+          <li>
+            <a href="/incidents">
+              <i class="icon balance scale "></i> Incidents log
+</a>          </li>
+          <li>
+            <a href="/disciplinary">
+              <i class="icon bullhorn "></i> Disciplinary log
+</a>          </li>
+          <li class="divider"></li>
+          <li><a href="/regulations/history/"><i class="icon history "></i> History</a></li>
+          <li><a href="/regulations/translations/"><i class="icon language "></i> Translations</a></li>
+        </ul>
+      </li>
+
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle top-nav" data-toggle="dropdown" data-hover="dropdown">
+          <i class="icon paper plane "></i> <span class="hidden-sm hidden-md">Find us</span> <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          <li>
+            <a target="_blank" class="hide-new-window-icon" href="https://www.instagram.com/thewcaofficial/">
+              <i class="icon instagram "></i> Instagram
+</a>          </li>
+          <li>
+            <a target="_blank" class="hide-new-window-icon" href="https://www.facebook.com/WorldCubeAssociation/">
+              <i class="icon facebook square "></i> Facebook
+</a>          </li>
+          <li>
+            <a target="_blank" class="hide-new-window-icon" href="https://www.twitter.com/theWCAofficial/">
+              <i class="icon twitter "></i> Twitter
+</a>          </li>
+          <li>
+            <a target="_blank" class="hide-new-window-icon" href="https://www.twitch.tv/worldcubeassociation/">
+              <i class="icon twitch "></i> Twitch
+</a>          </li>
+          <li>
+            <a target="_blank" class="hide-new-window-icon" href="https://www.weibo.com/theWCA/">
+              <i class="icon weibo "></i> Weibo
+</a>          </li>
+          <li>
+            <a target="_blank" class="hide-new-window-icon" href="https://www.youtube.com/channel/UC5OUMUnS8PvY1RvtB1pQZ0g">
+              <i class="icon youtube "></i> YouTube
+</a>          </li>
+        </ul>
+      </li>
+      <li>
+        <a href="https://forum.worldcubeassociation.org/" target="_blank" class="top-nav hide-new-window-icon">
+          <i class="icon comments "></i>
+          <span class="visible-lg-inline visible-xs-inline">Forum</span>
+        </a>
+      </li>
+      <li>
+        <a href="https://live.worldcubeassociation.org/" target="_blank" class="top-nav hide-new-window-icon">
+          <i class="icon sort numeric down "></i>
+          <span class="visible-lg-inline visible-xs-inline">WCA Live</span>
+        </a>
+      </li>
+    </ul>
+
+
+    <ul class="nav navbar-nav navbar-right">
+      <li class="search-container my-2 my-lg-0">
+        <div data-react-class="SearchWidget" data-react-props="{}" data-react-cache-id="SearchWidget-0" id="omnisearch-form"></div>
+      </li>
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle top-nav" data-toggle="dropdown" data-hover="dropdown">
+          <i class="icon language "></i>
+          <span class="visible-lg-inline visible-xs-inline">English</span>
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" id="locale-selector" role="menu">
+            <li class="active">
+              <a href="/update_locale/en">
+                English
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/ca">
+                Català
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/cs">
+                Čeština
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/da">
+                Dansk
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/de">
+                Deutsch
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/eo">
+                Esperanto
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/es-ES">
+                Español (España)
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/es-419">
+                Español (América Latina)
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/eu">
+                Euskara
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/fi">
+                Suomi
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/fr">
+                Français
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/fr-CA">
+                Français Canadien
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/hr">
+                Hrvatski
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/hu">
+                Magyar
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/id">
+                Bahasa Indonesia
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/it">
+                Italiano
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/ja">
+                日本語
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/kk">
+                Қазақша
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/ko">
+                한국어
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/nl">
+                Nederlands
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/pl">
+                Polski
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/pt">
+                Português Europeu
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/pt-BR">
+                Português Brasileiro
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/ro">
+                Română
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/ru">
+                Русский
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/sk">
+                Slovenský
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/sl">
+                Slovenščina
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/sv">
+                Svenska
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/th">
+                ภาษาไทย
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/uk">
+                Українська
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/vi">
+                Tiếng Việt
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/zh-CN">
+                简体中文
+</a>            </li>
+            <li class="">
+              <a href="/update_locale/zh-TW">
+                繁體中文
+</a>            </li>
+        </ul>
+      </li>
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle top-nav" data-toggle="dropdown" data-hover="dropdown">
+            Sign in
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+            <li><a class="top-nav" href="/users/sign_in">Sign in</a></li>
+            <li class="divider"></li>
+            <li><a href="/users/sign_up">Sign up</a></li>
+            <li><a href="/users/confirmation/new">Didn&#39;t receive confirmation instructions?</a></li>
+        </ul>
+      </li>
+    </ul>
+  </div><!--/.nav-collapse -->
+</div>
+
+
+  <main>
+    <div id="flash-alerts" class="container">
+</div>
+
+
+    <div class="dialog" style="display: flex; height: 80vh; justify-content: center; align-items:center">
+  <div>
+    <h1>The page you were looking for doesn&#39;t exist.</h1>
+    <p>If you think this is a mistake please <a href=/contact?contactRecipient=wst&amp;requestId=ed41c2f5-d913-43ed-8561-d21d0b26a980>click here</a> to report it.</p>
+    <p>Request ID: ed41c2f5-d913-43ed-8561-d21d0b26a980</p>
+  </div>
+</div>
+
+  </main>
+
+    <footer class="footer ui vertical segment">
+  <div class="ui container footer-links text-center">
+    <div class="ui horizontal divided list">
+      <div class="item">
+        <a href="/about">About us</a>
+      </div>
+      <div class="item">
+        <a href="/faq">FAQ</a>
+      </div>
+      <div class="item">
+        <a href="/contact">Contact</a>
+      </div>
+      <div class="item">
+        <a href="https://github.com/thewca/worldcubeassociation.org" target="_blank" class="hide-new-window-icon">
+          <i class="icon github "></i> GitHub
+        </a>
+      </div>
+      <div class="item">
+        <a href="/privacy">Privacy</a>
+      </div>
+      <div class="item">
+        <a href="/disclaimer">Disclaimer</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+      <div class="cookies-eu js-cookies-eu" >
+      <span class="cookies-eu-content-holder">Cookies help us deliver our services. By using our services, you agree to our use of cookies.</span>
+      <span class="cookies-eu-button-holder">
+      <button class="cookies-eu-ok js-cookies-eu-ok"> OK </button>
+      </span>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+L3655|        $$('.battle-event-chip').forEach(c => c.classList.toggle('active', c.dataset.event === event));
+L3656|
+L3657|        // Scramble — from scrambles map (shared for all users)
+L3658|        const scrambleEl = $('#battle-scramble-text');
+L3659|        const currentScrambleObj = scrambles[currentIdx];
+L3660|        const currentScramble = currentScrambleObj ? currentScrambleObj.scramble : null;
+L3661|        if (scrambleEl) {
+L3662|            scrambleEl.textContent = currentScramble || 'Waiting for scramble...';
+L3663|        }
+L3664|        const twisty = $('#battle-twisty');
+L3665|        if (twisty && currentScramble) {
+L3666|            twisty.setAttribute('puzzle', evtInfo.puzzle);
+L3667|            twisty.setAttribute('alg', currentScramble);
+L3668|        }
+L3669|
+L3670|        // Auto-reset timer when scramble index changes
+L3671|        if (currentIdx !== battleState.lastSeenScrambleIndex) {
+L3672|            battleState.lastSeenScrambleIndex = currentIdx;
+L3673|            clearInterval(battleState.timerInterval);
+L3674|            battleState.timerRunning = false;
+L3675|            const timeEl = $('#battle-timer-time');
+L3676|            if (timeEl) { timeEl.textContent = '0.00'; timeEl.className = 'battle-timer-time'; }
+L3677|            const statusEl = $('#battle-timer-status');
+L3678|            if (statusEl) { statusEl.textContent = 'Hold Space to start timer'; statusEl.style.color = ''; }
+L3679|            const typingDisp = $('#battle-typing-display');
+L3680|            if (typingDisp) { typingDisp.textContent = '0.00'; typingDisp.className = 'battle-timer-time'; }

@@ -17,7 +17,7 @@
         'pyram':  { name: 'Pyraminx', faces: ['U','R','L','B','u','r','l','b'], modifiers: ['', "'"], length: 11, format: 'ao5', puzzle: 'pyraminx' },
         'skewb':  { name: 'Skewb',    faces: ['U','R','L','B'],         modifiers: ['', "'"], length: 11, format: 'ao5', puzzle: 'skewb' },
         'sq1':    { name: 'Square-1', puzzle: 'square1', format: 'ao5' },
-        'minx':   { name: 'Megaminx', faces: ['U','R','D','L','F'],     modifiers: ['++', '--'], length: 70, format: 'ao5', puzzle: 'megaminx' },
+        'minx':   { name: 'Megaminx', faces: ['R','D','U'],     modifiers: ['', "'", '++', '--'], length: 77, format: 'ao5', puzzle: 'megaminx' },
         'clock':  { name: 'Clock',    puzzle: 'clock', format: 'mo3' },
     };
 
@@ -36,6 +36,7 @@
         if (event === 'sq1') return generateSQ1();
         if (event === 'clock') return generateClock();
         if (event === 'pyram') return generatePyraminx();
+        if (event === 'minx') return generateMinxScramble();
 
         if (info.useBigCube) return generateBigCube(info.length);
         return generateStandardScramble(event);
@@ -84,6 +85,35 @@
     }
 
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+
+    // WCA-spec Megaminx scrambles: 7 lines x 11 = 77 moves.
+    // First 10 moves per line: alternating R/D with ++/--/empty/' (adjacent mods differ).
+    // 11th move: U or U' (single turn ONLY). U alternates line-to-line.
+    
+    // WCA-style Megaminx scrambles: 7 lines x 11 = 77 moves.
+    // Face pattern per line: R D R D R D R D R D U (alternating R/D, final U).
+    // Modifiers: ++/-- alternating on R/D moves; U alternates between U/U' per line.
+    // Output as a single space-separated line (twisty-player compatible).
+    function generateMinxScramble() {
+        const mods = ['++', '--'];
+        const uMods = ['', "'"];
+        const moves = [];
+        let curMod = mods[Math.floor(Math.random() * mods.length)];
+        let uMod = uMods[Math.floor(Math.random() * uMods.length)];
+        for (let lineIdx = 0; lineIdx < 7; lineIdx++) {
+            for (let j = 0; j < 10; j++) {
+                const face = (j % 2 === 0) ? 'R' : 'D';
+                moves.push(face + curMod);
+                curMod = (curMod === '++') ? '--' : '++';
+            }
+            moves.push('U' + uMod);
+            uMod = (uMod === '') ? "'" : '';
+            curMod = (curMod === '++') ? '--' : '++';
+        }
+        return moves.join(' ');
+    }
+
 
     function generateStandardScramble(event) {
         const info = EVENT_INFO[event];

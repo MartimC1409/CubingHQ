@@ -1,0 +1,61 @@
+L3260|            const pins = ['d', 'U', 'R', 'dR'];
+L3261|            const turns = [1,2,3,4,5,6,-1,-2,-3,-4,-5,-6];
+L3262|            const sides = ['U','D','L','R','UL','UR','DL','DR','ALL'];
+L3263|            let moves = [];
+L3264|            for (let i = 0; i < 9; i++) {
+L3265|                const face = sides[i % sides.length];
+L3266|                const t = turns[Math.floor(Math.random() * turns.length)];
+L3267|                moves.push(`${face}${t > 0 ? '+' : ''}${t}`);
+L3268|            }
+L3269|            return moves.join(' ');
+L3270|        }
+L3271|
+L3272|        // ---- Megaminx ----
+L3273|        if (event === 'mega') {
+L3274|            const megaMoves = [];
+L3275|            const dirs = ['+', '-'];
+L3276|            for (let i = 0; i < 70; i++) {
+L3277|                const face = ['U','R','D','L','BL','BR'][Math.floor(Math.random()*6)];
+L3278|                const d = dirs[Math.floor(Math.random()*2)];
+L3279|                megaMoves.push(`${face}${d}${d}`);
+L3280|            }
+L3281|            return megaMoves.join(' ');
+L3282|        }
+L3283|
+L3284|        // ---- Pyraminx ----
+L3285|        if (event === 'pyra') {
+L3286|            const tips  = buildPool(['u','l','r','b']);
+L3287|            const faces = buildPool(['U','L','R','B']);
+L3288|            return buildMoves(faces, 9) + ' ' + tips.slice(0,4).join(' ');
+L3289|        }
+L3290|
+L3291|        // ---- Skewb ----
+L3292|        if (event === 'skewb') return buildMoves(buildPool(['U','R','L','B']), 9);
+L3293|
+L3294|        // ---- Square-1 ----
+L3295|        if (event === 'sq1') {
+L3296|            let moves = [];
+L3297|            for (let i = 0; i < 11; i++) {
+L3298|                const u = Math.floor(Math.random() * 12) - 6;
+L3299|                const d = Math.floor(Math.random() * 12) - 6;
+L3300|                moves.push(`(${u},${d})`);
+L3301|                if (i < 10) moves.push('/');
+L3302|            }
+L3303|            return moves.join(' ');
+L3304|        }
+L3305|
+L3306|        // ---- fallback 3x3 ----
+L3307|        return buildMoves(buildPool(['U','D','R','L','F','B']), 20);
+L3308|    }
+L3309|
+L3310|    function battleFormatTime(ms) {
+L3311|        if (ms >= 60000) { const m = Math.floor(ms/60000), s = ((ms%60000)/1000).toFixed(2); return `${m}:${parseFloat(s)<10?'0':''}${s}`; }
+L3312|        return (ms/1000).toFixed(2);
+L3313|    }
+L3314|
+L3315|    // ----- Init -----
+L3316|    function initBattle() {
+L3317|        if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
+L3318|        if ($('#battle-lobby')) $('#battle-lobby').style.display = 'block';
+L3319|
+L3320|        if (!battleState.initialized) {

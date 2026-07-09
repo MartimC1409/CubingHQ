@@ -348,6 +348,10 @@
                         <h2 class="card-title"><span class="icon">📊</span> Competitions</h2>
                         <p class="card-desc">Track your progress and analyze your personal speedcubing stats.</p>
                     </div>
+                    <div class="home-feature-card" onclick="document.getElementById('nav-battle-btn') && document.getElementById('nav-battle-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">⚔️</span> Battle</h2>
+                        <p class="card-desc">Real-time head-to-head speedcubing against other cubers around the world.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -928,8 +932,8 @@
                     <p class="hero-subtitle">Browse upcoming competitions globally or search a WCA ID to see past competitions attended by a competitor.</p>
                 </div>
 
-                <div style="display: flex; justify-content: center; margin-bottom: var(--space-xl);">
-                    <div class="setup-card" style="width: 100%; max-width: 650px; text-align: center; padding: 2.5rem 2rem;">
+                <div class="competitions-search-grid">
+                    <div class="setup-card" style="width: 100%; text-align: center; padding: 2.5rem 2rem;">
                         <h3 class="card-title" style="justify-content: center;"><span class="icon">🔍</span> Search Past Competitions</h3>
                         <p class="card-desc">Enter a WCA ID (e.g. 2023CARV02) to see all past competitions.</p>
                         
@@ -951,6 +955,30 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Upcoming Competitions for WCA ID -->
+                    <div class="setup-card" style="width: 100%; text-align: center; padding: 2.5rem 2rem;">
+                        <h3 class="card-title" style="justify-content: center;"><span class="icon">&#128302;</span> Search Upcoming Registrations</h3>
+                        <p class="card-desc">Enter any WCA ID to see upcoming competitions that person is associated with.</p>
+
+                        <div class="wca-lookup" style="justify-content: center;">
+                            <input type="text" id="upcoming-comp-wca-id" class="form-input" placeholder="e.g. 2023CARV02" autocomplete="off" spellcheck="false" aria-label="WCA ID to look up" style="text-transform: uppercase; text-align: center; max-width: 250px; background-color: var(--clr-surface-alt); border: 1px solid var(--clr-border);">
+                            <button id="search-upcoming-comps-btn" class="btn btn-primary" style="flex-shrink: 0;" aria-label="Search upcoming competitions for this WCA ID">Search</button>
+                        </div>
+
+                        <div id="upcoming-comps-search-loading" class="comp-info-state" style="display: none;">
+                            <div class="spinner"></div>
+                            <span>Fetching competitions...</span>
+                        </div>
+                        <div id="upcoming-comps-search-error" class="comp-info-state error" style="display: none;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span id="upcoming-comps-search-error-text">WCA ID not found.</span>
+                        </div>
+                        <div id="upcoming-comps-search-results" class="upcoming-comps-list" style="display: none; margin-top: var(--space-md); max-height: 600px; overflow-y: auto;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div><!-- /.competitions-search-grid -->
 
                 <!-- Upcoming Competitions (WCA Live style) -->
                 <div class="upcoming-comps-section" id="upcoming-comps-section">
@@ -1101,6 +1129,21 @@
                         </div>
                         <div class="battle-cross-table-wrap" id="battle-cross-table-wrap">
                             <div class="battle-scores-empty">No solves yet — start solving!</div>
+                        </div>
+                    </div>
+                    <!-- Battle Room Chat (RTDB-backed) -->
+                    <div class="battle-chat-panel" id="battle-chat-panel">
+                        <div class="battle-panel-header">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Room Chat
+                            <span class="battle-chat-status" id="battle-chat-status">connecting…</span>
+                        </div>
+                        <div class="battle-chat-messages" id="battle-chat-messages">
+                            <div class="battle-chat-empty">No messages yet — say hi!</div>
+                        </div>
+                        <div class="battle-chat-input-row">
+                            <input type="text" id="battle-chat-input" placeholder="Type a message…" maxlength="500" autocomplete="off" aria-label="Chat message">
+                            <button id="battle-chat-send-btn" class="btn btn-primary btn-sm" aria-label="Send message">Send</button>
                         </div>
                     </div>
                 </div>

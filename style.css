@@ -4269,3 +4269,210 @@ body {
     transition: all var(--transition-fast);
     position: relative;
 
+
+
+
+/* === Added by upcoming-search feature === */
+
+.competitions-dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  align-items: start;
+}
+
+@media (max-width: 1280px) {
+  .competitions-dual-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .competitions-dual-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Registration status badges for upcoming-by-WCA-ID cards */
+.reg-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: 8px;
+  vertical-align: middle;
+  border: 1px solid transparent;
+}
+.reg-status-scheduled {
+  background: rgba(99,102,241,0.18);
+  color: var(--clr-primary-hover);
+  border-color: rgba(99,102,241,0.35);
+}
+
+
+/* ============================================================
+   COMPETITIONS SEARCH GRID (Past + Upcoming side-by-side)
+   ============================================================ */
+
+.competitions-search-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.competitions-search-grid > .setup-card {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .competitions-search-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ============================================================
+   BATTLE ROOM CHAT
+   ============================================================ */
+
+.battle-chat-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 200px;
+    max-height: 320px;
+    border-top: 1px solid var(--clr-border);
+    background: var(--clr-surface);
+}
+
+.battle-chat-status {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--clr-text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.battle-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+    scroll-behavior: smooth;
+}
+
+.battle-chat-empty {
+    text-align: center;
+    color: var(--clr-text-muted);
+    font-size: 0.8rem;
+    padding: var(--space-lg) var(--space-sm);
+    line-height: 1.5;
+}
+
+.battle-chat-message {
+    font-size: 0.82rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 10px;
+    border-radius: 8px;
+    word-wrap: break-word;
+    line-height: 1.4;
+    border-left: 2px solid var(--clr-primary);
+}
+
+.battle-chat-message .chat-user {
+    font-weight: 700;
+    color: var(--clr-primary);
+    margin-right: 4px;
+    font-size: 0.78rem;
+}
+
+.battle-chat-message .chat-time {
+    font-size: 0.65rem;
+    color: var(--clr-text-muted);
+    float: right;
+    margin-top: 3px;
+    margin-left: 6px;
+}
+
+.battle-chat-message .chat-text {
+    color: var(--clr-text);
+}
+
+.battle-chat-input-row {
+    display: flex;
+    gap: 6px;
+    padding: var(--space-sm);
+    border-top: 1px solid var(--clr-border);
+    background: var(--clr-bg-elevated);
+}
+
+.battle-chat-input-row input {
+    flex: 1;
+    min-width: 0;
+    background: var(--clr-bg);
+    border: 1px solid var(--clr-border);
+    color: var(--clr-text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-family: var(--font-body);
+    transition: border-color var(--transition-fast);
+}
+
+.battle-chat-input-row input:focus {
+    border-color: var(--clr-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--clr-primary-glow);
+}
+
+.battle-chat-input-row input:disabled,
+.battle-chat-input-row button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.battle-chat-input-row button {
+    flex-shrink: 0;
+    padding: 6px 14px;
+}
+
+
+/* Inline event panel */
+#wca-comp-event-panel {
+    animation: fadeIn 0.25s ease;
+}
+
+/* Event header inline (has icon + name side by side) */
+#wca-event-header-inline h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+}
+
+#wca-event-header-inline h2 svg {
+    width: 28px;
+    height: 28px;
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
+#wca-event-header-inline .event-subtitle {
+    font-size: 0.82rem;
+    color: var(--clr-text-muted);
+    margin-bottom: var(--space-md);
+}

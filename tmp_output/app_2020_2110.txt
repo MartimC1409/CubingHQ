@@ -1,0 +1,91 @@
+L2020|        state.rtInterval = setInterval(updateRealTimeSimulation, 500);
+L2021|
+L2022|        saveSimState();
+L2023|    }
+L2024|
+L2025|    // ========== SCRAMBLE GENERATION ==========
+L2026|    function generateScramble(event) {
+L2027|        if (event === 'sq1') return generateSQ1Scramble();
+L2028|        if (event === 'clock') return generateClockScramble();
+L2029|
+L2030|        const config = MOVES[event] || MOVES['333'];
+L2031|        const moves = [];
+L2032|        let lastFace = '';
+L2033|        let secondLastFace = '';
+L2034|
+L2035|        for (let i = 0; i < config.length; i++) {
+L2036|            let face;
+L2037|            do {
+L2038|                face = config.faces[Math.floor(Math.random() * config.faces.length)];
+L2039|            } while (
+L2040|                face === lastFace ||
+L2041|                (face === secondLastFace && isOppositeFace(face, lastFace))
+L2042|            );
+L2043|
+L2044|            const modifier = config.modifiers[Math.floor(Math.random() * config.modifiers.length)];
+L2045|            moves.push(face + modifier);
+L2046|
+L2047|            secondLastFace = lastFace;
+L2048|            lastFace = face;
+L2049|        }
+L2050|
+L2051|        return moves.join(' ');
+L2052|    }
+L2053|
+L2054|    function isOppositeFace(a, b) {
+L2055|        const opposites = { 'U': 'D', 'D': 'U', 'R': 'L', 'L': 'R', 'F': 'B', 'B': 'F' };
+L2056|        return opposites[a] === b;
+L2057|    }
+L2058|
+L2059|    function generateSQ1Scramble() {
+L2060|        const moves = [];
+L2061|        for (let i = 0; i < 13; i++) {
+L2062|            const top = Math.floor(Math.random() * 12) - 5;
+L2063|            const bot = Math.floor(Math.random() * 12) - 5;
+L2064|            moves.push(`(${top},${bot})`);
+L2065|            if (i < 12) moves.push('/');
+L2066|        }
+L2067|        return moves.join(' ');
+L2068|    }
+L2069|
+L2070|    function generateClockScramble() {
+L2071|        // WCA Clock scrambles:
+L2072|        //   Side 1: 9 pins (UR, DR, DL, UL, U, R, D, L, ALL), each with ±1-5
+L2073|        //   y2 rotation
+L2074|        //   Side 2: 5 pins (U, D, L, R, ALL) - the 4 corner pins (UR/DR/DL/UL) are pushed up
+L2075|        //   Optional: 0+ pins lifted at the end (UR DR DL UL)
+L2076|        const side1Pins = ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'];
+L2077|        const side2Pins = ['U', 'R', 'D', 'L', 'ALL'];
+L2078|        const moves = [];
+L2079|        const randPin = () => {
+L2080|            // ±1-5 with balanced sign distribution
+L2081|            const sign = Math.random() < 0.5 ? -1 : 1;
+L2082|            const mag = 1 + Math.floor(Math.random() * 5); // 1..5
+L2083|            return sign * mag;
+L2084|        };
+L2085|        side1Pins.forEach(pin => {
+L2086|            const v = randPin();
+L2087|            moves.push(`${pin}${v > 0 ? v + '+' : Math.abs(v) + '-'}`);
+L2088|        });
+L2089|        moves.push('y2');
+L2090|        side2Pins.forEach(pin => {
+L2091|            const v = randPin();
+L2092|            moves.push(`${pin}${v > 0 ? v + '+' : Math.abs(v) + '-'}`);
+L2093|        });
+L2094|        // 0+ pins lifted (UR DR DL UL) - WCA spec: pick 0, 1, or 2 pins; each +1..+5
+L2095|        const liftPins = ['UR', 'DR', 'DL', 'UL'];
+L2096|        const liftCount = Math.random() < 0.33 ? (Math.random() < 0.5 ? 1 : 2) : 0;
+L2097|        const lifted = [];
+L2098|        if (liftCount > 0) {
+L2099|            const pool = liftPins.slice();
+L2100|            for (let i = pool.length - 1; i > 0; i--) {
+L2101|                const j = Math.floor(Math.random() * (i + 1));
+L2102|                [pool[i], pool[j]] = [pool[j], pool[i]];
+L2103|            }
+L2104|            for (let i = 0; i < liftCount; i++) {
+L2105|                const v = 1 + Math.floor(Math.random() * 5);
+L2106|                lifted.push(`${pool[i]}${v}+`);
+L2107|            }
+L2108|        }
+L2109|        if (lifted.length) moves.push(lifted.join(' '));
+L2110|        return moves.join(' ');

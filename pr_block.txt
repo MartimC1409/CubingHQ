@@ -1,0 +1,136 @@
+1820|        } catch (err) {
+1821|            console.error('Error fetching past competitions:', err);
+1822|            errorText.textContent = err.message;
+1823|            errorDiv.style.display = 'flex';
+1824|        } finally {
+1825|            loadingDiv.style.display = 'none';
+1826|            btn.classList.remove('loading');
+1827|        }
+1828|    }
+1829|
+1830|    function updatePRDisplay() {
+1831|        if (!state.playerData) return;
+1832|
+1833|        const currentEvent = state.event;
+1834|        const prs = state.playerData.personal_records;
+1835|        const eventPR = prs[currentEvent];
+1836|
+1837|        // Set playerAvg to a realistic CURRENT average based on PR.
+1838|        // PR avg is the best ever — current performance is typically ~5-8% slower.
+1839|        // For events without an official average (BLD, FMC, MBLD), use single * 1.1 as proxy.
+1840|        if (eventPR) {
+1841|            let baseAvg = null;
+1842|            if (eventPR.average) {
+1843|                baseAvg = eventPR.average.best / 100;
+1844|            } else if (eventPR.single) {
+1845|                baseAvg = eventPR.single.best / 100 * 1.1;
+1846|            }
+1847|            if (baseAvg !== null) {
+1848|                state.playerAvg = baseAvg * 1.05; // small realistic buffer
+1849|                state.playerPRAvg = baseAvg;
+1850|                state.playerPRSingle = eventPR.single ? eventPR.single.best / 100 : null;
+1851|            } else {
+1852|                state.playerAvg = 15;
+1853|                state.playerPRAvg = null;
+1854|                state.playerPRSingle = null;
+1855|            }
+1856|        } else {
+1857|            state.playerAvg = 15; // default fallback
+1858|            state.playerPRAvg = null;
+1859|            state.playerPRSingle = null;
+1860|        }
+1861|
+1862|        const prTableBody = $('#pr-table-body');
+1863|        if (!prTableBody) return;
+1864|
+1865|        // Show ALL personal records (sorted by WCA event order) and highlight the current event.
+1866|        const prEvents = Object.keys(prs);
+1867|        const wcaOrderFull = [
+1868|            '333', '222', '444', '555', '666', '777',
+1869|            '333bf', '333fm', '333oh', 'clock', 'minx',
+1870|            'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'
+1871|        ];
+1872|        prEvents.sort((a, b) => {
+1873|            const idxA = wcaOrderFull.indexOf(a);
+1874|            const idxB = wcaOrderFull.indexOf(b);
+1875|            return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+1876|        });
+1877|        const allEvents = prEvents;
+1878|
+1879|        if (allEvents.length === 0) {
+1880|            prTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:var(--clr-text-muted);">No official results yet.</td></tr>';
+1881|        } else {
+1882|            prTableBody.innerHTML = allEvents.map(evt => {
+1883|                const rec = prs[evt];
+1884|                const s = rec.single;
+1885|                const a = rec.average;
+1886|
+1887|                let sTime, aTime;
+1888|                if (evt === '333fm') {
+1889|                    sTime = s ? String(s.best) : '—';
+1890|                    aTime = a ? (a.best / 100).toFixed(2) : '—';
+1891|                } else if (evt === '333mbf') {
+1892|                    sTime = s ? decodeMBLD(s.best) : '—';
+1893|                    aTime = '—';
+1894|                } else {
+1895|                    sTime = s ? formatTime(s.best / 100) : '—';
+1896|                    aTime = a ? formatTime(a.best / 100) : '—';
+1897|                }
+1898|
+1899|                const sNR = s ? s.country_rank : '—';
+1900|                const aNR = a ? a.country_rank : '—';
+1901|                const sWR = s ? s.world_rank : '—';
+1902|                const aWR = a ? a.world_rank : '—';
+1903|
+1904|                // Pick the best rank to show (use average's rank if available, else single)
+1905|                const dispNR = (aNR !== '—') ? aNR : sNR;
+1906|                const dispWR = (aWR !== '—') ? aWR : sWR;
+1907|
+1908|                const isCurrent = evt === currentEvent;
+1909|                const activeStyle = isCurrent ? 'background: var(--clr-primary-glow);' : '';
+1910|
+1911|                return `
+1912|                    <tr class="records-row" style="${activeStyle}">
+1913|                        <td class="rec-event-name">${EVENT_NAMES[evt] || evt}</td>
+1914|                        <td class="rec-time rec-single" style="text-align: center;">${sTime}</td>
+1915|                        <td class="rec-time" style="text-align: center;">${aTime}</td>
+1916|                        <td style="font-size: 0.8rem; color: var(--clr-primary); font-weight: 600; text-align: center;">${dispNR !== '—' ? '#' + dispNR : '—'}</td>
+1917|                        <td style="font-size: 0.8rem; color: var(--clr-primary); font-weight: 600; text-align: center;">${dispWR !== '—' ? '#' + dispWR : '—'}</td>
+1918|                    </tr>
+1919|                `;
+1920|            }).join('');
+1921|        }
+1922|
+1923|        $('#pr-display').style.display = 'block';
+1924|    }
+1925|
+1926|    function updateEventFormatHint() {
+1927|        const event = state.event || document.querySelector('input[name="event"]:checked')?.value || '333';
+1928|        const isMo3 = MEAN_OF_3_EVENTS.includes(event);
+1929|        state.numSolves = isMo3 ? 3 : 5;
+1930|        const hint = $('#event-format-hint');
+1931|        if (hint) {
+1932|            hint.textContent = isMo3 ? 'Mean of 3' : 'Average of 5';
+1933|        }
+1934|    }
+1935|
+1936|    // ========== SETUP ==========
+1937|    async function handleSetupSubmit(e) {
+1938|        e.preventDefault();
+1939|
+1940|        // Validate WCA ID was looked up
+1941|        if (!state.playerData) {
+1942|            const wcaInput = $('#wca-id').value.trim();
+1943|            if (wcaInput) {
+1944|                await lookupWCAProfile();
+1945|                if (!state.playerData) return;
+1946|            } else if (state.userProfile && state.userProfile.wca_id) {
+1947|                // User is logged in via WCA OAuth — use their WCA ID automatically
+1948|                await lookupWCAProfile(state.userProfile.wca_id, true);
+1949|                if (!state.playerData) {
+1950|                    showToast('⚠️ Could not load your WCA profile. Please try again.', 'error');
+1951|                    return;
+1952|                }
+1953|            } else {
+1954|                showToast('⚠️ Please enter or look up a WCA ID first', 'error');
+1955|                return;

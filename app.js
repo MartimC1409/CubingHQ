@@ -59,7 +59,8 @@
         'pyram': { faces: ['U', 'R', 'L', 'B', 'u', 'r', 'l', 'b'], modifiers: ['', "'"], length: 11 },
         'skewb': { faces: ['U', 'R', 'L', 'B'], modifiers: ['', "'"], length: 11 },
         'sq1': null,
-        'minx': { faces: ['U', 'R', 'D', 'L', 'F'], modifiers: ['++', '--'], length: 77 },
+        // 'minx' uses a dedicated generator (see generateMinxScramble below) — WCA-compliant 77-move scramble
+        'minx': null,
         'clock': null
     };
 
@@ -493,7 +494,6 @@
                 initBattle();
             });
         }
-        
         // Guest battle removed
 
         // Algorithms View Logic (Native + TwistyPlayer)
@@ -1026,6 +1026,10 @@
         $('#wca-id').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookupWCAProfile(); } });
         $('#past-comp-wca-id').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fetchPastCompetitions(); } });
 
+        // Upcoming competitions by WCA ID lookup
+        $('#search-upcoming-comps-btn').addEventListener('click', fetchUpcomingCompetitionsForWCA);
+        $('#upcoming-comp-wca-id').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fetchUpcomingCompetitionsForWCA(); } });
+
         // Setup form
         $('#setup-form').addEventListener('submit', handleSetupSubmit);
 
@@ -1081,6 +1085,8 @@
 
         // History
         $('#clear-history-btn').addEventListener('click', clearHistory);
+
+
     }
 
     // ========== WCA API: COMPETITION LOOKUP ==========
@@ -1737,6 +1743,125 @@
         }
     }
 
+    // Fetch upcoming competitions a particular WCA ID is REGISTERED for.
+    // Uses the /users/{wcaId}?upcoming_competitions=true endpoint (inspired by
+    // upcomingcomps.netlify.app) - a single API call returns the user's profile
+    // plus an array of upcoming competitions they're registered for. This is
+    // dramatically simpler/faster than the previous WCIF scan approach.
+    // Note: returns 404 for WCA IDs without a WCA account (rare; all modern
+    // registrations require an account).
+    async function fetchUpcomingCompetitionsForWCA() {
+        // Guard against Enter-key double-fire while a request is in flight.
+        const btnGuard = $('#search-upcoming-comps-btn');
+        if (!btnGuard || btnGuard.disabled) return;
+
+        const wcaId = $('#upcoming-comp-wca-id').value.trim().toUpperCase();
+        if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
+
+        const loadingDiv = $('#upcoming-comps-search-loading');
+        const errorDiv   = $('#upcoming-comps-search-error');
+        const resultsDiv = $('#upcoming-comps-search-results');
+        const errorText  = $('#upcoming-comps-search-error-text');
+        const btn        = btnGuard;
+
+        loadingDiv.style.display = 'flex';
+        errorDiv.style.display   = 'none';
+        resultsDiv.style.display = 'none';
+        btn.classList.add('loading');
+        btn.disabled = true;
+        resultsDiv.innerHTML = '';
+
+        try {
+            // Single API call: returns user profile + upcoming_competitions + ongoing_competitions.
+            // Inspired by upcomingcomps.netlify.app (open source).
+            const res = await fetch(
+                `${WCA_API}/users/${wcaId}?upcoming_competitions=true&ongoing_competitions=true`
+            );
+            if (res.status === 404) {
+                // 404 means the WCA ID has no WCA account (all modern registrations
+                // require one, so this is rare - mostly affects very old competitors).
+                throw new Error(`No WCA account linked to ${wcaId}. Upcoming registrations are only available for competitors with a WCA account.`);
+            }
+            if (!res.ok) {
+                throw new Error(`Could not fetch registrations (HTTP ${res.status}).`);
+            }
+
+            const data = await res.json();
+            const upcoming = Array.isArray(data.upcoming_competitions)
+                ? data.upcoming_competitions
+                : [];
+
+            if (upcoming.length === 0) {
+                resultsDiv.innerHTML = `<div class="comp-info-state">No upcoming registrations found for ${wcaId}.</div>`;
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Filter out cancelled comps (cancelled_at != null) - a cancelled
+            // comp isn't something the user is meaningfully registered to.
+            // Then sort by start_date ascending (lex YYYY-MM-DD = chronological).
+            // The API may already do the sort, but be defensive.
+            const sortedUpcoming = upcoming
+                .filter(c => c && c.start_date && !c.cancelled_at)
+                .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+
+            if (sortedUpcoming.length === 0) {
+                resultsDiv.innerHTML = `<div class="comp-info-state">No upcoming registrations found for ${wcaId}.</div>`;
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Render
+            resultsDiv.innerHTML = `<div class="upcoming-comps-title" style="margin-bottom: var(--space-sm); text-align: left; font-weight: 700;">Upcoming Registrations for ${wcaId} (${sortedUpcoming.length})</div>`;
+
+            const compListContainer = document.createElement('div');
+            compListContainer.style.display = 'flex';
+            compListContainer.style.flexDirection = 'column';
+            compListContainer.style.gap = '8px';
+            compListContainer.style.textAlign = 'left';
+
+            sortedUpcoming.forEach(c => {
+                const countryCode = c.country_iso2 || '';
+                const city        = c.city || 'Unknown';
+                const startDate   = c.start_date || '';
+                const endDate     = c.end_date || '';
+                const dateStr     = startDate === endDate ? startDate : `${startDate} \u2192 ${endDate}`;
+                const shortName   = c.short_name || c.name || c.id || 'Competition';
+                const compUrl     = `https://www.worldcubeassociation.org/competitions/${c.id}`;
+                const eventsStr   = (Array.isArray(c.event_ids) ? c.event_ids : [])
+                    .map(e => EVENT_NAMES[e] || e)
+                    .join(', ') || '\u2014';
+
+                const card = document.createElement('a');
+                card.className = 'upcoming-comp-item';
+                card.href      = compUrl;
+                card.target    = '_blank';
+                card.rel       = 'noopener noreferrer';
+                card.innerHTML = `
+                    <div class="upcoming-comp-info">
+                        <span class="upcoming-comp-name">${shortName}</span>
+                        <span class="upcoming-comp-meta">${countryFlagImg(countryCode, 14)} ${city}</span>
+                        <span class="upcoming-comp-meta" style="font-size: 0.75rem; opacity: 0.85; margin-top: 2px;"><strong style="opacity: 0.7;">Events:</strong> ${eventsStr}</span>
+                    </div>
+                    <span class="upcoming-comp-date">${dateStr}</span>
+                `;
+                compListContainer.appendChild(card);
+            });
+
+            resultsDiv.appendChild(compListContainer);
+            resultsDiv.style.display = 'block';
+
+        } catch (err) {
+            console.error('Error fetching upcoming registrations:', err);
+            errorText.textContent = err.message;
+            errorDiv.style.display = 'flex';
+        } finally {
+            loadingDiv.style.display = 'none';
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    }
+
     function updatePRDisplay() {
         if (!state.playerData) return;
 
@@ -1934,6 +2059,7 @@
     function generateScramble(event) {
         if (event === 'sq1') return generateSQ1Scramble();
         if (event === 'clock') return generateClockScramble();
+        if (event === 'minx') return generateMinxScramble();
 
         const config = MOVES[event] || MOVES['333'];
         const moves = [];
@@ -1987,6 +2113,39 @@
             const val = Math.floor(Math.random() * 12) - 5;
             moves.push(`${pin}${val >= 0 ? val + '+' : Math.abs(val) + '-'}`);
         });
+        return moves.join(' ');
+    }
+
+    // WCA-compliant Megaminx scramble: 77 moves, 12 faces, 2 modifiers (++/--).
+    // Constraints: no two consecutive moves on the same face, no two consecutive
+    // moves on opposite faces. Standard 12-face set: R, D, L, U, F, BL, BR, FL,
+    // FR, B, DL, DR. Opposite pairs are the standard WCA pairing.
+    function generateMinxScramble() {
+        const faces = ['R', 'D', 'L', 'U', 'F', 'BL', 'BR', 'FL', 'FR', 'B', 'DL', 'DR'];
+        const opposite = {
+            'R': 'L', 'L': 'R',
+            'D': 'U', 'U': 'D',
+            'F': 'B', 'B': 'F',
+            'FL': 'BR', 'BR': 'FL',
+            'FR': 'BL', 'BL': 'FR',
+            'DL': 'DR', 'DR': 'DL'
+        };
+        const modifiers = ['++', '--'];
+        const moves = [];
+        let lastFace = '';
+        for (let i = 0; i < 77; i++) {
+            let face;
+            let attempts = 0;
+            do {
+                face = faces[Math.floor(Math.random() * faces.length)];
+                attempts++;
+                // Safety valve: if we somehow can't find a valid face after many tries, just use it
+                if (attempts > 50) break;
+            } while (face === lastFace || face === opposite[lastFace]);
+            const mod = modifiers[Math.floor(Math.random() * modifiers.length)];
+            moves.push(face + mod);
+            lastFace = face;
+        }
         return moves.join(' ');
     }
 
@@ -2750,7 +2909,164 @@
         return s[(v - 20) % 10] || s[v] || s[0];
     }
 
-    function showToast(message, type = 'info') {
+    // Get or create a stable guest ID for users without a WCA profile
+    function getGuestId() {
+        let id = localStorage.getItem('sc_guest_id');
+        if (!id) {
+            id = 'guest-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36);
+            localStorage.setItem('sc_guest_id', id);
+        }
+        return id;
+    }
+
+    function getBattleChatUserName() {
+        if (state.userProfile && state.userProfile.name) return state.userProfile.name;
+        if (state.playerName) return state.playerName;
+        return 'Guest';
+    }
+
+    function getBattleChatUserId() {
+        if (state.userProfile && state.userProfile.wca_id) return state.userProfile.wca_id;
+        if (state.playerWcaId) return state.playerWcaId;
+        return getGuestId();
+    }
+
+    function loadBattleChat(roomId) {
+        if (!roomId) return;
+        battleChatRoomId = roomId;
+        battleChatLastTimestamp = 0;
+        battleChatSeenIds = new Set();
+        const messagesEl = $('#battle-chat-messages');
+        if (messagesEl) messagesEl.innerHTML = '<div class="battle-chat-empty">No messages yet \u2014 say hi!</div>';
+        updateBattleChatStatus('connecting\u2026');
+        pollBattleChat();
+        if (battleChatInterval) clearInterval(battleChatInterval);
+        battleChatInterval = setInterval(pollBattleChat, 3000);
+    }
+
+    async function pollBattleChat() {
+        if (!battleChatRoomId) return;
+        try {
+            // Try server-side ordering first; fall back to plain GET if the DB
+            // rejects the orderBy (some RTDBs require an index rule for new paths).
+            let data = null;
+            try {
+                const r = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json?orderBy="timestamp"&limitToLast=50`);
+                if (r.ok) data = await r.json();
+            } catch (_) { /* fall through to plain GET */ }
+            if (data === null) {
+                const r2 = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json`);
+                if (r2.ok) data = await r2.json();
+            }
+            if (data === null) {
+                updateBattleChatStatus('offline');
+                return;
+            }
+            updateBattleChatStatus('live');
+
+            if (!data) {
+                const el = $('#battle-chat-messages');
+                if (el && !el.querySelector('.battle-chat-message')) {
+                    el.innerHTML = '<div class="battle-chat-empty">No messages yet \u2014 say hi!</div>';
+                }
+                return;
+            }
+            const messages = Object.entries(data)
+                .map(([id, m]) => ({ id, ...m }))
+                .filter(m => m && m.text && m.timestamp)
+                .sort((a, b) => a.timestamp - b.timestamp);
+
+            // Dedupe by message id AND only re-render if there are new messages
+            const newOnes = messages.filter(m => !battleChatSeenIds.has(m.id));
+            if (newOnes.length > 0) {
+                messages.forEach(m => battleChatSeenIds.add(m.id));
+                battleChatLastTimestamp = messages[messages.length - 1].timestamp;
+                renderBattleChat(messages);
+            }
+        } catch (e) {
+            updateBattleChatStatus('offline');
+        }
+    }
+
+    function renderBattleChat(messages) {
+        const container = $('#battle-chat-messages');
+        if (!container) return;
+        container.innerHTML = '';
+        messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = 'battle-chat-message';
+            // Use textContent for all user-supplied fields to prevent XSS
+            const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'chat-time';
+            timeSpan.textContent = timeStr;
+            const userSpan = document.createElement('span');
+            userSpan.className = 'chat-user';
+            userSpan.textContent = (msg.userName || 'Guest') + ':';
+            const textSpan = document.createElement('span');
+            textSpan.className = 'chat-text';
+            textSpan.textContent = msg.text;
+            div.appendChild(timeSpan);
+            div.appendChild(userSpan);
+            div.appendChild(textSpan);
+            container.appendChild(div);
+        });
+        // Auto-scroll to bottom
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendBattleChatMessage() {
+        if (!battleChatRoomId) return;
+        const input = $('#battle-chat-input');
+        const btn = $('#battle-chat-send-btn');
+        if (!input || !btn) return;
+        const text = (input.value || '').trim().substring(0, 500);
+        if (!text) return;
+        input.disabled = true;
+        btn.disabled = true;
+        try {
+            const payload = {
+                userId: getBattleChatUserId(),
+                userName: getBattleChatUserName(),
+                text: text,
+                timestamp: Date.now()
+            };
+            const res = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                input.value = '';
+                pollBattleChat(); // immediate visual update
+            } else {
+                console.error('Chat send failed:', res.status);
+            }
+        } catch (e) {
+            console.error('Failed to send chat message', e);
+        } finally {
+            input.disabled = false;
+            btn.disabled = false;
+            input.focus();
+        }
+    }
+
+    function stopBattleChat() {
+        if (battleChatInterval) {
+            clearInterval(battleChatInterval);
+            battleChatInterval = null;
+        }
+        battleChatRoomId = null;
+        battleChatLastTimestamp = 0;
+        battleChatSeenIds = new Set();
+    }
+
+    function updateBattleChatStatus(status) {
+        const el = $('#battle-chat-status');
+        if (el) el.textContent = status;
+    }
+
+        function showToast(message, type = 'info') {
         const container = $('#toast-container');
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
@@ -2958,6 +3274,12 @@
 
     // ========== BATTLE SYSTEM (Real-time Firebase) ==========
     const RTDB = 'https://simulatecubing-default-rtdb.firebaseio.com';
+
+    // Battle room chat state (RTDB-backed, polled every 3s)
+    let battleChatInterval = null;
+    let battleChatLastTimestamp = 0;
+    let battleChatRoomId = null;
+    let battleChatSeenIds = new Set();
     const BATTLE_PATH = '/battle/rooms';
 
     const BATTLE_EVENTS = {
@@ -3172,6 +3494,7 @@
     // ----- Init -----
     function initBattle() {
         if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
+
         if ($('#battle-lobby')) $('#battle-lobby').style.display = 'block';
 
         if (!battleState.initialized) {
@@ -3404,6 +3727,19 @@
         // Leave room
         $('#battle-leave-btn').addEventListener('click', leaveBattleRoom);
 
+        // Battle room chat: send on click + Enter key
+        const bcSend = $('#battle-chat-send-btn');
+        if (bcSend) bcSend.addEventListener('click', sendBattleChatMessage);
+        const bcInput = $('#battle-chat-input');
+        if (bcInput) {
+            bcInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendBattleChatMessage();
+                }
+            });
+        }
+
         // In-room: event chips (host only)
         $$('.battle-event-chip').forEach(chip => {
             chip.addEventListener('click', async () => {
@@ -3464,6 +3800,14 @@
         // Show/hide room UI
         if ($('#battle-lobby')) $('#battle-lobby').style.display = 'none';
         if ($('#battle-room-view')) $('#battle-room-view').style.display = 'flex';
+
+        // Start chat polling for this room
+        if (typeof loadBattleChat === 'function') {
+            const _chatRoomId = (typeof battleState !== 'undefined' && battleState && battleState.currentRoomId) || null;
+            if (_chatRoomId) loadBattleChat(_chatRoomId);
+        }
+
+        initBattleInputModeButtons();
 
         // Init and default mode to keyboard
         initBattleInputModeButtons();
@@ -3713,6 +4057,9 @@
         battleState.currentRoomData = null;
 
         if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';
+
+        // Stop chat polling
+        stopBattleChat();
         if ($('#battle-lobby')) $('#battle-lobby').style.display = 'block';
 
         loadBattleLobby();
@@ -3970,5 +4317,7 @@
             }
         }
     }
+
+
 
 })();

@@ -1,0 +1,26 @@
+L75|        '777': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw', '3Uw', '3Rw', '3Fw'], modifiers: ['', "'", '2'], length: 100 },
+L76|        '333oh': { faces: ['U', 'D', 'R', 'L', 'F', 'B'], modifiers: ['', "'", '2'], length: 20 },
+L77|        '333bf': { faces: ['U', 'D', 'R', 'L', 'F', 'B'], modifiers: ['', "'", '2'], length: 20 },
+L78|        'pyram': { faces: ['U', 'R', 'L', 'B', 'u', 'r', 'l', 'b'], modifiers: ['', "'"], length: 11 },
+L79|        'skewb': { faces: ['U', 'R', 'L', 'B'], modifiers: ['', "'"], length: 11 },
+L80|        'sq1': null,
+L81|        // Megaminx uses 4 modifiers per face: single (1/5 turn), double (2/5 turn), and their inverses
+L82|        'minx': { faces: ['U', 'R', 'D', 'L', 'F'], modifiers: ['+', '-', '++', '--'], length: 77 },
+L83|        'clock': null
+L84|    };
+L85|
+L86|    // Average variations by event
+L87|    const EVENT_VARIATION = {
+L88|        '333': 0.12, '222': 0.18, '444': 0.10, '555': 0.08,
+L89|        '666': 0.07, '777': 0.06, '333oh': 0.13, '333bf': 0.15,
+L90|        'pyram': 0.20, 'skewb': 0.20, 'sq1': 0.18,
+L91|        'minx': 0.08, 'clock': 0.15
+L92|    };
+L93|
+L94|    // Country ISO2 to flag image (works on Windows unlike emoji flags)
+L95|    function countryFlagImg(iso2, size = 20) {
+L96|        if (!iso2 || iso2.length !== 2) return '<span class="flag-placeholder">&#127757;</span>';
+L97|        const code = iso2.toLowerCase();
+L98|        const h = Math.round(size * 0.75);
+L99|        return `<img src="https://flagcdn.com/${code}.svg" alt="${iso2}" class="country-flag" style="width: ${size}px; height: auto" loading="lazy" onerror="this.outerHTML='&#127757;'">`;
+L100|    }

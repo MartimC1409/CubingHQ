@@ -1,0 +1,47 @@
+<!-- Competitions View -->
+        <div id="competitions-view" class="view">
+            <div class="container">
+                <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-lg); margin-top: var(--space-xl);">
+                    <div class="hero-badge">COMPETITIONS</div>
+                    <h1 class="hero-title">Discover <span class="gradient-text">Competitions</span></h1>
+                    <p class="hero-subtitle">Browse upcoming competitions globally or search a WCA ID to see past competitions attended by a competitor.</p>
+                </div>
+
+                <div class="competitions-dual-grid">
+                <div>
+                    <div class="setup-card" style="width: 100%; max-width: 650px; text-align: center; padding: 2.5rem 2rem;">
+                        <h3 class="card-title" style="justify-content: center;"><span class="icon">🔍</span> Search Past Competitions</h3>
+                        <p class="card-desc">Enter a WCA ID (e.g. 2023CARV02) to see all past competitions.</p>
+                        
+                        <div class="wca-lookup" style="justify-content: center;">
+                            <input type="text" id="past-comp-wca-id" class="form-input" placeholder="e.g. 2023CARV02" autocomplete="off" spellcheck="false" style="text-transform: uppercase; text-align: center; max-width: 250px; background-color: var(--clr-surface-alt); border: 1px solid var(--clr-border);">
+                            <button id="search-past-comps-btn" class="btn btn-primary" style="flex-shrink: 0;">Search</button>
+                        </div>
+                        
+                        <div id="past-comps-loading" class="comp-info-state" style="display: none;">
+                            <div class="spinner"></div>
+                            <span>Fetching WCA results...</span>
+                        </div>
+                        <div id="past-comps-error" class="comp-info-state error" style="display: none;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span id="past-comps-error-text">WCA ID not found.</span>
+                        </div>
+                        <div id="past-comps-results" class="upcoming-comps-list" style="display: none; margin-top: var(--space-md); max-height: 600px; overflow-y: auto;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                </div><!-- /past-col -->
+                <!-- Upcoming Competitions (WCA Live style) -->
+                <div>
+                <div class="upcoming-comps-section" id="upcoming-comps-section">
+                    <div class="upcoming-comps-header">
+                        <h3 class="upcoming-comps-title">📅 Upcoming Competitions</h3>
+                        <a href="https://live.worldcubeassociation.org/" target="_blank" rel="noopener noreferrer" class="upcoming-comps-link">View on WCA Live →</a>
+                    </div>
+                    <div class="upcoming-comps-list" id="upcoming-comps-list">
+                        <div class="upcoming-comps-loading">
+                            <div class="spinner"></div>
+                            <span>Loading upcoming competitions...</span>
+                  
