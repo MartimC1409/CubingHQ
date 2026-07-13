@@ -80,6 +80,7 @@
                 <h3 id="editor-title">Editing 3x3x3 Cube Records</h3>
                 <div>
                     <button id="reset-defaults-btn" class="btn btn-secondary" style="margin-right: 0.5rem;">Load Default Records</button>
+                    <button id="set-defaults-btn" class="btn btn-accent" style="margin-right: 0.5rem;">Set Default Records</button>
                     <button id="save-btn" class="btn btn-primary">Save to Database</button>
                 </div>
             </div>
@@ -219,6 +220,7 @@
         editorTitle: document.getElementById('editor-title'),
         saveBtn: document.getElementById('save-btn'),
         resetDefaultsBtn: document.getElementById('reset-defaults-btn'),
+        setDefaultsBtn: document.getElementById('set-defaults-btn'),
         saveStatus: document.getElementById('save-status'),
         
         singleTime: document.getElementById('single-time'),
@@ -244,6 +246,7 @@
         elements.eventSelect.addEventListener('change', loadEventToForm);
         elements.saveBtn.addEventListener('click', saveRecords);
         elements.resetDefaultsBtn.addEventListener('click', loadDefaultRecords);
+        elements.setDefaultsBtn.addEventListener('click', setDefaultRecords);
     }
 
     async function tryLogin(pass) {
@@ -321,6 +324,51 @@
             elements.avgHolder.value = a.holder || '';
             elements.avgCountry.value = a.country || '';
             elements.avgComp.value = a.competition || '';
+        }
+    }
+
+    async function setDefaultRecords() {
+        const ev = elements.eventSelect.value;
+        const evName = elements.eventSelect.options[elements.eventSelect.selectedIndex].text;
+        const rec = WORLD_RECORDS[ev];
+        if (!rec) {
+            alert('No default records defined for this event.');
+            return;
+        }
+        if (!confirm(`Set the default World Records for ${evName} as the permanent database records? This will overwrite any existing records for this event.`)) {
+            return;
+        }
+
+        elements.setDefaultsBtn.textContent = 'Setting...';
+        elements.setDefaultsBtn.disabled = true;
+        elements.resetDefaultsBtn.disabled = true;
+        elements.saveBtn.disabled = true;
+
+        // Update local state with the default record
+        RECORDS[ev] = JSON.parse(JSON.stringify(rec));
+
+        try {
+            const res = await fetch(`https://simulatecubing-default-rtdb.firebaseio.com/records/${ev}.json`, {
+                method: 'PUT',
+                body: JSON.stringify(RECORDS[ev]),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (res.ok) {
+                elements.saveStatus.textContent = 'Default records set successfully!';
+                elements.saveStatus.style.display = 'block';
+                setTimeout(() => elements.saveStatus.style.display = 'none', 3000);
+                // Refresh form to show the newly set defaults
+                loadEventToForm();
+            } else {
+                alert('Failed to set default records in database.');
+            }
+        } catch (e) {
+            alert('Error setting default records.');
+        } finally {
+            elements.setDefaultsBtn.textContent = 'Set Default Records';
+            elements.setDefaultsBtn.disabled = false;
+            elements.resetDefaultsBtn.disabled = false;
+            elements.saveBtn.disabled = false;
         }
     }
 

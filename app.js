@@ -46,24 +46,6 @@
         'Turner', 'Phillips', 'Campbell', 'Evans', 'Edwards', 'Collins', 'Stewart'
     ];
 
-    // Scramble move sets
-    const MOVES = {
-        '333': { faces: ['U', 'D', 'R', 'L', 'F', 'B'], modifiers: ['', "'", '2'], length: 20 },
-        '222': { faces: ['U', 'R', 'F'], modifiers: ['', "'", '2'], length: 11 },
-        '444': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw'], modifiers: ['', "'", '2'], length: 44 },
-        '555': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw', 'Dw', 'Lw', 'Bw'], modifiers: ['', "'", '2'], length: 60 },
-        '666': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw', '3Uw', '3Rw', '3Fw'], modifiers: ['', "'", '2'], length: 80 },
-        '777': { faces: ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw', '3Uw', '3Rw', '3Fw'], modifiers: ['', "'", '2'], length: 100 },
-        '333oh': { faces: ['U', 'D', 'R', 'L', 'F', 'B'], modifiers: ['', "'", '2'], length: 20 },
-        '333bf': { faces: ['U', 'D', 'R', 'L', 'F', 'B'], modifiers: ['', "'", '2'], length: 20 },
-        'pyram': { faces: ['U', 'R', 'L', 'B', 'u', 'r', 'l', 'b'], modifiers: ['', "'"], length: 11 },
-        'skewb': { faces: ['U', 'R', 'L', 'B'], modifiers: ['', "'"], length: 11 },
-        'sq1': null,
-        // 'minx' uses a dedicated generator (see generateMinxScramble below) — WCA-compliant 77-move scramble
-        'minx': null,
-        'clock': null
-    };
-
     // Average variations by event
     const EVENT_VARIATION = {
         '333': 0.12, '222': 0.18, '444': 0.10, '555': 0.08,
@@ -338,6 +320,11 @@
             state.rtInterval = null;
         }
 
+        // Stop algorithm trainer when leaving practice view to prevent ghost timers
+        if (viewName !== 'practice' && trainerState.active) {
+            resetTrainerState();
+        }
+
         $$('.view').forEach(v => v.classList.remove('active'));
         $(`#${viewName}-view`).classList.add('active');
         state.currentView = viewName;
@@ -399,6 +386,33 @@
     }
 
     // ========== EVENT BINDINGS ==========
+    const trainerState = {
+        active: false,
+        algList: [],      // [{name, alg}]
+        selectedIdxs: new Set(),
+        currentCase: null,
+        times: [],
+        timerRunning: false,
+        startTime: null,
+        timerInterval: null,
+        currentEvent: '3x3',
+        currentSetName: '',
+        lastCase: null,
+        spaceHeld: false,
+        spaceHoldTimeout: null,
+        spaceHoldTime: 500,
+        isReadyToStart: false,
+    };
+
+    function resetTrainerState() {
+        trainerState.active = false;
+        cancelAnimationFrame(trainerState.timerRaf || 0);
+        trainerState.timerRunning = false;
+        if (trainerState.spaceHoldTimeout) clearTimeout(trainerState.spaceHoldTimeout);
+        trainerState.spaceHoldTimeout = null;
+        trainerState.spaceHeld = false;
+        trainerState.isReadyToStart = false;
+    }
     function bindEvents() {
         // Login Modal
         const loginModal = $('#login-modal');
@@ -448,8 +462,11 @@
             });
         }
 
-        // Theme
+        // Theme (click + keyboard)
         $('#theme-toggle').addEventListener('click', toggleTheme);
+        $('#theme-toggle').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTheme(); }
+        });
 
         // Nav
         $('#nav-logo').addEventListener('click', () => {
@@ -506,7 +523,12 @@
         initializeAlgorithmsUI = function () {
             if (typeof ALGORITHMS === 'undefined') return;
             const currentEvent = algEventSelect.value;
-            const subsets = Object.keys(ALGORITHMS[currentEvent] || {});
+            // Hide empty sets (e.g. placeholder arrays left in the base db)
+            const subsets = Object.keys(ALGORITHMS[currentEvent] || {}).filter(k => {
+                const v = ALGORITHMS[currentEvent][k];
+                if (Array.isArray(v)) return v.length > 0;
+                return v && Object.keys(v).length > 0;
+            });
 
             algSubsetContainer.innerHTML = '';
             algSubgroupSelect.style.display = 'none';
@@ -563,74 +585,136 @@
             algEventSelect.addEventListener('change', initializeAlgorithmsUI);
         }
 
+        // Lazily instantiate twisty-player previews as cards scroll into view
+        // (critical for big sets like ZBLL — 472 cases).
+        let _algObserver = null;
+        function ensureAlgObserver() {
+            if (_algObserver) return _algObserver;
+            _algObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    const holder = entry.target;
+                    _algObserver.unobserve(holder);
+                    if (holder.dataset.loaded) return;
+                    holder.dataset.loaded = '1';
+                    const player = document.createElement('twisty-player');
+                    player.setAttribute('puzzle', holder.dataset.puzzle);
+                    player.setAttribute('alg', holder.dataset.alg);
+                    // Anchor at the end: the player shows the state the alg
+                    // SOLVES (i.e. the case), for every notation incl. SQ1.
+                    player.setAttribute('experimental-setup-anchor', 'end');
+                    // Square-1 has no 2D net in the renderer — 3D (with back view).
+                    if (window.ScrambleEngine) {
+                        window.ScrambleEngine.applyViz(player, holder.dataset.puzzle);
+                    } else {
+                        player.setAttribute('visualization', '2D');
+                    }
+                    player.setAttribute('background', 'none');
+                    player.setAttribute('control-panel', 'none');
+                    player.setAttribute('viewer-link', 'none');
+                    player.style.width = '100%';
+                    player.style.height = '100%';
+                    holder.textContent = '';
+                    holder.appendChild(player);
+                });
+            }, { rootMargin: '300px' });
+            return _algObserver;
+        }
+
+        // Track current selection so the search box can re-render.
+        let _algCurrent = { event: null, subset: null, subgroup: null };
+
         // Render logic
         function renderAlgorithms(event, subset, subgroup) {
             const grid = $('#algorithms-grid');
             if (!grid || typeof ALGORITHMS === 'undefined') return;
+            _algCurrent = { event, subset, subgroup };
 
             grid.innerHTML = '';
             let algs = [];
-
             if (subgroup) {
                 algs = ALGORITHMS[event][subset][subgroup] || [];
             } else {
                 algs = ALGORITHMS[event][subset] || [];
             }
 
-            algs.forEach(item => {
+            const searchEl = $('#alg-search');
+            const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+            const filtered = q
+                ? algs.filter(a => (a.name || '').toLowerCase().includes(q) || (a.alg || '').toLowerCase().includes(q))
+                : algs;
+
+            const countEl = $('#alg-count');
+            if (countEl) countEl.textContent = `${filtered.length} case${filtered.length === 1 ? '' : 's'}`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p style="color: var(--clr-text-muted);">No cases match your search.</p>';
+                return;
+            }
+
+            const puzzleName = getPuzzleName(event);
+            const obs = ensureAlgObserver();
+            const frag = document.createDocumentFragment();
+
+            filtered.forEach(item => {
                 const card = document.createElement('div');
-                card.className = 'setup-card';
-                card.style.display = 'flex';
-                card.style.flexDirection = 'column';
-                card.style.alignItems = 'center';
-                card.style.padding = '1.5rem';
-                card.style.textAlign = 'center';
+                card.className = 'setup-card alg-card';
+                card.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:1.5rem;text-align:center;';
 
-                // Map event to twisty-player puzzle name
-                let puzzleName = "3x3x3";
-                if (event === "2x2") puzzleName = "2x2x2";
-                if (event === "4x4") puzzleName = "4x4x4";
-                if (event === "5x5") puzzleName = "5x5x5";
-                if (event === "Pyraminx") puzzleName = "pyraminx";
-                if (event === "Megaminx") puzzleName = "megaminx";
+                const holder = document.createElement('div');
+                holder.className = 'alg-card-viz';
+                holder.style.cssText = 'width:140px;height:140px;margin-bottom:1rem;position:relative;display:flex;align-items:center;justify-content:center;';
 
-                card.innerHTML = `
-                    <div style="width: 140px; height: 140px; margin-bottom: 1rem; position: relative;">
-                        <twisty-player 
-                            puzzle="${puzzleName}" 
-                            alg="${getInverse(item.alg)}" 
-                            visualization="2D" 
-                            background="none" 
-                            control-panel="none" 
-                            viewer-link="none"
-                            style="width: 100%; height: 100%;">
-                        </twisty-player>
-                    </div>
-                    <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--clr-text);">${item.name}</h3>
-                    <code style="display: block; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--clr-primary); font-family: var(--font-mono); letter-spacing: 0.5px; width: 100%; overflow-wrap: anywhere;">${item.alg}</code>
-                `;
-                grid.appendChild(card);
+                let previewAlg = event === 'Skewb' ? expandSkewbMacros(item.alg) : item.alg;
+                if (window.ScrambleEngine) previewAlg = window.ScrambleEngine.normalizeAlgFor(puzzleName, previewAlg);
+                if (isPreviewable(event, item.alg)) {
+                    holder.dataset.puzzle = puzzleName;
+                    holder.dataset.alg = previewAlg;
+                    holder.innerHTML = '<span style="color:var(--clr-text-muted);font-size:0.75rem;">…</span>';
+                    obs.observe(holder);
+                } else {
+                    holder.innerHTML = '<span style="color:var(--clr-text-muted);font-size:2.2rem;" aria-hidden="true">🧩</span>';
+                    holder.title = 'No 2D preview for this notation';
+                }
+                card.appendChild(holder);
+
+                const h3 = document.createElement('h3');
+                h3.style.cssText = 'font-size:1.1rem;margin-bottom:0.5rem;color:var(--clr-text);';
+                h3.textContent = item.name;
+                card.appendChild(h3);
+
+                const code = document.createElement('code');
+                code.style.cssText = 'display:block;background:rgba(127,127,127,0.08);padding:0.5rem;border-radius:var(--radius-sm);font-size:0.85rem;color:var(--clr-primary);font-family:var(--font-mono);letter-spacing:0.5px;width:100%;overflow-wrap:anywhere;';
+                code.textContent = item.alg;
+                card.appendChild(code);
+
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'btn btn-secondary btn-sm alg-copy-btn';
+                copyBtn.style.cssText = 'margin-top:0.6rem;font-size:0.75rem;padding:0.3rem 0.8rem;';
+                copyBtn.textContent = 'Copy';
+                copyBtn.setAttribute('aria-label', `Copy algorithm for ${item.name}`);
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard && navigator.clipboard.writeText(item.alg)
+                        .then(() => showToast('Algorithm copied', 'success'))
+                        .catch(() => {});
+                });
+                card.appendChild(copyBtn);
+
+                frag.appendChild(card);
+            });
+            grid.appendChild(frag);
+        }
+
+        // Live search over the currently selected set
+        const algSearchInput = $('#alg-search');
+        if (algSearchInput) {
+            algSearchInput.addEventListener('input', () => {
+                if (_algCurrent.event) renderAlgorithms(_algCurrent.event, _algCurrent.subset, _algCurrent.subgroup);
             });
         }
 
         // ====== PRACTICE TRAINER ======
-        const trainerState = {
-            active: false,
-            algList: [],      // [{name, alg}]
-            selectedIdxs: new Set(),
-            currentCase: null,
-            times: [],
-            timerRunning: false,
-            startTime: null,
-            timerInterval: null,
-            currentEvent: '3x3',
-            currentSetName: '',
-            lastCase: null,
-            spaceHeld: false,
-            spaceHoldTimeout: null,
-            spaceHoldTime: 500,
-            isReadyToStart: false,
-        };
+
 
         function getPuzzleName(event) {
             if (event === '2x2') return '2x2x2';
@@ -638,17 +722,66 @@
             if (event === '5x5') return '5x5x5';
             if (event === 'Pyraminx') return 'pyraminx';
             if (event === 'Megaminx') return 'megaminx';
+            if (event === 'Square-1') return 'square1';
+            if (event === 'Skewb') return 'skewb';
             return '3x3x3';
         }
 
-        function getInverse(alg) {
+        // Sarah's Skewb notation macros: S = sledge, H = hedge.
+        function expandSkewbMacros(alg) {
+            return alg.trim().split(/\s+/).map(m => {
+                if (m === 'S') return "R' L R L'";
+                if (m === 'H') return "L R' L' R";
+                if (m === 'SS') return "R' L R L' R' L R L'";
+                return m;
+            }).join(' ');
+        }
+
+        // Can twisty-player draw this alg for this event?
+        function isPreviewable(event, alg) {
+            if (!alg || alg === 'skip') return false;
+            if (event === 'Square-1') return true;
+            if (event === 'Skewb') {
+                // Only WCA moves (R L U B) + rotations render reliably.
+                const expanded = expandSkewbMacros(alg);
+                return expanded.split(/\s+/).every(m => /^[RLUBxyz](2'?|'2?|2|')?$/.test(m) || /^[RLUBxyz]$/.test(m));
+            }
+            return true;
+        }
+
+        // Notation-aware inverse (cube/pyraminx/skewb/megaminx/sq1).
+        function invertSq1(alg) {
+            const parts = alg.split('/').map(s => s.trim());
+            return parts.reverse().map(seg => {
+                if (!seg) return '';
+                const m = seg.match(/\(?\s*(-?\d+)\s*,\s*(-?\d+)\s*\)?/);
+                if (!m) return seg;
+                return `(${-parseInt(m[1], 10)},${-parseInt(m[2], 10)})`;
+            }).join(' / ').trim();
+        }
+
+        function getInverse(alg, event) {
             if (!alg || alg === 'skip') return '';
+            if (alg.trim() === '/') return '/';
+            if (event === 'Square-1' || /^[\s()\/\d,+-]+$/.test(alg)) return invertSq1(alg);
             const moves = alg.trim().split(/\s+/);
             return moves.reverse().map(m => {
+                if (m === 'S') return 'H';       // skewb sledge <-> hedge
+                if (m === 'H') return 'S';
+                if (m === 'SS') return 'H H';
+                if (m.endsWith('++')) return m.slice(0, -2) + '--';
+                if (m.endsWith('--')) return m.slice(0, -2) + '++';
                 if (m.endsWith("'")) return m.slice(0, -1);
                 if (m.endsWith('2')) return m;
                 return m + "'";
             }).join(' ');
+        }
+
+        // Preferred trainer scramble: the scraped setup when available,
+        // otherwise the computed inverse of the algorithm.
+        function getCaseSetup(item, event) {
+            if (item.setup) return item.setup;
+            return getInverse(item.alg, event);
         }
 
         function formatTimeSec(ms) {
@@ -735,10 +868,14 @@
             $('#trainer-set-name').textContent = trainerState.currentSetName;
             $('#trainer-case-count').textContent = `${trainerState.selectedIdxs.size} cases`;
 
-            // Update puzzle type
+            // Update puzzle type (Square-1 needs 3D — no 2D net available)
             const puzzle = getPuzzleName(trainerState.currentEvent);
             $('#trainer-twisty').setAttribute('puzzle', puzzle);
             $('#hint-twisty').setAttribute('puzzle', puzzle);
+            if (window.ScrambleEngine) {
+                window.ScrambleEngine.applyViz($('#trainer-twisty'), puzzle);
+                window.ScrambleEngine.applyViz($('#hint-twisty'), puzzle);
+            }
 
             renderTimeList();
             loadNextCase();
@@ -757,13 +894,26 @@
             trainerState.currentCase = c;
             trainerState.lastCase = c;
 
-            // Show scramble (inverse of alg)
-            const scramble = getInverse(c.alg);
+            const event = trainerState.currentEvent;
+
+            // Show scramble (scraped setup when available, else computed inverse)
+            const scramble = getCaseSetup(c, event);
             $('#trainer-scramble').textContent = scramble || '(no scramble)';
 
-            // Show case in twisty-player (show inverse so you see scrambled state)
+            // Show the case state in the twisty-player. Using
+            // experimental-setup-anchor="end" draws the state that the
+            // algorithm solves — correct for every notation (incl. SQ1).
             const twisty = $('#trainer-twisty');
-            twisty.setAttribute('alg', c.alg === 'skip' ? '' : getInverse(c.alg));
+            if (isPreviewable(event, c.alg)) {
+                let caseAlg = event === 'Skewb' ? expandSkewbMacros(c.alg) : c.alg;
+                if (window.ScrambleEngine) caseAlg = window.ScrambleEngine.normalizeAlgFor(getPuzzleName(event), caseAlg);
+                twisty.style.visibility = 'visible';
+                twisty.setAttribute('experimental-setup-anchor', 'end');
+                twisty.setAttribute('alg', caseAlg);
+            } else {
+                twisty.setAttribute('alg', '');
+                twisty.style.visibility = 'hidden';
+            }
 
             // Reset timer display
             resetTimerDisplay();
@@ -786,22 +936,31 @@
             timeEl.className = 'trainer-timer-time running';
             statusEl.textContent = 'Solving...';
             statusEl.style.color = '';
-            trainerState.timerInterval = setInterval(() => {
+            cancelAnimationFrame(trainerState.timerRaf || 0);
+            function tick() {
+                if (!trainerState.timerRunning) return;
                 const elapsed = performance.now() - trainerState.startTime;
-                timeEl.textContent = formatTimeSec(elapsed);
-            }, 30);
+                if (timeEl) timeEl.textContent = formatTimeSec(elapsed);
+                trainerState.timerRaf = requestAnimationFrame(tick);
+            }
+            trainerState.timerRaf = requestAnimationFrame(tick);
         }
 
         function stopTimer() {
             if (!trainerState.timerRunning) return;
-            clearInterval(trainerState.timerInterval);
+            cancelAnimationFrame(trainerState.timerRaf || 0);
             trainerState.timerRunning = false;
             const elapsed = performance.now() - trainerState.startTime;
             const timeEl = $('#trainer-timer-time');
-            timeEl.textContent = formatTimeSec(elapsed);
-            timeEl.className = 'trainer-timer-time';
-            $('#trainer-timer-status').textContent = 'Press Space for next case';
-            $('#trainer-timer-status').style.color = '';
+            if (timeEl) {
+                timeEl.textContent = formatTimeSec(elapsed);
+                timeEl.className = 'trainer-timer-time';
+            }
+            const statusEl = $('#trainer-timer-status');
+            if (statusEl) {
+                statusEl.textContent = 'Press Space for next case';
+                statusEl.style.color = '';
+            }
             addTime(elapsed, trainerState.currentCase ? trainerState.currentCase.name : '?');
         }
 
@@ -841,11 +1000,23 @@
         function showHintModal() {
             const c = trainerState.currentCase;
             if (!c) return;
+            const event = trainerState.currentEvent;
             $('#alg-hint-case-name').textContent = c.name;
             $('#alg-hint-alg').textContent = c.alg || '—';
             const hintTwisty = $('#hint-twisty');
-            hintTwisty.setAttribute('puzzle', getPuzzleName(trainerState.currentEvent));
-            hintTwisty.setAttribute('alg', c.alg === 'skip' ? '' : getInverse(c.alg));
+            if (isPreviewable(event, c.alg)) {
+                const puzzle = getPuzzleName(event);
+                let caseAlg = event === 'Skewb' ? expandSkewbMacros(c.alg) : c.alg;
+                if (window.ScrambleEngine) caseAlg = window.ScrambleEngine.normalizeAlgFor(puzzle, caseAlg);
+                hintTwisty.style.visibility = 'visible';
+                hintTwisty.setAttribute('puzzle', puzzle);
+                if (window.ScrambleEngine) window.ScrambleEngine.applyViz(hintTwisty, puzzle);
+                hintTwisty.setAttribute('experimental-setup-anchor', 'end');
+                hintTwisty.setAttribute('alg', caseAlg);
+            } else {
+                hintTwisty.setAttribute('alg', '');
+                hintTwisty.style.visibility = 'hidden';
+            }
             $('#alg-hint-modal').style.display = 'flex';
         }
 
@@ -853,10 +1024,10 @@
             $('#alg-hint-modal').style.display = 'none';
         }
 
+
+
         function exitTrainer() {
-            trainerState.active = false;
-            clearInterval(trainerState.timerInterval);
-            trainerState.timerRunning = false;
+            resetTrainerState();
             switchView('algorithms');
         }
 
@@ -1307,17 +1478,46 @@
     // ========== WCA API: RECORDS ==========
     let activeRecordEvent = null;
     let fetchedWorldRecords = null;
+    let liveWcaRecords = null; // { eventId: { single: <raw>, average: <raw> } }
+
+    // Convert a raw WCA record value into the format used by our record store.
+    function wcaRawToDisplay(eventId, raw, isAverage) {
+        if (raw === null || raw === undefined) return null;
+        if (eventId === '333mbf') return { time: decodeMBLD(raw), isMulti: true };
+        if (eventId === '333fm') {
+            return isAverage
+                ? { time: raw / 100, isMoves: true }
+                : { time: raw, isMoves: true };
+        }
+        return { time: raw / 100 }; // centiseconds -> seconds
+    }
+
+    // Live record TIMES from the official WCA API. (The v0 endpoint has no
+    // holder names, so holder/competition metadata comes from our stored
+    // list and is refreshed via the admin page.)
+    async function fetchLiveWcaRecords() {
+        if (liveWcaRecords) return liveWcaRecords;
+        try {
+            const res = await fetch('https://www.worldcubeassociation.org/api/v0/records');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (data && data.world_records) liveWcaRecords = data.world_records;
+        } catch (err) {
+            console.warn('Live WCA records unavailable, using stored records:', err);
+        }
+        return liveWcaRecords;
+    }
 
     async function loadWorldRecords() {
-        if (!fetchedWorldRecords) {
+        if (!fetchedWorldRecords || !liveWcaRecords) {
             $('#records-loading').style.display = 'flex';
             $('#records-table').style.display = 'none';
-            try {
-                const res = await fetch('https://simulatecubing-default-rtdb.firebaseio.com/records.json');
-                const data = await res.json();
-                if (data) fetchedWorldRecords = data;
-            } catch (err) {
-                console.error("Failed to fetch custom world records:", err);
+            const [customRes] = await Promise.allSettled([
+                fetch('https://simulatecubing-default-rtdb.firebaseio.com/records.json').then(r => r.json()),
+                fetchLiveWcaRecords()
+            ]);
+            if (customRes.status === 'fulfilled' && customRes.value) {
+                fetchedWorldRecords = customRes.value;
             }
         }
         renderRecordsTable();
@@ -1336,7 +1536,26 @@
         ];
 
         wcaOrder.forEach(eventId => {
-            const rec = (fetchedWorldRecords && fetchedWorldRecords[eventId]) ? fetchedWorldRecords[eventId] : WORLD_RECORDS[eventId];
+            const stored = (fetchedWorldRecords && fetchedWorldRecords[eventId]) ? fetchedWorldRecords[eventId] : WORLD_RECORDS[eventId];
+            let rec = stored;
+
+            // Overlay live official times from the WCA API when available.
+            const live = liveWcaRecords && liveWcaRecords[eventId];
+            if (live) {
+                rec = { single: null, average: null };
+                const liveSingle = wcaRawToDisplay(eventId, live.single, false);
+                const liveAvg = wcaRawToDisplay(eventId, live.average, true);
+                if (liveSingle) {
+                    rec.single = Object.assign({ holder: '—', country: '' }, (stored && stored.single) || {}, liveSingle);
+                } else {
+                    rec.single = stored && stored.single;
+                }
+                if (liveAvg) {
+                    rec.average = Object.assign({ holder: '—', country: '' }, (stored && stored.average) || {}, liveAvg);
+                } else {
+                    rec.average = stored && stored.average;
+                }
+            }
             if (!rec || !EVENT_NAMES[eventId]) return;
 
             const tr = document.createElement('tr');
@@ -2082,16 +2301,14 @@
     }
 
     // ========== SIMULATION ==========
-    function startSimulation() {
+    async function startSimulation() {
         state.currentSolve = 0;
         state.solves = [];
         state.selectedPenalty = 'none';
 
-        // Generate scrambles
-        state.scrambles = [];
-        for (let i = 0; i < state.numSolves; i++) {
-            state.scrambles.push(generateScramble(state.event));
-        }
+        // Generate official random-state scrambles for the whole round
+        showToast('Generating official scrambles…', 'info');
+        state.scrambles = await generateScrambleSet(state.event, state.numSolves);
 
         // Generate competitors
         generateCompetitors();
@@ -2114,98 +2331,21 @@
     }
 
     // ========== SCRAMBLE GENERATION ==========
-    function generateScramble(event) {
-        if (event === 'sq1') return generateSQ1Scramble();
-        if (event === 'clock') return generateClockScramble();
-        if (event === 'minx') return generateMinxScramble();
+    // All scrambles come from the shared ScrambleEngine (scramble-engine.js):
+    // official cubing.js random-state scrambles with local offline fallbacks.
+    async function generateScramble(event) {
+        if (window.ScrambleEngine) return window.ScrambleEngine.get(event);
+        return 'R U R\' U\'';
+    }
 
-        const config = MOVES[event] || MOVES['333'];
-        const moves = [];
-        let lastFace = '';
-        let secondLastFace = '';
-
-        for (let i = 0; i < config.length; i++) {
-            let face;
-            do {
-                face = config.faces[Math.floor(Math.random() * config.faces.length)];
-            } while (
-                face === lastFace ||
-                (face === secondLastFace && isOppositeFace(face, lastFace))
-            );
-
-            const modifier = config.modifiers[Math.floor(Math.random() * config.modifiers.length)];
-            moves.push(face + modifier);
-
-            secondLastFace = lastFace;
-            lastFace = face;
+    async function generateScrambleSet(event, count) {
+        const scrambles = [];
+        // Generate sequentially: the scramble worker is single-threaded anyway,
+        // and this keeps memory pressure low for big-cube events.
+        for (let i = 0; i < count; i++) {
+            scrambles.push(await generateScramble(event));
         }
-
-        return moves.join(' ');
-    }
-
-    function isOppositeFace(a, b) {
-        const opposites = { 'U': 'D', 'D': 'U', 'R': 'L', 'L': 'R', 'F': 'B', 'B': 'F' };
-        return opposites[a] === b;
-    }
-
-    function generateSQ1Scramble() {
-        const moves = [];
-        for (let i = 0; i < 13; i++) {
-            const top = Math.floor(Math.random() * 12) - 5;
-            const bot = Math.floor(Math.random() * 12) - 5;
-            moves.push(`(${top},${bot})`);
-            if (i < 12) moves.push('/');
-        }
-        return moves.join(' ');
-    }
-
-    function generateClockScramble() {
-        const prePins  = ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'];
-        const postPins = ['U', 'R', 'D', 'L', 'ALL']; // after y2, corner pins don't exist
-        const moves = [];
-        prePins.forEach(pin => {
-            const val = Math.floor(Math.random() * 12) - 5;
-            moves.push(`${pin}${val >= 0 ? val + '+' : Math.abs(val) + '-'}`);
-        });
-        moves.push('y2');
-        postPins.forEach(pin => {
-            const val = Math.floor(Math.random() * 12) - 5;
-            moves.push(`${pin}${val >= 0 ? val + '+' : Math.abs(val) + '-'}`);
-        });
-        return moves.join(' ');
-    }
-
-    // WCA-compliant Megaminx scramble: 77 moves, 12 faces, 2 modifiers (++/--).
-    // Constraints: no two consecutive moves on the same face, no two consecutive
-    // moves on opposite faces. Standard 12-face set: R, D, L, U, F, BL, BR, FL,
-    // FR, B, DL, DR. Opposite pairs are the standard WCA pairing.
-    function generateMinxScramble() {
-        const faces = ['R', 'D', 'L', 'U', 'F', 'BL', 'BR', 'FL', 'FR', 'B', 'DL', 'DR'];
-        const opposite = {
-            'R': 'L', 'L': 'R',
-            'D': 'U', 'U': 'D',
-            'F': 'B', 'B': 'F',
-            'FL': 'BR', 'BR': 'FL',
-            'FR': 'BL', 'BL': 'FR',
-            'DL': 'DR', 'DR': 'DL'
-        };
-        const modifiers = ['++', '--'];
-        const moves = [];
-        let lastFace = '';
-        for (let i = 0; i < 77; i++) {
-            let face;
-            let attempts = 0;
-            do {
-                face = faces[Math.floor(Math.random() * faces.length)];
-                attempts++;
-                // Safety valve: if we somehow can't find a valid face after many tries, just use it
-                if (attempts > 50) break;
-            } while (face === lastFace || face === opposite[lastFace]);
-            const mod = modifiers[Math.floor(Math.random() * modifiers.length)];
-            moves.push(face + mod);
-            lastFace = face;
-        }
-        return moves.join(' ');
+        return scrambles;
     }
 
     // ========== COMPETITOR GENERATION ==========
@@ -2288,8 +2428,13 @@
     }
 
     // Update the real-time simulation state for competitors
+    let _lastSimRender = 0;
     function updateRealTimeSimulation() {
         if (!state.competitors || state.competitors.length === 0) return;
+        if (document.hidden) return;
+        // Throttle DOM renders to every 1s to reduce lag
+        const nowTs = Date.now();
+        const shouldRender = nowTs - _lastSimRender > 1000;
 
         const now = Date.now();
         let changed = false;
@@ -2335,7 +2480,8 @@
             }
         });
 
-        if (changed) {
+        if (changed && shouldRender) {
+            _lastSimRender = nowTs;
             renderLeaderboard();
         }
     }
@@ -2577,12 +2723,32 @@
 
         const scramble = state.scrambles[state.currentSolve];
 
+        // Square-1: use our own flat diagram instead of twisty-player's
+        // 3D/hyper-orbit renderer (which draws extra bevel facelets and
+        // looks like ~2x too many pieces per layer).
+        if (event === 'sq1' && window.Square1Drawer) {
+            const holder = document.createElement('div');
+            holder.style.cssText = 'width:100%;max-width:260px;margin:0 auto;';
+            container.appendChild(holder);
+            window.Square1Drawer.render(holder, scramble);
+            return;
+        }
+
         const player = document.createElement('twisty-player');
         player.setAttribute('puzzle', puzzleType);
-        player.setAttribute('experimental-setup-alg', scramble);
-        player.setAttribute('visualization', '2D');
+        player.setAttribute('experimental-setup-alg',
+            window.ScrambleEngine ? window.ScrambleEngine.normalizeAlgFor(puzzleType, scramble) : scramble);
+        // Square-1 has no 2D net in the renderer — 3D (with back view).
+        if (window.ScrambleEngine) {
+            window.ScrambleEngine.applyViz(player, puzzleType);
+        } else {
+            player.setAttribute('visualization', '2D');
+        }
         player.setAttribute('background', 'none');
         player.setAttribute('control-panel', 'none');
+        if (['222', '333', '444', '555', '666', '777', '333oh', '333bf', '333fm'].includes(event)) {
+            player.setAttribute('color-scheme', '{"D": "#FFFFFF"}');
+        }
         player.style.width = '100%';
         player.style.height = '150px';
         player.style.maxWidth = '300px';
@@ -2832,7 +2998,7 @@
         saveSimState();
     }
 
-    function startNextRound() {
+    async function startNextRound() {
         state.round = Math.min(state.round + 1, 4);
 
         state.competitors.sort((a, b) => {
@@ -2854,10 +3020,7 @@
 
         state.currentSolve = 0;
         state.solves = [];
-        state.scrambles = [];
-        for (let i = 0; i < state.numSolves; i++) {
-            state.scrambles.push(generateScramble(state.event));
-        }
+        state.scrambles = await generateScrambleSet(state.event, state.numSolves);
 
         $('#round-end-overlay').style.display = 'none';
         updateDashboardHeader();
@@ -3000,7 +3163,14 @@
         updateBattleChatStatus('connecting\u2026');
         pollBattleChat();
         if (battleChatInterval) clearInterval(battleChatInterval);
-        battleChatInterval = setInterval(pollBattleChat, 3000);
+        battleChatInterval = setInterval(() => {
+            if (state.currentView !== 'battle' || !battleState.currentRoomId) {
+                clearInterval(battleChatInterval);
+                battleChatInterval = null;
+                return;
+            }
+            pollBattleChat();
+        }, 3000);
     }
 
     async function pollBattleChat() {
@@ -3050,8 +3220,17 @@
     function renderBattleChat(messages) {
         const container = $('#battle-chat-messages');
         if (!container) return;
-        container.innerHTML = '';
+        // Avoid full re-render; only append new messages
+        const frag = document.createDocumentFragment();
+        let appended = false;
         messages.forEach(msg => {
+            if (battleChatSeenIds.has(msg.id)) return;
+            battleChatSeenIds.add(msg.id);
+            // Cap seen IDs to avoid unbounded growth in long-running chats
+            if (battleChatSeenIds.size > 200) {
+                const it = battleChatSeenIds.values();
+                battleChatSeenIds.delete(it.next().value);
+            }
             const div = document.createElement('div');
             div.className = 'battle-chat-message';
             // Use textContent for all user-supplied fields to prevent XSS
@@ -3068,10 +3247,14 @@
             div.appendChild(timeSpan);
             div.appendChild(userSpan);
             div.appendChild(textSpan);
-            container.appendChild(div);
+            frag.appendChild(div);
+            appended = true;
         });
-        // Auto-scroll to bottom
-        container.scrollTop = container.scrollHeight;
+        // Auto-scroll to bottom only when new messages arrive
+        if (appended) {
+            container.appendChild(frag);
+            container.scrollTop = container.scrollHeight;
+        }
     }
 
     async function sendBattleChatMessage() {
@@ -3430,120 +3613,11 @@
     };
 
     // ----- Scramble generator -----
-    function generateBattleScramble(event) {
-        const suf = ["", "'", "2"];
-        // Build a pool of moves and generate scramble avoiding same-face consecutive moves
-        function buildPool(faces) {
-            return faces.flatMap(f => suf.map(s => f + s));
-        }
-        function buildMoves(pool, length) {
-            const result = [];
-            let lastFace = '', secondLastFace = '';
-            for (let i = 0; i < length; i++) {
-                let move, face;
-                let attempts = 0;
-                do {
-                    move = pool[Math.floor(Math.random() * pool.length)];
-                    // Face is the letter(s) before any suffix
-                    face = move.replace(/['2]$/,'').replace(/w$/,'');
-                    attempts++;
-                    if (attempts > 200) break;
-                } while (face === lastFace || face === secondLastFace);
-                secondLastFace = lastFace;
-                lastFace = face;
-                result.push(move);
-            }
-            return result.join(' ');
-        }
-
-        // ---- 2x2 ----
-        if (event === '2x2') return buildMoves(buildPool(['U','R','F']), 10);
-
-        // ---- 3x3 / OH ----
-        if (event === '3x3' || event === 'oh') return buildMoves(buildPool(['U','D','R','L','F','B']), 20);
-
-        // ---- 4x4 — outer + Uw Rw Fw Bw Lw Dw (no inner Fw2/Bw2 equivalent redundancy) ----
-        if (event === '4x4') {
-            const outer = buildPool(['U','D','R','L','F','B']);
-            const wide  = buildPool(['Uw','Rw','Fw','Bw','Lw','Dw']);
-            return buildMoves([...outer, ...wide], 40);
-        }
-
-        // ---- 5x5 — outer + 2-wide + 3-wide ----
-        if (event === '5x5') {
-            const outer  = buildPool(['U','D','R','L','F','B']);
-            const wide2  = buildPool(['Uw','Rw','Fw','Bw','Lw','Dw']);
-            const wide3  = buildPool(['3Uw','3Rw','3Fw','3Bw','3Lw','3Dw']);
-            return buildMoves([...outer, ...wide2, ...wide3], 60);
-        }
-
-        // ---- 6x6 — outer + 2-wide + 3-wide ----
-        if (event === '6x6') {
-            const outer  = buildPool(['U','D','R','L','F','B']);
-            const wide2  = buildPool(['Uw','Rw','Fw','Bw','Lw','Dw']);
-            const wide3  = buildPool(['3Uw','3Rw','3Fw','3Bw','3Lw','3Dw']);
-            return buildMoves([...outer, ...wide2, ...wide3], 80);
-        }
-
-        // ---- 7x7 — outer + 2-wide + 3-wide + 4-wide ----
-        if (event === '7x7') {
-            const outer  = buildPool(['U','D','R','L','F','B']);
-            const wide2  = buildPool(['Uw','Rw','Fw','Bw','Lw','Dw']);
-            const wide3  = buildPool(['3Uw','3Rw','3Fw','3Bw','3Lw','3Dw']);
-            const wide4  = buildPool(['4Uw','4Rw','4Fw','4Bw','4Lw','4Dw']);
-            return buildMoves([...outer, ...wide2, ...wide3, ...wide4], 100);
-        }
-
-        // ---- Clock ----
-        if (event === 'clock') {
-            const pins = ['d', 'U', 'R', 'dR'];
-            const turns = [1,2,3,4,5,6,-1,-2,-3,-4,-5,-6];
-            const sides = ['U','D','L','R','UL','UR','DL','DR','ALL'];
-            let moves = [];
-            for (let i = 0; i < 9; i++) {
-                const face = sides[i % sides.length];
-                const t = turns[Math.floor(Math.random() * turns.length)];
-                moves.push(`${face}${t > 0 ? '+' : ''}${t}`);
-            }
-            return moves.join(' ');
-        }
-
-        // ---- Megaminx ----
-        if (event === 'mega') {
-            const megaMoves = [];
-            const dirs = ['+', '-'];
-            for (let i = 0; i < 70; i++) {
-                const face = ['U','R','D','L','BL','BR'][Math.floor(Math.random()*6)];
-                const d = dirs[Math.floor(Math.random()*2)];
-                megaMoves.push(`${face}${d}${d}`);
-            }
-            return megaMoves.join(' ');
-        }
-
-        // ---- Pyraminx ----
-        if (event === 'pyra') {
-            const tips  = buildPool(['u','l','r','b']);
-            const faces = buildPool(['U','L','R','B']);
-            return buildMoves(faces, 9) + ' ' + tips.slice(0,4).join(' ');
-        }
-
-        // ---- Skewb ----
-        if (event === 'skewb') return buildMoves(buildPool(['U','R','L','B']), 9);
-
-        // ---- Square-1 ----
-        if (event === 'sq1') {
-            let moves = [];
-            for (let i = 0; i < 11; i++) {
-                const u = Math.floor(Math.random() * 12) - 6;
-                const d = Math.floor(Math.random() * 12) - 6;
-                moves.push(`(${u},${d})`);
-                if (i < 10) moves.push('/');
-            }
-            return moves.join(' ');
-        }
-
-        // ---- fallback 3x3 ----
-        return buildMoves(buildPool(['U','D','R','L','F','B']), 20);
+    // Battle scrambles use the shared engine (battle event ids like '3x3',
+    // 'oh', 'mega', 'pyra' are normalized inside ScrambleEngine).
+    async function generateBattleScramble(event) {
+        if (window.ScrambleEngine) return window.ScrambleEngine.get(event);
+        return 'R U R\' U\'';
     }
 
     function battleFormatTime(ms) {
@@ -3572,7 +3646,12 @@
         stopRoomPolling();
         if (battleState.lobbyPollId) clearInterval(battleState.lobbyPollId);
         battleState.lobbyPollId = setInterval(() => {
-            if (state.currentView === 'battle' && !battleState.currentRoomId) loadBattleLobby();
+            if (state.currentView !== 'battle' || battleState.currentRoomId) {
+                clearInterval(battleState.lobbyPollId);
+                battleState.lobbyPollId = null;
+                return;
+            }
+            loadBattleLobby();
         }, 4000);
     }
     function stopLobbyPolling() {
@@ -3584,30 +3663,39 @@
         stopLobbyPolling();
         if (battleState.roomPollId) clearInterval(battleState.roomPollId);
         battleState.roomPollId = setInterval(async () => {
-            if (state.currentView === 'battle' && battleState.currentRoomId === roomId) {
-                const data = await fbGet(`${BATTLE_PATH}/${roomId}`);
-                if (!data) { leaveBattleRoom(); return; }
-                battleState.currentRoomData = data;
-                renderBattleRoomView(data);
-                // Auto-advance: when all players submitted, host creates next scramble
-                if (battleState.isHost && data.currentScrambleIndex !== undefined) {
-                    const currentIdx = data.currentScrambleIndex || 0;
-                    if (currentIdx > battleState.autoAdvancedIndex) {
-                        const members = data.members || {};
-                        const playerIds = Object.keys(members);
-                        const event = data.event || '3x3';
-                        const eventSolves = ((data.solves || {})[event]) || {};
-                        const allSubmitted = playerIds.length > 0 && playerIds.every(pid => {
-                            const s = (eventSolves[currentIdx] || {})[pid];
-                            return s && s.time > 0;
-                        });
-                        if (allSubmitted) {
-                            const newIdx = currentIdx + 1;
-                            const scramble = generateBattleScramble(event);
-                            await fbSet(`${BATTLE_PATH}/${roomId}/scrambles/${newIdx}`, { scramble, event, createdAt: Date.now() });
-                            await fbUpdate(`${BATTLE_PATH}/${roomId}`, { currentScrambleIndex: newIdx, updatedAt: Date.now() });
-                            battleState.autoAdvancedIndex = currentIdx;
-                        }
+            if (state.currentView !== 'battle' || battleState.currentRoomId !== roomId) {
+                clearInterval(battleState.roomPollId);
+                battleState.roomPollId = null;
+                return;
+            }
+            const data = await fbGet(`${BATTLE_PATH}/${roomId}`);
+            if (!data) { leaveBattleRoom(); return; }
+            // Avoid re-rendering identical room data to reduce DOM churn
+            const dataHash = JSON.stringify(data);
+            if (battleState.currentRoomData && battleState.currentRoomDataHash === dataHash) {
+                return;
+            }
+            battleState.currentRoomData = data;
+            battleState.currentRoomDataHash = dataHash;
+            renderBattleRoomView(data);
+            // Auto-advance: when all players submitted, host creates next scramble
+            if (battleState.isHost && data.currentScrambleIndex !== undefined) {
+                const currentIdx = data.currentScrambleIndex || 0;
+                if (currentIdx > battleState.autoAdvancedIndex) {
+                    const members = data.members || {};
+                    const playerIds = Object.keys(members);
+                    const event = data.event || '3x3';
+                    const eventSolves = ((data.solves || {})[event]) || {};
+                    const allSubmitted = playerIds.length > 0 && playerIds.every(pid => {
+                        const s = (eventSolves[currentIdx] || {})[pid];
+                        return s && s.time > 0;
+                    });
+                    if (allSubmitted) {
+                        const newIdx = currentIdx + 1;
+                        const scramble = await generateBattleScramble(event);
+                        await fbSet(`${BATTLE_PATH}/${roomId}/scrambles/${newIdx}`, { scramble, event, createdAt: Date.now() });
+                        await fbUpdate(`${BATTLE_PATH}/${roomId}`, { currentScrambleIndex: newIdx, updatedAt: Date.now() });
+                        battleState.autoAdvancedIndex = currentIdx;
                     }
                 }
             }
@@ -3751,7 +3839,7 @@
             const userName = getBattleUserName();
             const now = Date.now();
             const initialEvent = '3x3';
-            const scramble = generateBattleScramble(initialEvent);
+            const scramble = await generateBattleScramble(initialEvent);
 
             const roomData = {
                 name, isPrivate,
@@ -3828,7 +3916,7 @@
                 const newEvent = chip.dataset.event;
                 const roomId = battleState.currentRoomId;
                 if (!roomId) return;
-                const scramble = generateBattleScramble(newEvent);
+                const scramble = await generateBattleScramble(newEvent);
                 await fbUpdate(`${BATTLE_PATH}/${roomId}`, { event: newEvent, scramble, updatedAt: Date.now() });
                 // Update local UI immediately
                 $$('.battle-event-chip').forEach(c => c.classList.remove('active'));
@@ -3844,7 +3932,7 @@
             if (!roomId || !roomData) return;
             const event = roomData.event || '3x3';
             const newIdx = (roomData.currentScrambleIndex || 0) + 1;
-            const scramble = generateBattleScramble(event);
+            const scramble = await generateBattleScramble(event);
             // Store new scramble in Firebase then bump index
             await fbSet(`${BATTLE_PATH}/${roomId}/scrambles/${newIdx}`, { scramble, event, createdAt: Date.now() });
             await fbUpdate(`${BATTLE_PATH}/${roomId}`, { currentScrambleIndex: newIdx, updatedAt: Date.now() });
@@ -3944,7 +4032,10 @@
         const twisty = $('#battle-twisty');
         if (twisty && currentScramble) {
             twisty.setAttribute('puzzle', evtInfo.puzzle);
-            twisty.setAttribute('alg', currentScramble);
+            // Square-1 has no 2D net in the renderer — 3D (with back view).
+            if (window.ScrambleEngine) window.ScrambleEngine.applyViz(twisty, evtInfo.puzzle);
+            twisty.setAttribute('alg',
+                window.ScrambleEngine ? window.ScrambleEngine.normalizeAlgFor(evtInfo.puzzle, currentScramble) : currentScramble);
         }
 
         // Auto-reset timer when scramble index changes
@@ -4137,6 +4228,7 @@
         battleState.currentRoomId = null;
         battleState.isHost = false;
         battleState.currentRoomData = null;
+        battleState.currentRoomDataHash = null;
         battleState.autoAdvancedIndex = -1;
 
         if ($('#battle-room-view')) $('#battle-room-view').style.display = 'none';

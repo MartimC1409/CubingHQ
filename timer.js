@@ -25,180 +25,28 @@
     const DEFAULT_EVENT = '333';
 
     // ========== SCRAMBLE GENERATION ==========
-    // Returns an array of face tokens the scramble string can be built from.
-    // For big cubes (random-state) we approximate by generating a long random
-    // sequence with valid move rules. For full random-state we'd need a real
-    // big-cube solver — we approximate with a long enough random sequence.
-    function generateScramble(event) {
-        const info = EVENT_INFO[event];
-        if (!info) return generateStandardScramble('333');
-
-        if (event === 'sq1') return generateSQ1();
-        if (event === 'clock') return generateClock();
-        if (event === 'pyram') return generatePyraminx();
-        if (event === 'minx') return generateMinxScramble();
-
-        if (info.useBigCube) return generateBigCube(info.length);
-        return generateStandardScramble(event);
+    // All scrambles come from the shared ScrambleEngine (scramble-engine.js):
+    // official cubing.js random-state scrambles with local offline fallbacks.
+    async function generateScramble(event) {
+        if (window.ScrambleEngine) return window.ScrambleEngine.get(event);
+        // Extremely defensive fallback if engine script failed to load.
+        return 'R U R\' U\'';
     }
 
-    // WCA Pyraminx scrambles: 6–7 main moves on {U, R, L, B} with modifiers
-    // ['', "'", '2'], then 0–4 tip moves (u, r, l, b) with ['', "'"] appended
-    // at the end of the scramble. Tips never appear in the middle of the
-    // main sequence, matching csTimer / WCA specification.
-    function generatePyraminx() {
-        const mainFaces = ['U', 'R', 'L', 'B'];
-        const mainMods = ['', "'"];
-        const tipFaces = ['u', 'r', 'l', 'b'];
-        const tipMods = ['', "'"];
-        const moves = [];
-        let lastAxis = '';
-        let secondLastAxis = '';
-        // 6 or 7 main moves
-        const mainCount = 6 + Math.floor(Math.random() * 2);
-        for (let i = 0; i < mainCount; i++) {
-            let face;
-            do {
-                face = mainFaces[Math.floor(Math.random() * mainFaces.length)];
-            } while (
-                face === lastAxis ||
-                (face === secondLastAxis && isOppositeAxis(face, lastAxis))
-            );
-            const mod = mainMods[Math.floor(Math.random() * mainMods.length)];
-            moves.push(face + mod);
-            secondLastAxis = lastAxis;
-            lastAxis = face;
-        }
-        // Tip moves (each tip has ~30% chance of being included, with a 50/50 ' modifier).
-        // The first tip is additionally rejected if its face letter matches the last main face
-        // (e.g. "U ... u" or "R ... r") to avoid same-letter "double" appearance.
-        const lastMainFace = lastAxis;
-        tipFaces.forEach(tip => {
-            if (Math.random() < 0.3) {
-                if (moves.length > mainCount && moves[moves.length - 1][0] === tip) return; // no same-letter tip in a row
-                if (moves.length === mainCount && lastMainFace && lastMainFace.toLowerCase() === tip) return; // no same-letter main→tip at boundary
-                const mod = tipMods[Math.floor(Math.random() * tipMods.length)];
-                moves.push(tip + mod);
-            }
-        });
-        return moves.join(' ');
-    }
-
-    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
-
-    // WCA-spec Megaminx scrambles: 7 lines x 11 = 77 moves.
-    // First 10 moves per line: alternating R/D with ++/--/empty/' (adjacent mods differ).
-    // 11th move: U or U' (single turn ONLY). U alternates line-to-line.
-    
-    // WCA-style Megaminx scrambles: 7 lines x 11 = 77 moves.
-    // Face pattern per line: R D R D R D R D R D U (alternating R/D, final U).
-    // Modifiers: ++/-- alternating on R/D moves; U alternates between U/U' per line.
-    // Output as a single space-separated line (twisty-player compatible).
-    function generateMinxScramble() {
-        const mods = ['++', '--'];
-        const uMods = ['', "'"];
-        const moves = [];
-        let curMod = mods[Math.floor(Math.random() * mods.length)];
-        let uMod = uMods[Math.floor(Math.random() * uMods.length)];
-        for (let lineIdx = 0; lineIdx < 7; lineIdx++) {
-            for (let j = 0; j < 10; j++) {
-                const face = (j % 2 === 0) ? 'R' : 'D';
-                moves.push(face + curMod);
-                curMod = (curMod === '++') ? '--' : '++';
-            }
-            moves.push('U' + uMod);
-            uMod = (uMod === '') ? "'" : '';
-            curMod = (curMod === '++') ? '--' : '++';
-        }
-        return moves.join(' ');
-    }
-
-
-    function generateStandardScramble(event) {
-        const info = EVENT_INFO[event];
-        const faces = info.faces;
-        const modifiers = info.modifiers || ['', "'", '2'];
-        const length = info.length;
-        const moves = [];
-        let lastAxis = '';
-        let secondLastAxis = '';
-        for (let i = 0; i < length; i++) {
-            let face;
-            let axis;
-            do {
-                face = pick(faces);
-                // Treat wide moves (Uw, Rw) as same axis as their base
-                axis = face[0];
-            } while (
-                axis === lastAxis ||
-                (axis === secondLastAxis && axis !== 'u' && axis !== 'r' && axis !== 'l' && axis !== 'b' && isOppositeAxis(axis, lastAxis))
-            );
-            const mod = pick(modifiers);
-            moves.push(face + mod);
-            secondLastAxis = lastAxis;
-            lastAxis = axis;
-        }
-        return moves.join(' ');
-    }
-
-    function isOppositeAxis(a, b) {
-        const opp = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'B', B: 'F' };
-        return opp[a] === b;
-    }
-
-    function generateBigCube(length) {
-        // Approx random-state: random mix of single and wide moves with proper anti-redundancy
-        const moves = [];
-        const facePool = [
-            'U', 'D', 'R', 'L', 'F', 'B',
-            'Uw', 'Rw', 'Fw', 'Dw', 'Lw', 'Bw', '3Uw', '3Rw', '3Fw'
-        ];
-        const modifiers = ['', "'", '2'];
-        let lastAxis = '';
-        let secondLastAxis = '';
-        for (let i = 0; i < length; i++) {
-            let face;
-            let axis;
-            do {
-                face = pick(facePool);
-                axis = face.replace(/^\d/, '')[0];
-            } while (
-                axis === lastAxis ||
-                (axis === secondLastAxis && isOppositeAxis(axis, lastAxis))
-            );
-            moves.push(face + pick(modifiers));
-            secondLastAxis = lastAxis;
-            lastAxis = axis;
-        }
-        return moves.join(' ');
-    }
-
-    function generateSQ1() {
-        const moves = [];
-        for (let i = 0; i < 12; i++) {
-            const top = Math.floor(Math.random() * 12) - 5;
-            const bot = Math.floor(Math.random() * 12) - 5;
-            moves.push(`(${top},${bot})`);
-            if (i < 11) moves.push('/');
-        }
-        return moves.join(' ');
-    }
-
-    function generateClock() {
-        const prePins  = ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'];
-        const postPins = ['U', 'R', 'D', 'L', 'ALL']; // after y2, corner pins don't exist
-        const moves = [];
-        prePins.forEach(pin => {
-            const v = Math.floor(Math.random() * 12) - 5;
-            moves.push(`${pin}${v >= 0 ? v + '+' : Math.abs(v) + '-'}`);
-        });
-        moves.push('y2');
-        postPins.forEach(pin => {
-            const v = Math.floor(Math.random() * 12) - 5;
-            moves.push(`${pin}${v >= 0 ? v + '+' : Math.abs(v) + '-'}`);
-        });
-        return moves.join(' ');
+    // Roll a fresh scramble for the given event and (safely) publish it.
+    // A token guards against out-of-order async completion when the user
+    // switches events/sessions quickly.
+    let _scrambleToken = 0;
+    async function rollScramble(event) {
+        const token = ++_scrambleToken;
+        TSTATE.currentScramble = '';
+        renderScramble();
+        renderTwisty();
+        const scramble = await generateScramble(event);
+        if (token !== _scrambleToken) return; // superseded by a newer request
+        TSTATE.currentScramble = scramble;
+        renderScramble();
+        renderTwisty();
     }
 
     // ========== UTILITIES ==========
@@ -298,6 +146,7 @@
     }
 
     let saveTimer = null;
+    let firebaseSyncTimer = null;
     function saveState(debouncedMs = 0) {
         if (saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(() => {
@@ -309,10 +158,17 @@
                     activeSession: TSTATE.activeSession,
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                // Best-effort Firebase sync (background)
-                syncToFirebase(data);
+                // Best-effort Firebase sync (background) — debounce heavily to avoid network spam
+                scheduleFirebaseSync(data);
             } catch (e) { console.warn('Failed to save timer data', e); }
         }, debouncedMs);
+    }
+
+    function scheduleFirebaseSync(data) {
+        if (firebaseSyncTimer) clearTimeout(firebaseSyncTimer);
+        firebaseSyncTimer = setTimeout(() => {
+            syncToFirebase(data);
+        }, 3000);
     }
 
     async function syncToFirebase(data) {
@@ -332,7 +188,7 @@
         return TSTATE.sessions[TSTATE.activeSession] || null;
     }
 
-    function newSession(name = 'Session', event = DEFAULT_EVENT) {
+    async function newSession(name = 'Session', event = DEFAULT_EVENT) {
         const id = 'sess_' + uid();
         const session = {
             id,
@@ -345,26 +201,26 @@
         TSTATE.sessions[id] = session;
         TSTATE.sessionOrder.push(id);
         TSTATE.activeSession = id;
-        TSTATE.currentScramble = generateScramble(event);
+        rollScramble(event);
         saveState();
         return session;
     }
 
-    function switchSession(id) {
+    async function switchSession(id) {
         if (!TSTATE.sessions[id]) return;
         TSTATE.activeSession = id;
-        TSTATE.currentScramble = generateScramble(TSTATE.sessions[id].event);
+        rollScramble(TSTATE.sessions[id].event);
         saveState();
         renderAll();
     }
 
-    function deleteSession(id) {
+    async function deleteSession(id) {
         if (TSTATE.sessionOrder.length <= 1) return;
         delete TSTATE.sessions[id];
         TSTATE.sessionOrder = TSTATE.sessionOrder.filter(sid => sid !== id);
         if (TSTATE.activeSession === id) {
             TSTATE.activeSession = TSTATE.sessionOrder[0];
-            TSTATE.currentScramble = generateScramble(TSTATE.sessions[TSTATE.activeSession].event);
+            rollScramble(TSTATE.sessions[TSTATE.activeSession].event);
         }
         saveState();
         renderAll();
@@ -497,8 +353,18 @@
         TSTATE.voiceSpokenAt = {};
     }
 
+    // Cache display element to avoid DOM queries inside rAF loops
+    let _timerDisplayEl = null;
+    function getTimerDisplay() {
+        if (!_timerDisplayEl || !_timerDisplayEl.isConnected) {
+            _timerDisplayEl = $('#timer-display-text');
+        }
+        return _timerDisplayEl;
+    }
+
     function startInspection() {
         if (TSTATE.phase !== 'idle') return;
+        hideStopOverlay();
         if (TSTATE.settings.inspection !== 'on') {
             // Skip inspection — go straight to hold
             beginHold();
@@ -516,7 +382,7 @@
         const elapsedSec = (performance.now() - TSTATE.inspectionStart) / 1000;
         const remaining = Math.max(0, 15 - elapsedSec);
         TSTATE.inspectionRemaining = remaining;
-        const display = $('#timer-display-text');
+        const display = getTimerDisplay();
         if (display) display.textContent = remaining > 0 ? remaining.toFixed(2) : '0.00';
 
         // Voice cues
@@ -575,7 +441,7 @@
     function startRunning() {
         TSTATE.phase = 'running';
         TSTATE.timerStart = performance.now();
-        const display = $('#timer-display-text');
+        const display = getTimerDisplay();
         if (display) {
             display.classList.remove('cs-ready', 'cs-holding');
             display.classList.add('cs-running');
@@ -586,11 +452,56 @@
 
     function runningTick() {
         const elapsed = performance.now() - TSTATE.timerStart;
-        const display = $('#timer-display-text');
+        const display = getTimerDisplay();
         if (display) display.textContent = fmt(elapsed);
         if (TSTATE.phase === 'running') {
             TSTATE.timerRaf = requestAnimationFrame(runningTick);
         }
+    }
+
+    // ---------- Stop overlay (big time + penalty buttons after a solve) ----------
+    let _lastStoppedSolveId = null;
+
+    function showStopOverlay(elapsedMs) {
+        const overlay = $('#cs-stop-overlay');
+        if (!overlay) return;
+        const t = $('#cs-stop-time');
+        if (t) t.textContent = fmt(elapsedMs);
+        overlay.classList.add('active');
+    }
+
+    function hideStopOverlay() {
+        const overlay = $('#cs-stop-overlay');
+        if (overlay) overlay.classList.remove('active');
+    }
+
+    let _stopOverlayBound = false;
+    function bindStopOverlayEvents() {
+        if (_stopOverlayBound) return;
+        const overlay = $('#cs-stop-overlay');
+        if (!overlay) return;
+        _stopOverlayBound = true;
+
+        const applyPenalty = pen => {
+            if (_lastStoppedSolveId) setSolvePenalty(_lastStoppedSolveId, pen);
+            hideStopOverlay();
+        };
+        const okBtn = $('#cs-stop-ok');
+        const plus2Btn = $('#cs-stop-plus2');
+        const dnfBtn = $('#cs-stop-dnf');
+        const delBtn = $('#cs-stop-delete');
+        if (okBtn) okBtn.addEventListener('click', () => applyPenalty(''));
+        if (plus2Btn) plus2Btn.addEventListener('click', () => applyPenalty('+2'));
+        if (dnfBtn) dnfBtn.addEventListener('click', () => applyPenalty('DNF'));
+        if (delBtn) delBtn.addEventListener('click', () => {
+            if (_lastStoppedSolveId) deleteSolveById(_lastStoppedSolveId);
+            _lastStoppedSolveId = null;
+            hideStopOverlay();
+        });
+        // Click on the backdrop (not the card) closes the overlay
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) hideStopOverlay();
+        });
     }
 
     function stopTimer() {
@@ -634,7 +545,7 @@
 
             // After short delay, roll next scramble and re-render list with focus on last solve
             setTimeout(() => {
-                TSTATE.currentScramble = generateScramble(sess.event);
+                rollScramble(sess.event);
                 renderAll();
                 resetToIdleForNext();
             }, 50);
@@ -683,7 +594,7 @@
     function bindEvents() {
         if (_globalListenersBound) {
             // Re-attach only the per-view pointer handlers (safe to redo).
-            const wrap = $('.cs-timer-center');
+            const wrap = $('.cstimer-center');
             if (wrap && !wrap._csBtnBound) {
                 wrap.addEventListener('mousedown', onPointerDown);
                 wrap.addEventListener('touchstart', onPointerDown, { passive: false });
@@ -697,7 +608,7 @@
         document.addEventListener('mouseup', onPointerUp);
         document.addEventListener('touchend', onPointerUp);
 
-        const wrap = $('.cs-timer-center');
+        const wrap = $('.cstimer-center');
         if (wrap && !wrap._csBtnBound) {
             wrap.addEventListener('mousedown', onPointerDown);
             wrap.addEventListener('touchstart', onPointerDown, { passive: false });
@@ -734,6 +645,15 @@
             e.preventDefault(); markLastSolvePenalty('DNF');
         } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
             e.preventDefault(); deleteLastSolve();
+        } else if (e.key === 'Escape') {
+            hideStopOverlay();
+        } else if (e.key === 'Backspace' && e.shiftKey) {
+            // Shift+Backspace deletes the just-stopped solve (stop overlay hint)
+            if (TSTATE.phase === 'idle' || TSTATE.phase === 'stopped') {
+                e.preventDefault();
+                deleteLastSolve();
+                hideStopOverlay();
+            }
         } else if (e.key === 'Backspace') {
             // csTimer removes the last solve on Backspace when timer is idle
             if (TSTATE.phase === 'idle') {
@@ -821,6 +741,7 @@
         } else {
             last.penalty = penalty;
         }
+        hideStopOverlay();
         saveState(50);
         renderSolveList();
         renderStatsPanel();
@@ -867,7 +788,7 @@
         renderStatsPanel();
     }
 
-    function manualEntrySubmit() {
+    async function manualEntrySubmit() {
         const input = $('#cs-manual-input');
         if (!input) return;
         const raw = input.value.trim();
@@ -920,7 +841,7 @@
             timestamp: Date.now(),
         });
         input.value = '';
-        TSTATE.currentScramble = generateScramble(sess.event);
+        rollScramble(sess.event);
         saveState(50);
         renderAll();
     }
@@ -990,11 +911,11 @@
         add.className = 'cs-session-tab-add';
         add.textContent = '+';
         add.title = 'New session';
-        add.addEventListener('click', () => {
+        add.addEventListener('click', async () => {
             const name = prompt('Session name:', `Session ${TSTATE.sessionOrder.length + 1}`);
             if (name && name.trim()) {
                 const sess = getSession();
-                newSession(name.trim(), sess ? sess.event : DEFAULT_EVENT);
+                await newSession(name.trim(), sess ? sess.event : DEFAULT_EVENT);
                 renderAll();
             }
         });
@@ -1021,17 +942,33 @@
 
     function renderScramble() {
         const disp = $('#cs-scramble-text');
-        if (disp) disp.textContent = TSTATE.currentScramble || '...';
+        if (disp) disp.textContent = TSTATE.currentScramble || 'Generating scramble…';
     }
 
     function renderTwisty() {
         const sess = getSession();
         const twisty = $('#cs-twisty');
+        const sq1Diagram = $('#cs-sq1-diagram');
         if (!twisty || !sess) return;
         const info = EVENT_INFO[sess.event];
         const puzzle = info?.puzzle || '3x3x3';
+
+        // Square-1: use our own flat diagram (twisty-player's renderer
+        // draws extra bevel facelets and looks like ~2x too many pieces).
+        if (sess.event === 'sq1' && window.Square1Drawer && sq1Diagram) {
+            twisty.style.display = 'none';
+            sq1Diagram.style.display = '';
+            window.Square1Drawer.render(sq1Diagram, TSTATE.currentScramble || '');
+            return;
+        }
+        if (sq1Diagram) sq1Diagram.style.display = 'none';
+        twisty.style.display = '';
+
+        const engine = window.ScrambleEngine;
+        const alg = engine ? engine.normalizeAlgFor(puzzle, TSTATE.currentScramble || '') : (TSTATE.currentScramble || '');
         twisty.setAttribute('puzzle', puzzle);
-        twisty.setAttribute('alg', TSTATE.currentScramble || '');
+        if (engine) engine.applyViz(twisty, puzzle);
+        twisty.setAttribute('alg', alg);
     }
 
     function renderPhaseBadge(badgeText) {
@@ -1120,38 +1057,42 @@
             list.appendChild(div);
         }
 
-        // Bind events on the rendered rows
-        list.querySelectorAll('.cs-solve-del').forEach(b => {
-            b.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const row = b.closest('.cs-solve');
-                if (row) deleteSolveById(row.dataset.solveId);
-            });
-        });
-        list.querySelectorAll('.cs-solve-time').forEach(b => {
-            b.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const sid = b.dataset.solveId;
-                const cur = sess.solves.find(x => x.id === sid);
-                if (!cur) return;
-                const ans = prompt(`Edit time for solve (centiseconds):`, Math.round(cur.time / 10));
-                if (ans !== null) {
-                    const v = parseInt(ans, 10);
-                    if (!isNaN(v) && v > 0) setSolveTime(sid, v * 10);
+        // Bind events on the rendered rows using delegation
+        if (!list._csSolveListBound) {
+            list.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.classList.contains('cs-solve-del') || target.closest('.cs-solve-del')) {
+                    e.stopPropagation();
+                    const row = target.closest('.cs-solve');
+                    if (row) deleteSolveById(row.dataset.solveId);
+                    return;
+                }
+                const timeEl = target.closest('.cs-solve-time');
+                if (timeEl) {
+                    e.stopPropagation();
+                    const sid = timeEl.dataset.solveId;
+                    const cur = getSession()?.solves.find(x => x.id === sid);
+                    if (!cur) return;
+                    const ans = prompt(`Edit time for solve (centiseconds):`, Math.round(cur.time / 10));
+                    if (ans !== null) {
+                        const v = parseInt(ans, 10);
+                        if (!isNaN(v) && v > 0) setSolveTime(sid, v * 10);
+                    }
+                    return;
+                }
+                const penEl = target.closest('.cs-solve-pen');
+                if (penEl) {
+                    e.stopPropagation();
+                    const sid = penEl.dataset.solveId;
+                    const cur = getSession()?.solves.find(x => x.id === sid);
+                    if (!cur) return;
+                    // Cycle: OK -> +2 -> DNF -> OK
+                    const cycle = { '': '+2', '+2': 'DNF', 'DNF': '' };
+                    setSolvePenalty(sid, cycle[cur.penalty || ''] || '');
                 }
             });
-        });
-        list.querySelectorAll('.cs-solve-pen').forEach(b => {
-            b.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const sid = b.dataset.solveId;
-                const cur = sess.solves.find(x => x.id === sid);
-                if (!cur) return;
-                // Cycle: OK -> +2 -> DNF -> OK
-                const cycle = { '': '+2', '+2': 'DNF', 'DNF': '' };
-                setSolvePenalty(sid, cycle[cur.penalty || ''] || '');
-            });
-        });
+            list._csSolveListBound = true;
+        }
     }
 
     function renderStatsPanel() {
@@ -1279,7 +1220,7 @@
             const sess = getSession();
             if (!sess) return;
             sess.event = e.target.value;
-            TSTATE.currentScramble = generateScramble(sess.event);
+            rollScramble(sess.event);
             saveState();
             renderAll();
         });
@@ -1288,10 +1229,8 @@
         on('cs-btn-new-scramble', 'click', () => {
             const sess = getSession();
             if (!sess) return;
-            TSTATE.currentScramble = generateScramble(sess.event);
+            rollScramble(sess.event);
             saveState();
-            renderScramble();
-            renderTwisty();
         });
         on('cs-btn-clear-session', 'click', () => clearCurrentSession());
         on('cs-btn-clear-session-2', 'click', () => clearCurrentSession());
@@ -1386,11 +1325,11 @@
         URL.revokeObjectURL(url);
     }
 
-    function importJSON(e) {
+    async function importJSON(e) {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
             try {
                 const data = JSON.parse(reader.result);
                 if (data.sessions) {
@@ -1400,7 +1339,7 @@
                         TSTATE.activeSession = data.activeSession || TSTATE.sessionOrder[0];
                         if (data.settings) Object.assign(TSTATE.settings, data.settings);
                         saveState();
-                        TSTATE.currentScramble = generateScramble(TSTATE.sessions[TSTATE.activeSession].event);
+                        rollScramble(TSTATE.sessions[TSTATE.activeSession].event);
                         renderAll();
                         alert('Import successful!');
                     }
@@ -1416,10 +1355,10 @@
     }
 
     // ========== PUBLIC API / INIT ==========
-    function init() {
+    async function init() {
         if (TSTATE.loaded) {
             // Already inited — just ensure state is current
-            TSTATE.currentScramble = generateScramble(getSession()?.event || DEFAULT_EVENT);
+            rollScramble(getSession()?.event || DEFAULT_EVENT);
             renderAll();
             applyOverlayStates();
             toggleManualMode();
@@ -1428,10 +1367,10 @@
         TSTATE.loaded = true;
         if (!loadState() || TSTATE.sessionOrder.length === 0) {
             // First time — create default session
-            const s = newSession('Session 1', DEFAULT_EVENT);
+            await newSession('Session 1', DEFAULT_EVENT);
         } else {
             const sess = getSession();
-            TSTATE.currentScramble = sess ? generateScramble(sess.event) : generateScramble(DEFAULT_EVENT);
+            rollScramble(sess ? sess.event : DEFAULT_EVENT);
         }
         bindEvents();
         bindSettingsEvents();
@@ -1440,9 +1379,9 @@
         toggleManualMode();
     }
 
-    function onEnter() {
+    async function onEnter() {
         // Called every time user navigates to timer view
-        TSTATE.currentScramble = generateScramble(getSession()?.event || DEFAULT_EVENT);
+        rollScramble(getSession()?.event || DEFAULT_EVENT);
         renderAll();
         applyOverlayStates();
         toggleManualMode();

@@ -1,63 +1,5 @@
 const ALGORITHMS = {
     "2x2": {
-        "Ortega Method": {
-            "OLL": [
-                {
-                    "name": "Dot (All Twisted)",
-                    "alg": "F R U R' U' F' f R U R' U' f'"
-                },
-                {
-                    "name": "Cross (Solved OLL)",
-                    "alg": "skip"
-                },
-                {
-                    "name": "I Shape (Line)",
-                    "alg": "f R U R' U' f'"
-                },
-                {
-                    "name": "L Shape (Angle/Backward L)",
-                    "alg": "F R U R' U' F'"
-                },
-                {
-                    "name": "Lightning / S Bolt",
-                    "alg": "R U R' U' R' F R F'"
-                },
-                {
-                    "name": "Anti S / Anti Lightning",
-                    "alg": "F R' F' R U R U' R'"
-                },
-                {
-                    "name": "U Shape (Back Bar)",
-                    "alg": "R U2 R' U' R U' R'"
-                }
-            ],
-            "PBL": [
-                {
-                    "name": "Solved (Skip)",
-                    "alg": "skip"
-                },
-                {
-                    "name": "Adj Top / Adj Bot (Same Side)",
-                    "alg": "R U' R F2 R' U R'"
-                },
-                {
-                    "name": "Adj Top / Adj Bot (Opposite Side)",
-                    "alg": "R2 F2 R2"
-                },
-                {
-                    "name": "Adj Top / Diag Bot",
-                    "alg": "F2 R2 F2"
-                },
-                {
-                    "name": "Diag Top / Adj Bot",
-                    "alg": "R2 B2 R2"
-                },
-                {
-                    "name": "Diag Top / Diag Bot (Diagonal Swap Both)",
-                    "alg": "R2 F2 R2 U R2 F2 R2"
-                }
-            ]
-        },
         "EG Method": {
             "CLL": [
                 {
@@ -864,2014 +806,2001 @@ const ALGORITHMS = {
                 "alg": "M' U' M2 U' M2 U' M' U2 M2"
             }
         ],
-        "ZBLL": {
-            "Pi": [
-                {
-                    "name": "ZBLL Pi 1",
-                    "alg": "y' R U R' U R U2 R2 F' r U R U' r' F"
-                },
-                {
-                    "name": "ZBLL Pi 2",
-                    "alg": "y' r' F' r U' r' F2 r2 U R' U' r' F R F'"
-                },
-                {
-                    "name": "ZBLL Pi 3",
-                    "alg": "F R U' R' U R U R2 F' R U2 R U' R' U R U2 R' U'"
-                },
-                {
-                    "name": "ZBLL Pi 4",
-                    "alg": "y2 R U R D R' U' R D' R U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL Pi 5",
-                    "alg": "F R' F' R U2 R U2 R' U' r U R' U R U2 r'"
-                },
-                {
-                    "name": "ZBLL Pi 6",
-                    "alg": "F R U R' U' R' F' R U2 R' U' R2 U' R2 U2 R"
-                },
-                {
-                    "name": "ZBLL Pi 7",
-                    "alg": "R2 F R U R U' R' F' R U' R' U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL Pi 8",
-                    "alg": "y F U R U' R' U R U2 R' U' R U R' F'"
-                },
-                {
-                    "name": "ZBLL Pi 9",
-                    "alg": "y' R U R' U R U' R' U' R' F' R U2 R U2 R' F"
-                },
-                {
-                    "name": "ZBLL Pi 10",
-                    "alg": "y' F U' R U' R' U R U R' U2 R U2 R' U F'"
-                },
-                {
-                    "name": "ZBLL Pi 11",
-                    "alg": "y' R F U R2 U2 R2 U R2 U R2 F' R'"
-                },
-                {
-                    "name": "ZBLL Pi 12",
-                    "alg": "R' U' F' R U R' U' R' F R2 U2 R' U2 R"
-                },
-                {
-                    "name": "ZBLL Pi 13",
-                    "alg": "y R2 D' R U2 R' D R2 U R2 D' R U R' D R2"
-                },
-                {
-                    "name": "ZBLL Pi 14",
-                    "alg": "y' R2 D R' U2 R D' R2 U' R2 D R' U' R D' R2"
-                },
-                {
-                    "name": "ZBLL Pi 15",
-                    "alg": "R' U' R U' R2 D' R U R' D R2 U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL Pi 16",
-                    "alg": "R U R' U R2 D R' U' R D' R2 U R U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 17",
-                    "alg": "R' U' R U R2 F' R U R U' R' F U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL Pi 18",
-                    "alg": "y R U2 R' U' R U2 R' U2 R U' R2 D' R U' R' D R"
-                },
-                {
-                    "name": "ZBLL Pi 19",
-                    "alg": "y' F U R U2 R' U R U R' F' R U2 R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 20",
-                    "alg": "y2 R U2 R' U' R U' R' U' F U R U2 R' U R U R' F'"
-                },
-                {
-                    "name": "ZBLL Pi 21",
-                    "alg": "y2 L' U R U' L U' R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 22",
-                    "alg": "r' U r U r' U' r U R2 F R F' R"
-                },
-                {
-                    "name": "ZBLL Pi 23",
-                    "alg": "r U' r' U' r U r' U' R2 B' R' B R' U"
-                },
-                {
-                    "name": "ZBLL Pi 24",
-                    "alg": "y' R U R' U F' R U2 R' U2 R' F R"
-                },
-                {
-                    "name": "ZBLL Pi 25",
-                    "alg": "R' U' R' D' R U' R' D R2 U R' U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL Pi 26",
-                    "alg": "R U' R' U' R U' R' U R U R' U R' F' R U R U' R' F"
-                },
-                {
-                    "name": "ZBLL Pi 27",
-                    "alg": "y R U R' U R U' R' U R2 D R' U' R D' R' U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 28",
-                    "alg": "y2 R' U2 R U R' U' R U R2 F R U R U' R' F' R"
-                },
-                {
-                    "name": "ZBLL Pi 29",
-                    "alg": "R U' L' U R' U' L U' R U' L' U R' U' L"
-                },
-                {
-                    "name": "ZBLL Pi 30",
-                    "alg": "y F U R U' R' U R U' R2 F' R U R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 31",
-                    "alg": "F U R U' R2 F' R2 U R' F' U' F U2 R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 32",
-                    "alg": "y' R U R' U R U' R2 F R F' R U' R' F' U F"
-                },
-                {
-                    "name": "ZBLL Pi 33",
-                    "alg": "y R' U' R U' B2 R' U2 R U2 l U2 l'"
-                },
-                {
-                    "name": "ZBLL Pi 34",
-                    "alg": "y' R' U' R U' R' U R U' R' U R' D' R U R' D R2"
-                },
-                {
-                    "name": "ZBLL Pi 35",
-                    "alg": "y2 R2 D R' U R D' R' U R' U' R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 36",
-                    "alg": "R' U' R U' R' U2 R U' L' U R U' L U R'"
-                },
-                {
-                    "name": "ZBLL Pi 37",
-                    "alg": "R' F R U R' U' R' F' R2 U' R' U R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL Pi 38",
-                    "alg": "R U R D R' U R D' R2 U' R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 39",
-                    "alg": "y' R2 F2 R2 U' R U R' U R2 F2 R' U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 40",
-                    "alg": "y' R' U' R U' R' U R U' R2 D' R U R' D R U R"
-                },
-                {
-                    "name": "ZBLL Pi 41",
-                    "alg": "R U R' U' R' F R2 U R' U' R U R' U' F'"
-                },
-                {
-                    "name": "ZBLL Pi 42",
-                    "alg": "y2 R U2 R' U2 R' F R2 U' R' U2 R U2 R' U' F'"
-                },
-                {
-                    "name": "ZBLL Pi 43",
-                    "alg": "y R U2 R' U' R U R' U' R' D' R U' R' D R2 U' R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 44",
-                    "alg": "r' F' r U r U2 r' F2 U' R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 45",
-                    "alg": "R U R' U R U2 R' U' R U' L' U R' U' L"
-                },
-                {
-                    "name": "ZBLL Pi 46",
-                    "alg": "y' R' U2 R U R' U R2 U' r' F R' F' r"
-                },
-                {
-                    "name": "ZBLL Pi 47",
-                    "alg": "y R U R' U R U' R' U R U' R D R' U' R D' R2"
-                },
-                {
-                    "name": "ZBLL Pi 48",
-                    "alg": "y' R U R' U F2 R U2 R' U2 R' F2 R"
-                },
-                {
-                    "name": "ZBLL Pi 49",
-                    "alg": "y R U2 R' U2 R' U' F U R2 U' R' U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL Pi 50",
-                    "alg": "y' R U R' F' R U R' U R U2 R' F U R U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 51",
-                    "alg": "y2 R F U' R2 U2 R U R' U R2 U F' R'"
-                },
-                {
-                    "name": "ZBLL Pi 52",
-                    "alg": "y R U R' U' R U R2 D' R U' R' D R U' R U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 53",
-                    "alg": "F U R' U' R2 U' R2 U2 R U2 R U R' F'"
-                },
-                {
-                    "name": "ZBLL Pi 54",
-                    "alg": "R U2 R2 F R F' R' F R F' R' F R F' R U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 55",
-                    "alg": "R2 D R' U' R D' R' U' R' U R U' R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 56",
-                    "alg": "R2 D' R U R' D R U R U' R' U R U R' U R"
-                },
-                {
-                    "name": "ZBLL Pi 57",
-                    "alg": "y2 R U2 R' U R' D' R U R' D R2 U' R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 58",
-                    "alg": "R2 D R' U2 R D' R2 U' R U R D R' U2 R D' R2"
-                },
-                {
-                    "name": "ZBLL Pi 59",
-                    "alg": "y' r U R' U R' F R F' R U' R' U R U2 r'"
-                },
-                {
-                    "name": "ZBLL Pi 60",
-                    "alg": "y R U2 R' U' F' R U2 R' U' R U' R' F R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 61",
-                    "alg": "R U2 R2 U' R2 U' R2 U2 R"
-                },
-                {
-                    "name": "ZBLL Pi 62",
-                    "alg": "y' R' U2 R U R' U R2 U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 63",
-                    "alg": "y' R U2 R' U2 R U' R' U2 R U' R' U2 R U R'"
-                },
-                {
-                    "name": "ZBLL Pi 64",
-                    "alg": "y R' U2 R U2 R' U R U2 R' U R U2 R' U' R"
-                },
-                {
-                    "name": "ZBLL Pi 65",
-                    "alg": "y2 R' U R U' R2 U2 R U R' U R2 U' R' U R"
-                },
-                {
-                    "name": "ZBLL Pi 66",
-                    "alg": "y2 R U' R' U R2 U2 R' U' R U' R2 U R U' R'"
-                },
-                {
-                    "name": "ZBLL Pi 67",
-                    "alg": "y R U2 R' U' R U' R2 U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL Pi 68",
-                    "alg": "R' U2 R2 U R2 U R2 U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 69",
-                    "alg": "R U R' U R U2 R' U' R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 70",
-                    "alg": "R' U' R U' R' U2 R U R' U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL Pi 71",
-                    "alg": "y R U R' U R U2 R' U R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL Pi 72",
-                    "alg": "F R U R' U' R U R' U' F' R U R' U' M' U R U' r'"
-                }
-            ],
-            "U": [
-                {
-                    "name": "ZBLL U 1",
-                    "alg": "R U' R' U' R U2 R' U' R' D' R U2 R' D R"
-                },
-                {
-                    "name": "ZBLL U 2",
-                    "alg": "y' R U2 R D R' U2 R D' R' U2 R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL U 3",
-                    "alg": "y2 R2 D r' U2 r D' R' U2 R'"
-                },
-                {
-                    "name": "ZBLL U 4",
-                    "alg": "y R U R2 D' R U R' D R2 U2 R'"
-                },
-                {
-                    "name": "ZBLL U 5",
-                    "alg": "y' R U2 R2 D' R U2 R' D R2 U' R' U2 R U2 R'"
-                },
-                {
-                    "name": "ZBLL U 6",
-                    "alg": "y2 R2 D R' U2 R D' R' U2 R'"
-                },
-                {
-                    "name": "ZBLL U 7",
-                    "alg": "y2 R' D' r U2 r' D R U2 R U' R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL U 8",
-                    "alg": "R' U' R U R U R' U' R' U F R U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL U 9",
-                    "alg": "y' R U R' U R U' R' U F' R U2 R' U2 R' F R"
-                },
-                {
-                    "name": "ZBLL U 10",
-                    "alg": "y' R2 D' R U' R' D R2 U R' U R U2 R' U R U2 R' U' R"
-                },
-                {
-                    "name": "ZBLL U 11",
-                    "alg": "y R U R' U R U' R' U R U' R' U' L' U R U' R' L"
-                },
-                {
-                    "name": "ZBLL U 12",
-                    "alg": "y' R U' R' U R U R' U2 R' D' R U R' D R2 U R'"
-                },
-                {
-                    "name": "ZBLL U 13",
-                    "alg": "R2 D' r U2 r' D R U2 R"
-                },
-                {
-                    "name": "ZBLL U 14",
-                    "alg": "y R2 D' R U' R' D R2 U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL U 15",
-                    "alg": "y2 R' U R U R' U2 R U R D R' U2 R D' R'"
-                },
-                {
-                    "name": "ZBLL U 16",
-                    "alg": "y' R' U2 R' D' R U2 R' D R U2 R U R' U R"
-                },
-                {
-                    "name": "ZBLL U 17",
-                    "alg": "R2 D' R U2 R' D R U2 R"
-                },
-                {
-                    "name": "ZBLL U 18",
-                    "alg": "y' R' U2 R2 D R' U2 R D' R2 U R U2 R' U2 R"
-                },
-                {
-                    "name": "ZBLL U 19",
-                    "alg": "y' R' U R U R' U2 R y U2 R U' R' U2 R U' R'"
-                },
-                {
-                    "name": "ZBLL U 20",
-                    "alg": "y2 F R U R' U' R2 D R' U' R D' R2 U' R U R' F'"
-                },
-                {
-                    "name": "ZBLL U 21",
-                    "alg": "R2 D' R U2 R' U' D R' U' R2 U R U R2"
-                },
-                {
-                    "name": "ZBLL U 22",
-                    "alg": "y' R2 F' R U2 R U2 R' F U' R U R' U' R"
-                },
-                {
-                    "name": "ZBLL U 23",
-                    "alg": "y' R' U R U' R' U' R U2 R D R' U' R D' R2 U' R"
-                },
-                {
-                    "name": "ZBLL U 24",
-                    "alg": "F U R U' R D R' U' R D' R2 U R U R' F'"
-                },
-                {
-                    "name": "ZBLL U 25",
-                    "alg": "R' F R U' R' U' R U R' F' R U R' U' R' F R F' R"
-                },
-                {
-                    "name": "ZBLL U 26",
-                    "alg": "r2 F2 r U2 r U' L' U R' U R U' L"
-                },
-                {
-                    "name": "ZBLL U 27",
-                    "alg": "y' F2 R U' R' U' R U R' F' R U R' U' R' F R F2"
-                },
-                {
-                    "name": "ZBLL U 28",
-                    "alg": "R2 B2 R' B2 R' U R U' L U' L' U R'"
-                },
-                {
-                    "name": "ZBLL U 29",
-                    "alg": "y' F U R2 D' R U' R' D R2 F' R' U R"
-                },
-                {
-                    "name": "ZBLL U 30",
-                    "alg": "y' R' U' R F R2 D' R U R' D R2 U' F'"
-                },
-                {
-                    "name": "ZBLL U 31",
-                    "alg": "y R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL U 32",
-                    "alg": "y' R2 F' R U R' U' R' F R2 U' R' U2 R2 U R' U R"
-                },
-                {
-                    "name": "ZBLL U 33",
-                    "alg": "y F U R U2 R' U R U R2 F' r U R U' r'"
-                },
-                {
-                    "name": "ZBLL U 34",
-                    "alg": "y R U R' U R U2 R' U R U2 R D R' U2 R D' R2"
-                },
-                {
-                    "name": "ZBLL U 35",
-                    "alg": "y' r U R' U' r' F R2 U' R' U' R U2 R' U' F'"
-                },
-                {
-                    "name": "ZBLL U 36",
-                    "alg": "R2 F R U R U' R' F' R U' R2 D' R U R' D R2"
-                },
-                {
-                    "name": "ZBLL U 37",
-                    "alg": "y2 R U R' U R U R' U2 R U' R2 D' R U' R' D R"
-                },
-                {
-                    "name": "ZBLL U 38",
-                    "alg": "R U R' U R U' R' U2 R' D' R U2 R' D R2 U' R'"
-                },
-                {
-                    "name": "ZBLL U 39",
-                    "alg": "R' U' R U2 R' F' R U R' U' R' F R2 U2 R' U R"
-                },
-                {
-                    "name": "ZBLL U 40",
-                    "alg": "y R2 D' R U2 R' D R U2 R U R' U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL U 41",
-                    "alg": "x' R2 D2 R' U2 R D2 R' U2 R' x"
-                },
-                {
-                    "name": "ZBLL U 42",
-                    "alg": "y2 x R2 D2 R U2 R' D2 R U2 R x'"
-                },
-                {
-                    "name": "ZBLL U 43",
-                    "alg": "F R U' R' U R U R' U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL U 44",
-                    "alg": "y2 R U' R2 F R U R U' R2 F' R U' F' U F"
-                },
-                {
-                    "name": "ZBLL U 45",
-                    "alg": "R U R' U R' D' R U2 R' D R2 U' R' U2 R U2 R'"
-                },
-                {
-                    "name": "ZBLL U 46",
-                    "alg": "y' R U' R' U' R U' R' U R' D' R U R' D R2 U R'"
-                },
-                {
-                    "name": "ZBLL U 47",
-                    "alg": "R' U2 R U R' U R' D' R U' R' D R U R"
-                },
-                {
-                    "name": "ZBLL U 48",
-                    "alg": "y2 R U2 R' U' R U' R D R' U R D' R' U' R'"
-                },
-                {
-                    "name": "ZBLL U 49",
-                    "alg": "R U' R' U' R U R D R' U R D' R2"
-                },
-                {
-                    "name": "ZBLL U 50",
-                    "alg": "y' F R U R' U' R U R' U' F' U' R' F' U' F U R"
-                },
-                {
-                    "name": "ZBLL U 51",
-                    "alg": "R U R' L' U2 R U' R' U' R U' R' L"
-                },
-                {
-                    "name": "ZBLL U 52",
-                    "alg": "R2 D' R U R' D R U R U' R' U' R"
-                },
-                {
-                    "name": "ZBLL U 53",
-                    "alg": "F U R U2 R' U R U R' U R U2 R' U R U R' F'"
-                },
-                {
-                    "name": "ZBLL U 54",
-                    "alg": "y' r U R' U' M U R U' R' F R U R' U' F'"
-                },
-                {
-                    "name": "ZBLL U 55",
-                    "alg": "y' r U2 R2 F R F' U2 r' R U R U' R'"
-                },
-                {
-                    "name": "ZBLL U 56",
-                    "alg": "y R' D R2 U' R' U R U2 R' U' R U R2 D' R"
-                },
-                {
-                    "name": "ZBLL U 57",
-                    "alg": "y' R' D' R U' R' D R2 U2 R' U R U R'"
-                },
-                {
-                    "name": "ZBLL U 58",
-                    "alg": "M' U R' U' F' U F R2 U R' U R U2 r'"
-                },
-                {
-                    "name": "ZBLL U 59",
-                    "alg": "y2 R' U R U R' U' R' D' R U' R' D R2"
-                },
-                {
-                    "name": "ZBLL U 60",
-                    "alg": "y2 R' U' F' U F U' R S' R' U R S"
-                },
-                {
-                    "name": "ZBLL U 61",
-                    "alg": "y' R' U' R U R' U R U2 R' U R U2 R' U' R"
-                },
-                {
-                    "name": "ZBLL U 62",
-                    "alg": "y' R U R' U' R U' R' U2 R U' R' U2 R U R'"
-                },
-                {
-                    "name": "ZBLL U 63",
-                    "alg": "y R U2 R' U' R U' R' U' R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL U 64",
-                    "alg": "y R' U2 R2 U R2 U R U' R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL U 65",
-                    "alg": "y R' U2 R U R' U R U R' U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL U 66",
-                    "alg": "y R U2 R2 U' R2 U' R' U R' U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL U 67",
-                    "alg": "y2 R U R' U R' U2 R2 U R2 U R2 U' R'"
-                },
-                {
-                    "name": "ZBLL U 68",
-                    "alg": "R' U' R U' R U2 R2 U' R2 U' R2 U R"
-                },
-                {
-                    "name": "ZBLL U 69",
-                    "alg": "R' U' R U' R' U2 R2 U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL U 70",
-                    "alg": "y2 R U R' U R U2 R2 U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL U 71",
-                    "alg": "R U R' U' R U' R U2 R2 U' R U R' U' R2 U' R2"
-                },
-                {
-                    "name": "ZBLL U 72",
-                    "alg": "y R U2 R' U' R U' R' L' U2 L U L' U L"
-                }
-            ],
-            "T": [
-                {
-                    "name": "ZBLL T 1",
-                    "alg": "y R' U' R U' R' U' R U2 L' R' U R U' L"
-                },
-                {
-                    "name": "ZBLL T 2",
-                    "alg": "y R' U2 R2 U R' U' R' U2 F' R U2 R U2 R' F"
-                },
-                {
-                    "name": "ZBLL T 3",
-                    "alg": "y2 R' U' R' D' R U' M' U2 r' D R2"
-                },
-                {
-                    "name": "ZBLL T 4",
-                    "alg": "y2 F R2 D R' U' R D' R2 U' R U2 R' U' F'"
-                },
-                {
-                    "name": "ZBLL T 5",
-                    "alg": "y F R U R' U' R U R' U' F' R U R' U' R' F R F'"
-                },
-                {
-                    "name": "ZBLL T 6",
-                    "alg": "y2 R' U' R' D' R U R' D R2"
-                },
-                {
-                    "name": "ZBLL T 7",
-                    "alg": "R' U2 R F U' R' U R U F' R' U R"
-                },
-                {
-                    "name": "ZBLL T 8",
-                    "alg": "y' R' U' R U R' U R L' U R' U' R L"
-                },
-                {
-                    "name": "ZBLL T 9",
-                    "alg": "y F U R U2 R' U R U R' F'"
-                },
-                {
-                    "name": "ZBLL T 10",
-                    "alg": "y R U R' U' R' F' R U2 R U2 R' F"
-                },
-                {
-                    "name": "ZBLL T 11",
-                    "alg": "y' F U R' U' R F' R' U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL T 12",
-                    "alg": "y' R' U R U R' U' R' D' R U2 R' D R U R"
-                },
-                {
-                    "name": "ZBLL T 13",
-                    "alg": "y2 R' U' R U D' R U' R U R U' R2 D"
-                },
-                {
-                    "name": "ZBLL T 14",
-                    "alg": "y' R' D' R U R' D R2 U' R' U R U R' U' R U R'"
-                },
-                {
-                    "name": "ZBLL T 15",
-                    "alg": "y R U R' U R U R' U2 L R U' R' U L'"
-                },
-                {
-                    "name": "ZBLL T 16",
-                    "alg": "y2 F R U R' U' R' F' U2 R U R U' R2 U2 R"
-                },
-                {
-                    "name": "ZBLL T 17",
-                    "alg": "y' r U R' U' r' F R F'"
-                },
-                {
-                    "name": "ZBLL T 18",
-                    "alg": "R' U' R U' R2 F' R U R U' R' F U R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL T 19",
-                    "alg": "U2 R U R D R' U2 R D' R' U' R' U R U' R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 20",
-                    "alg": "y' R U R' U' R U' R' L U' R U R' L'"
-                },
-                {
-                    "name": "ZBLL T 21",
-                    "alg": "y' R U2 R' U2 R' F R U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL T 22",
-                    "alg": "y' F' U' r' F2 r U F R U' R'"
-                },
-                {
-                    "name": "ZBLL T 23",
-                    "alg": "y' R U' R' U' R U R D R' U2 R D' R' U' R'"
-                },
-                {
-                    "name": "ZBLL T 24",
-                    "alg": "y2 R L' U R' U' L U R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 25",
-                    "alg": "R' U R U2 L' R' U R U' L"
-                },
-                {
-                    "name": "ZBLL T 26",
-                    "alg": "y R U R2 F R F' R U' R' F' U F"
-                },
-                {
-                    "name": "ZBLL T 27",
-                    "alg": "y2 R U' R' U2 L R U' R' U L'"
-                },
-                {
-                    "name": "ZBLL T 28",
-                    "alg": "y' R' U' R' D' R U R' D R U2 R U R' U R"
-                },
-                {
-                    "name": "ZBLL T 29",
-                    "alg": "F R U' R' U' R U2 R' U' F' R' U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL T 30",
-                    "alg": "R' U2 R U R' U R F U R U2 R' U R U R' F'"
-                },
-                {
-                    "name": "ZBLL T 31",
-                    "alg": "y2 r U' r U2 R' F R U2 r2 F"
-                },
-                {
-                    "name": "ZBLL T 32",
-                    "alg": "y2 R' U' R2 U R' F' R U R' U' R' F R2 U' R' U' R' U R"
-                },
-                {
-                    "name": "ZBLL T 33",
-                    "alg": "R U' R' U R U R' U' R U R' U' R' D' R U' R' D R"
-                },
-                {
-                    "name": "ZBLL T 34",
-                    "alg": "R U R' U R U' R' U' L' U2 R U2 R' U2 L"
-                },
-                {
-                    "name": "ZBLL T 35",
-                    "alg": "y2 R' D' R U R' D R U R U' R' U R U' R' U' R U R'"
-                },
-                {
-                    "name": "ZBLL T 36",
-                    "alg": "y L' U2 R U2 R' U2 L U R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 37",
-                    "alg": "R' D' R U R' D R2 U R' U2 R U' R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 38",
-                    "alg": "y' R U R2 D' R U2 R' D R U2 R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 39",
-                    "alg": "y R' U' R U' F U' R' U R U F' R' U R"
-                },
-                {
-                    "name": "ZBLL T 40",
-                    "alg": "R' U2 R' D' R U2 R' D R2 U' R' U2 R U R' U R"
-                },
-                {
-                    "name": "ZBLL T 41",
-                    "alg": "y' l' U2 R' D2 R U2 R' D2 R2 x'"
-                },
-                {
-                    "name": "ZBLL T 42",
-                    "alg": "y' l U2 R D2 R' U2 R D2 R2 x"
-                },
-                {
-                    "name": "ZBLL T 43",
-                    "alg": "y2 F R U R' U' R U' R' U' R U R' F'"
-                },
-                {
-                    "name": "ZBLL T 44",
-                    "alg": "y' R U R' U2 R U' R' U2 R U' R2 F' R U R U' R' F"
-                },
-                {
-                    "name": "ZBLL T 45",
-                    "alg": "y R' U' R' D' R U R' D R U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL T 46",
-                    "alg": "y R U R' U R' D' R U' R' D R U R U2 R'"
-                },
-                {
-                    "name": "ZBLL T 47",
-                    "alg": "r U R' U' r' F R F' R' U2 R U R' U R"
-                },
-                {
-                    "name": "ZBLL T 48",
-                    "alg": "y2 R U2 R' U' R U' R2 F' r U R U' r' F"
-                },
-                {
-                    "name": "ZBLL T 49",
-                    "alg": "y R' U' R U R' U' R2 D R' U R D' R' U2 R' U R"
-                },
-                {
-                    "name": "ZBLL T 50",
-                    "alg": "R U' R' U R U R' U' R U R' U R' D' R U R' D R"
-                },
-                {
-                    "name": "ZBLL T 51",
-                    "alg": "y R U' R2 D' r U2 r' D R2 U' R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 52",
-                    "alg": "y2 R U R' U2 R' D' R U R' D R2 U' R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL T 53",
-                    "alg": "y2 r2 U R' U' r' F R F' U R' U' r' F R F'"
-                },
-                {
-                    "name": "ZBLL T 54",
-                    "alg": "y2 R2 F R U R' U' R' F' R' U' R2 U2 R U2 R"
-                },
-                {
-                    "name": "ZBLL T 55",
-                    "alg": "y2 R U' R2 D' r U2 r' D R2 U R'"
-                },
-                {
-                    "name": "ZBLL T 56",
-                    "alg": "R' U R2 D r' U2 r D' R2 U' R"
-                },
-                {
-                    "name": "ZBLL T 57",
-                    "alg": "R' U' R U2 R D R' U' R D' R2 U R U' R' U R"
-                },
-                {
-                    "name": "ZBLL T 58",
-                    "alg": "y R' D' R U' R' D R U' R U' R' U R U' R' U' R U R'"
-                },
-                {
-                    "name": "ZBLL T 59",
-                    "alg": "y R U R' U' R U R2 D' R U' R' D R U2 R U' R'"
-                },
-                {
-                    "name": "ZBLL T 60",
-                    "alg": "y2 R U R' F' R U R' U' R' F R U' R' F R U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL T 61",
-                    "alg": "y2 R U' R' U2 R U R' U2 R U R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL T 62",
-                    "alg": "y' R U R' U R U2 R' U' R U2 R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 63",
-                    "alg": "y' R U R' U R U' R' U R' U' R2 U' R2 U2 R"
-                },
-                {
-                    "name": "ZBLL T 64",
-                    "alg": "R U2 R' U' R U' R' U R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL T 65",
-                    "alg": "y' R' U' R U' R' U R U' R U R2 U R2 U2 R'"
-                },
-                {
-                    "name": "ZBLL T 66",
-                    "alg": "y2 R' U2 R U R' U R U' R' U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL T 67",
-                    "alg": "y' R' U' R2 U R2 U R2 U2 R' U R' U R"
-                },
-                {
-                    "name": "ZBLL T 68",
-                    "alg": "y' R U R2 U' R2 U' R2 U2 R U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 69",
-                    "alg": "R U2 R' U' R U' R2 U2 R U R' U R"
-                },
-                {
-                    "name": "ZBLL T 70",
-                    "alg": "y2 R' U2 R U R' U R2 U2 R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL T 71",
-                    "alg": "R' U R U2 R' U' R U' R U R' U' R' U' R U R U' R'"
-                },
-                {
-                    "name": "ZBLL T 72",
-                    "alg": "y' R U R' U R U2 R' U2 R' U' R U' R' U2 R"
-                }
-            ],
-            "L": [
-                {
-                    "name": "ZBLL L 1",
-                    "alg": "y' R' U' R U' R' U2 R' D' R U2 R' D R U2 R"
-                },
-                {
-                    "name": "ZBLL L 2",
-                    "alg": "y R D R' U2 R D' R' U' R' U2 R U' R' U' R"
-                },
-                {
-                    "name": "ZBLL L 3",
-                    "alg": "y' R' U2 R U R2 D' R U R' D R2"
-                },
-                {
-                    "name": "ZBLL L 4",
-                    "alg": "R' U2 R' D' r U2 r' D R2"
-                },
-                {
-                    "name": "ZBLL L 5",
-                    "alg": "R' U2 R U2 R' U' R2 D R' U2 R D' R2 U2 R"
-                },
-                {
-                    "name": "ZBLL L 6",
-                    "alg": "R' U2 R' D' R U2 R' D R2"
-                },
-                {
-                    "name": "ZBLL L 7",
-                    "alg": "y' R' U' R U' R' U' R U2 R D r' U2 r D' R'"
-                },
-                {
-                    "name": "ZBLL L 8",
-                    "alg": "y' F R U' R' U R U R2 D' R U R' D R2 U' R' F'"
-                },
-                {
-                    "name": "ZBLL L 9",
-                    "alg": "y' R' U' R2 D r' U2 r D' R2 U R U R' U2 R"
-                },
-                {
-                    "name": "ZBLL L 10",
-                    "alg": "R' U R U' R' U F' R U2 R' U2 R' F R2"
-                },
-                {
-                    "name": "ZBLL L 11",
-                    "alg": "R' U R2 D R' U R D' R' U2 R' U R U R' U' R"
-                },
-                {
-                    "name": "ZBLL L 12",
-                    "alg": "y' F R U' R' U' R2 D R' U R D' R' U R' U' F'"
-                },
-                {
-                    "name": "ZBLL L 13",
-                    "alg": "R2 D' R U2 R' D R2 U R2 F' R U R U' R' F R"
-                },
-                {
-                    "name": "ZBLL L 14",
-                    "alg": "y R U' R' U R U' R' U' R U R2 D' R U' R' D R"
-                },
-                {
-                    "name": "ZBLL L 15",
-                    "alg": "L U' R U R' L' U2 R U' R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL L 16",
-                    "alg": "R' U2 R2 U R' U' R' U2 F R U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL L 17",
-                    "alg": "R' U' R U' R' U R U' R' U R U' R2 D' R U2 R' D R2"
-                },
-                {
-                    "name": "ZBLL L 18",
-                    "alg": "y F R' F' r U R U' r'"
-                },
-                {
-                    "name": "ZBLL L 19",
-                    "alg": "y' R' U2 R U2 D' R U' R U R U' R2 D"
-                },
-                {
-                    "name": "ZBLL L 20",
-                    "alg": "L R U' R' U L' R U R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL L 21",
-                    "alg": "y R U R D R' U2 R D' R' U' R' U R U R'"
-                },
-                {
-                    "name": "ZBLL L 22",
-                    "alg": "R U R' U R U' R' U' L' U R U' R' L"
-                },
-                {
-                    "name": "ZBLL L 23",
-                    "alg": "y F R U R' U' R' F' R U2 R U2 R'"
-                },
-                {
-                    "name": "ZBLL L 24",
-                    "alg": "y' R' F' R U R' U' R' F R U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL L 25",
-                    "alg": "y' R2 D' r U2 r' R U R' D R U R"
-                },
-                {
-                    "name": "ZBLL L 26",
-                    "alg": "y' R' U R U2 R' L' U R U L U r' F r"
-                },
-                {
-                    "name": "ZBLL L 27",
-                    "alg": "R' D R' U R D' R' U R2 U' R2 U' R2"
-                },
-                {
-                    "name": "ZBLL L 28",
-                    "alg": "y2 F' R U2 R' U2 R' F U2 R U R U' R2 U2 R"
-                },
-                {
-                    "name": "ZBLL L 29",
-                    "alg": "y2 F' r U R' U' r' F R"
-                },
-                {
-                    "name": "ZBLL L 30",
-                    "alg": "y R U R' U R U' R' U R U' R' U R2 D R' U2 R D' R2"
-                },
-                {
-                    "name": "ZBLL L 31",
-                    "alg": "y' R' F R U R U' R' F' U R U R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL L 32",
-                    "alg": "y R' U' R U2 R' F' R U R' U' R' F R2 U R' U2 R"
-                },
-                {
-                    "name": "ZBLL L 33",
-                    "alg": "y2 F' R U2 R' U2 R' F R U R U' R'"
-                },
-                {
-                    "name": "ZBLL L 34",
-                    "alg": "y R U R' U R' D' R U2 R' D R2 U' R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL L 35",
-                    "alg": "R' U' R' D' R U2 R' D R U R U' R' U' R"
-                },
-                {
-                    "name": "ZBLL L 36",
-                    "alg": "y' F R U' R' U' R U2 R' U' F'"
-                },
-                {
-                    "name": "ZBLL L 37",
-                    "alg": "y2 R U R' U R U2 R D R' U2 R D' R' U2 R'"
-                },
-                {
-                    "name": "ZBLL L 38",
-                    "alg": "y2 R U2 R' U' R2 D R' U' R D' R2"
-                },
-                {
-                    "name": "ZBLL L 39",
-                    "alg": "R' D' R U2 R' D R U R U2 R' U R U R'"
-                },
-                {
-                    "name": "ZBLL L 40",
-                    "alg": "R' F' R U R' U' R' F R2 U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL L 41",
-                    "alg": "y R U2 R D R' U2 R D' R2"
-                },
-                {
-                    "name": "ZBLL L 42",
-                    "alg": "y R U2 R' U2 R U R2 D' R U2 R' D R2 U2 R'"
-                },
-                {
-                    "name": "ZBLL L 43",
-                    "alg": "y2 F R U R' U' R' F' U' R U R U' R' U' R' U R"
-                },
-                {
-                    "name": "ZBLL L 44",
-                    "alg": "y2 R U R' U R U R' U2 R' D' r U2 r' D R"
-                },
-                {
-                    "name": "ZBLL L 45",
-                    "alg": "y R U' R2 D' R U' R' D R U2 R U' R' U' R U R'"
-                },
-                {
-                    "name": "ZBLL L 46",
-                    "alg": "y2 R' F' R U2 R U2 R' F U' R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL L 47",
-                    "alg": "y R' U R U2 R' U' R U2 R' U' R U' R2 D' R U R' D R2"
-                },
-                {
-                    "name": "ZBLL L 48",
-                    "alg": "y' R' F' R U R' U' R' F D' R U' R' D R2 U R' U R"
-                },
-                {
-                    "name": "ZBLL L 49",
-                    "alg": "y r U2 r2 F R F' r2 R' U2 r'"
-                },
-                {
-                    "name": "ZBLL L 50",
-                    "alg": "y R U' R' U R U' R' U' R U R' U2 R' D' R U R' D R"
-                },
-                {
-                    "name": "ZBLL L 51",
-                    "alg": "R' U R U' R' U R U R' U' R U2 R D R' U' R D' R'"
-                },
-                {
-                    "name": "ZBLL L 52",
-                    "alg": "r U2 R r2 F R' F' r2 U2 r'"
-                },
-                {
-                    "name": "ZBLL L 53",
-                    "alg": "y2 F' r U R' U R' D R U' R' D' R U' r' F R"
-                },
-                {
-                    "name": "ZBLL L 54",
-                    "alg": "r U R2 D' R U2 R' D R U r' F R F'"
-                },
-                {
-                    "name": "ZBLL L 55",
-                    "alg": "y R' U R U' R' U' R U' R' U2 R' D' R U' R' D R2"
-                },
-                {
-                    "name": "ZBLL L 56",
-                    "alg": "y2 B' R U R' U' R' F R2 U' R' U' R U R' S z'"
-                },
-                {
-                    "name": "ZBLL L 57",
-                    "alg": "y' R' U' R U R' F' R U R' U' R' F R2"
-                },
-                {
-                    "name": "ZBLL L 58",
-                    "alg": "y F R U R2 F R F' R U' R' F'"
-                },
-                {
-                    "name": "ZBLL L 59",
-                    "alg": "y' L' U2 R U' R' U2 L R U' R'"
-                },
-                {
-                    "name": "ZBLL L 60",
-                    "alg": "y2 R U R' U F' R U2 R' U' R' U' R' F R U R"
-                },
-                {
-                    "name": "ZBLL L 61",
-                    "alg": "y' R2 U R' U R' U' R U' R' U' R U R U' R2"
-                },
-                {
-                    "name": "ZBLL L 62",
-                    "alg": "y R U2 R' U' R U' R' U R' U2 R U R' U R"
-                },
-                {
-                    "name": "ZBLL L 63",
-                    "alg": "y R U R' U R U2 R' U R' U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL L 64",
-                    "alg": "y R2 U' R U R U' R' U' R U' R' U R' U R2"
-                },
-                {
-                    "name": "ZBLL L 65",
-                    "alg": "R' U2 R U R' U R U' R U2 R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL L 66",
-                    "alg": "y2 R2 U' R U' R U R' U R U R' U' R' U R2"
-                },
-                {
-                    "name": "ZBLL L 67",
-                    "alg": "R' U' R U' R' U2 R U' R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL L 68",
-                    "alg": "R2 U R' U' R' U R U R' U R U' R U' R2"
-                },
-                {
-                    "name": "ZBLL L 69",
-                    "alg": "y R U2 R' U' R U' R' U2 R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL L 70",
-                    "alg": "y R U R' U R U2 R' U2 R U2 R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL L 71",
-                    "alg": "y' R U R' U R U' R' U R U' R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL L 72",
-                    "alg": "R U R' U R U' R' U R U2 R' U' R U2 R' U' R U' R'"
-                }
-            ],
-            "H": [
-                {
-                    "name": "ZBLL H 1",
-                    "alg": "y F' r U R' U' r' F R2 U2 R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL H 2",
-                    "alg": "y' F R' F' r U R U' r2 F2 r U L' U L"
-                },
-                {
-                    "name": "ZBLL H 3",
-                    "alg": "y' R U2 R' U' R U R' U2 R' F R2 U' R' U' R U R' F'"
-                },
-                {
-                    "name": "ZBLL H 4",
-                    "alg": "y F' R U2 R' U2 R' F U' R U R U' R' U' R' U R"
-                },
-                {
-                    "name": "ZBLL H 5",
-                    "alg": "y2 R' U2 R2 U R2 U R U2 R' F R U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL H 6",
-                    "alg": "y' R U2 R' U' R U R' U' F' R U R' U' R' F R2 U' R'"
-                },
-                {
-                    "name": "ZBLL H 7",
-                    "alg": "R U R' U R U' R2 F' R U2 R U2 R' F R U' R'"
-                },
-                {
-                    "name": "ZBLL H 8",
-                    "alg": "y2 F R U' R' U R U2 R' U' R U R' U' F'"
-                },
-                {
-                    "name": "ZBLL H 9",
-                    "alg": "y2 F R' F' R2 U2 R' U R U2 R' U R U' R2 F R F'"
-                },
-                {
-                    "name": "ZBLL H 10",
-                    "alg": "y' R' U2 R U2 R2 F' R U R U' R' F U R"
-                },
-                {
-                    "name": "ZBLL H 11",
-                    "alg": "y F' R U2 R' U2 R' F R U R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL H 12",
-                    "alg": "F U' R U2 R' U2 R U' R' U' R U R' U F'"
-                },
-                {
-                    "name": "ZBLL H 13",
-                    "alg": "y' R' U2 R U R' U' F' R U R' U' R' F R U2 R"
-                },
-                {
-                    "name": "ZBLL H 14",
-                    "alg": "y' R U2 R' U' R2 D R' U R D' R2 U' R U' R'"
-                },
-                {
-                    "name": "ZBLL H 15",
-                    "alg": "y2 R2 D' R U' R' D R2 U' R2 D' R U2 R' D R2"
-                },
-                {
-                    "name": "ZBLL H 16",
-                    "alg": "y R' U2 R U R2 D' R U' R' D R2 U R' U R"
-                },
-                {
-                    "name": "ZBLL H 17",
-                    "alg": "F R' F' R U2 R U2 R' U' R' F2 r U r' F R"
-                },
-                {
-                    "name": "ZBLL H 18",
-                    "alg": "y2 R' U' R U' R' U F' R U R' U' R' F R2 U' R' U R"
-                },
-                {
-                    "name": "ZBLL H 19",
-                    "alg": "y' F R U' R' U' R U2 R' U' F' U R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL H 20",
-                    "alg": "y R U R' U R U2 R' F R U' R' U' R U2 R' U' F'"
-                },
-                {
-                    "name": "ZBLL H 21",
-                    "alg": "R' F' R U2 R U2 R' F U' R U' R'"
-                },
-                {
-                    "name": "ZBLL H 22",
-                    "alg": "R U R' U R U r' F R' F' r"
-                },
-                {
-                    "name": "ZBLL H 23",
-                    "alg": "y R' F R' F' R2 U' r' U r U' r' U' r"
-                },
-                {
-                    "name": "ZBLL H 24",
-                    "alg": "y' R U R2 F R F' r U' r' U r U r'"
-                },
-                {
-                    "name": "ZBLL H 25",
-                    "alg": "F U' R2 U R U2 R' U R2 U2 R' U' R F'"
-                },
-                {
-                    "name": "ZBLL H 26",
-                    "alg": "y R U' R2 U' F2 U' R2 U R2 U F2 R2 U R'"
-                },
-                {
-                    "name": "ZBLL H 27",
-                    "alg": "y F R U R' U' R U R' U' R U R' U' F'"
-                },
-                {
-                    "name": "ZBLL H 28",
-                    "alg": "x' U' R U' R' U R' F2 R U' R U R' U x"
-                },
-                {
-                    "name": "ZBLL H 29",
-                    "alg": "R' U2 R U R' U R U R' U' R U R' F' R U R' U' R' F R2"
-                },
-                {
-                    "name": "ZBLL H 30",
-                    "alg": "R' U' R U' R' U2 R2 U2 L' U R' U' L U' R U' R'"
-                },
-                {
-                    "name": "ZBLL H 31",
-                    "alg": "R' U' F' U F R U' F U R U' R' U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL H 32",
-                    "alg": "y' R U R' U y' R' U R U' R2 F R F' R"
-                },
-                {
-                    "name": "ZBLL H 33",
-                    "alg": "R U R' U R U' R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL H 34",
-                    "alg": "R' U' R U' R' U R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL H 35",
-                    "alg": "y' R' U2 R U R' U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL H 36",
-                    "alg": "y' R U2 R' U' R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL H 37",
-                    "alg": "y' R' U2 R U R' U R U R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL H 38",
-                    "alg": "y R U2 R' U' R U' R' U' R' U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL H 39",
-                    "alg": "R U R' U R U2 R' U' R' U2 R U R' U R"
-                },
-                {
-                    "name": "ZBLL H 40",
-                    "alg": "R U R' U R U' R' U R U' R' U R' U' R2 U' R' U R' U R"
-                }
-            ],
-            "S": [
-                {
-                    "name": "ZBLL S 1",
-                    "alg": "y2 R' U2 R U F R' U R U' F'"
-                },
-                {
-                    "name": "ZBLL S 2",
-                    "alg": "R U R' U R U' R2 F' R U R U' R' F R U' R'"
-                },
-                {
-                    "name": "ZBLL S 3",
-                    "alg": "R' U R U2 R' U R2 D R' U R D' R'"
-                },
-                {
-                    "name": "ZBLL S 4",
-                    "alg": "y2 S' U2 L' U2 L U2 L F' L' f"
-                },
-                {
-                    "name": "ZBLL S 5",
-                    "alg": "y R' F R U R' U' R' F' D' R U R' D R2"
-                },
-                {
-                    "name": "ZBLL S 6",
-                    "alg": "F' R U R' U R U2 R' F U R U' R' U2 R U' R'"
-                },
-                {
-                    "name": "ZBLL S 7",
-                    "alg": "y' R' U' R U R2 U' R' U' R U D' R U R' D R'"
-                },
-                {
-                    "name": "ZBLL S 8",
-                    "alg": "y2 R U R' U R2 D r' U2 r D' R2"
-                },
-                {
-                    "name": "ZBLL S 9",
-                    "alg": "y R U R' U' R U R2 D' R U R' D R U R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 10",
-                    "alg": "y2 R U R' U R2 D R' U2 R D' R2"
-                },
-                {
-                    "name": "ZBLL S 11",
-                    "alg": "y' R' D' R U2 R' D R U' R U R' U2 R U R'"
-                },
-                {
-                    "name": "ZBLL S 12",
-                    "alg": "R U2 R D R' U2 R D' R' U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 13",
-                    "alg": "R U R' U' R2 U' L' U R2 U' L U' R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 14",
-                    "alg": "R U R' U R' F R F' R U' R' F' U F R U' R'"
-                },
-                {
-                    "name": "ZBLL S 15",
-                    "alg": "y R' U' F2 U' R2 U R2 U F2 R2 U2 R'"
-                },
-                {
-                    "name": "ZBLL S 16",
-                    "alg": "y2 R U2 R' U' R U R' U' R U R D R' U2 R D' R2"
-                },
-                {
-                    "name": "ZBLL S 17",
-                    "alg": "y' F R' U R U F' R' U F U F' R"
-                },
-                {
-                    "name": "ZBLL S 18",
-                    "alg": "y' F R' U2 R F' R' F U2 F' R"
-                },
-                {
-                    "name": "ZBLL S 19",
-                    "alg": "y' R U R' U R U' R D R' U R r' U2 r D' R2"
-                },
-                {
-                    "name": "ZBLL S 20",
-                    "alg": "R U' R' U' R U R D R' U2 R D' R2 U R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 21",
-                    "alg": "y' R' U2 R' D' R U R' D R U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL S 22",
-                    "alg": "y2 R U R' U R U' R D R' U R D' R' U2 R'"
-                },
-                {
-                    "name": "ZBLL S 23",
-                    "alg": "y' R U R' U R U' R D R' U' R D' R2"
-                },
-                {
-                    "name": "ZBLL S 24",
-                    "alg": "y2 R2 D' R U' R' D R U' R U R' U R"
-                },
-                {
-                    "name": "ZBLL S 25",
-                    "alg": "R2 D R' U2 R D' R' U' R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 26",
-                    "alg": "y' R' U2 F' R U R' U' R' F R U2 R"
-                },
-                {
-                    "name": "ZBLL S 27",
-                    "alg": "y R' U2 R U R' U' R' D' R U2 R' D R2"
-                },
-                {
-                    "name": "ZBLL S 28",
-                    "alg": "y R U R' U R U' R2 D' R U R' D R2 U2 R'"
-                },
-                {
-                    "name": "ZBLL S 29",
-                    "alg": "R U' L' U R' U' L"
-                },
-                {
-                    "name": "ZBLL S 30",
-                    "alg": "y' R' U2 R2 U R D' R U R' D R2 U' R U' R'"
-                },
-                {
-                    "name": "ZBLL S 31",
-                    "alg": "y' R U R' U R U2 R2 U R U2 L' R' U R U' L"
-                },
-                {
-                    "name": "ZBLL S 32",
-                    "alg": "y2 R U R' F' R U R' U R U' R' U' R' F R2 U' R'"
-                },
-                {
-                    "name": "ZBLL S 33",
-                    "alg": "y R' U' R' U R2 D' U2 R U R' U' D R'"
-                },
-                {
-                    "name": "ZBLL S 34",
-                    "alg": "y2 L U' R' U L' R' U' R' U' R' U R U R2"
-                },
-                {
-                    "name": "ZBLL S 35",
-                    "alg": "R2 D r' U2 r D' R' U' R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 36",
-                    "alg": "y' R' U' D R' U R D' U2 R2 U R' U' R'"
-                },
-                {
-                    "name": "ZBLL S 37",
-                    "alg": "L' R U R' U' L U2 R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 38",
-                    "alg": "y R' D' R U R' D R2 U R' U2 R U R'"
-                },
-                {
-                    "name": "ZBLL S 39",
-                    "alg": "y R' U2 R U R2 D' R U' R' D R U2 R"
-                },
-                {
-                    "name": "ZBLL S 40",
-                    "alg": "f R' F' R U2 R U2 R' U2 S'"
-                },
-                {
-                    "name": "ZBLL S 41",
-                    "alg": "y R U' L' U R' U2 L U R U' L' U R' L"
-                },
-                {
-                    "name": "ZBLL S 42",
-                    "alg": "R' F' R U R U R' U' R U' R' F R U R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL S 43",
-                    "alg": "y2 R2 D' r U2 r' D R2 U R' U R"
-                },
-                {
-                    "name": "ZBLL S 44",
-                    "alg": "F U R U' R' S R' F' R U R U' R' S'"
-                },
-                {
-                    "name": "ZBLL S 45",
-                    "alg": "F R U R' U' R' F' R U2 R U' R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 46",
-                    "alg": "R' U2 R U R' U R' D' R U2 R' D R U2 R"
-                },
-                {
-                    "name": "ZBLL S 47",
-                    "alg": "R2 F R U R U' R' F' R U' R' U R"
-                },
-                {
-                    "name": "ZBLL S 48",
-                    "alg": "y2 R2 D' R U2 R' D R2 U R' U R"
-                },
-                {
-                    "name": "ZBLL S 49",
-                    "alg": "y R2 U R2 F' R U2 R' U' R U' R' F R2 U' R2"
-                },
-                {
-                    "name": "ZBLL S 50",
-                    "alg": "y F U R' F R F' R U' R' U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL S 51",
-                    "alg": "y' R U' R2 U2 D' R U R' U D R2 U R'"
-                },
-                {
-                    "name": "ZBLL S 52",
-                    "alg": "y F' R U R' D R U R' U' D' R U' R' F"
-                },
-                {
-                    "name": "ZBLL S 53",
-                    "alg": "y' R' U2 R2 U R' F' R U R' U' R' F R2 U' R2 U R"
-                },
-                {
-                    "name": "ZBLL S 54",
-                    "alg": "F R U R' U R U2 R U2 R2 U' R2 U' R2 F'"
-                },
-                {
-                    "name": "ZBLL S 55",
-                    "alg": "R' U2 R U R' U' R F U' R' U' R U F'"
-                },
-                {
-                    "name": "ZBLL S 56",
-                    "alg": "L' U2 R U' R' U2 L U R U' R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 57",
-                    "alg": "y2 R U R' U L' U R U' L U2 R'"
-                },
-                {
-                    "name": "ZBLL S 58",
-                    "alg": "F U' R' U R U F' R U R2 U R2 U2 R'"
-                },
-                {
-                    "name": "ZBLL S 59",
-                    "alg": "R' U2 L U' R U L' U R' U R"
-                },
-                {
-                    "name": "ZBLL S 60",
-                    "alg": "F R U' R2 U2 R U R' U R2 U R' F'"
-                },
-                {
-                    "name": "ZBLL S 61",
-                    "alg": "y' R U R' U' R' U2 R U R' U R U' R U' R'"
-                },
-                {
-                    "name": "ZBLL S 62",
-                    "alg": "R U R' U R U' R' U R' U' R2 U' R' U R' U R"
-                },
-                {
-                    "name": "ZBLL S 63",
-                    "alg": "R U R2 U' R2 U' R2 U2 R2 U2 R'"
-                },
-                {
-                    "name": "ZBLL S 64",
-                    "alg": "y' R' U2 R U R' U R"
-                },
-                {
-                    "name": "ZBLL S 65",
-                    "alg": "R U R' U R U R U R U R U' R' U' R2"
-                },
-                {
-                    "name": "ZBLL S 66",
-                    "alg": "R U R2 F' R U2 R U' R' U' R' F R2 U' R'"
-                },
-                {
-                    "name": "ZBLL S 67",
-                    "alg": "R U R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL S 68",
-                    "alg": "R' U2 R2 U2 R2 U' R2 U' R2 U R"
-                },
-                {
-                    "name": "ZBLL S 69",
-                    "alg": "y' R U R' U' R' U2 R U R U' R' U R' U R"
-                },
-                {
-                    "name": "ZBLL S 70",
-                    "alg": "y' R' U' R U R U R' U' R' U R U R U' R'"
-                },
-                {
-                    "name": "ZBLL S 71",
-                    "alg": "y' R' U2 R2 U R2 U R U' R U' R'"
-                },
-                {
-                    "name": "ZBLL S 72",
-                    "alg": "R U R' U' R U R' U R U R U2 R' U' R U' R' U R'"
-                }
-            ],
-            "AS": [
-                {
-                    "name": "ZBLL AS 1",
-                    "alg": "y' R2 D R' U2 R D' R' U' R' U R U' R' U R U2 R'"
-                },
-                {
-                    "name": "ZBLL AS 2",
-                    "alg": "y2 R' U2 F' R U R' U' R' F R2 U R' U R"
-                },
-                {
-                    "name": "ZBLL AS 3",
-                    "alg": "y2 R' U R U R' U R U2 R' U' R2 D R' U2 R D' R'"
-                },
-                {
-                    "name": "ZBLL AS 4",
-                    "alg": "y' R' D' R U2 R' D R2 U' R' U2 R U R' U R U R'"
-                },
-                {
-                    "name": "ZBLL AS 5",
-                    "alg": "y2 R' F U2 F' R F R' U2 R F'"
-                },
-                {
-                    "name": "ZBLL AS 6",
-                    "alg": "y2 R' F U' F' U' R F U' R' U' R F'"
-                },
-                {
-                    "name": "ZBLL AS 7",
-                    "alg": "y2 R2 D r' U2 r R' U' R D' R' U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 8",
-                    "alg": "y' R U2 R' U' R2 D R' U2 R D' R' U' R' U R U R'"
-                },
-                {
-                    "name": "ZBLL AS 9",
-                    "alg": "y2 R' U' R U' R D R' U' R D' R' U R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 10",
-                    "alg": "y R U2 R D R' U' R D' R' U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 11",
-                    "alg": "y2 R2 D R' U R D' R' U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 12",
-                    "alg": "y R' U' R U' R' U R' D' R U R' D R2"
-                },
-                {
-                    "name": "ZBLL AS 13",
-                    "alg": "R U' R' U2 R U' R2 D' R U' R' D R"
-                },
-                {
-                    "name": "ZBLL AS 14",
-                    "alg": "S U2 R U2 R' U2 R' F R f'"
-                },
-                {
-                    "name": "ZBLL AS 15",
-                    "alg": "y2 R U2 R' U2 L' U R U' R' L"
-                },
-                {
-                    "name": "ZBLL AS 16",
-                    "alg": "y' R' U2 R' D' R U R' D R2 U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 17",
-                    "alg": "y R U R' U' R U' R' F' R U R' U R U' R' U' R' F R"
-                },
-                {
-                    "name": "ZBLL AS 18",
-                    "alg": "y R2 D R' U R D' R2 U' r' F R F' M'"
-                },
-                {
-                    "name": "ZBLL AS 19",
-                    "alg": "y2 S R U R' U' R' F R S' R U R' U' F'"
-                },
-                {
-                    "name": "ZBLL AS 20",
-                    "alg": "y2 R' U' R U' R2 D' r U2 r' D R2"
-                },
-                {
-                    "name": "ZBLL AS 21",
-                    "alg": "y2 R' U' R U' R2 D' R U2 R' D R2"
-                },
-                {
-                    "name": "ZBLL AS 22",
-                    "alg": "y2 R U2 R' U' R U R' U2 R' F R U R U' R' F'"
-                },
-                {
-                    "name": "ZBLL AS 23",
-                    "alg": "R' U2 R' D' R U2 R' D R U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 24",
-                    "alg": "R' U' R U R' F R U R' U' R' F' R2"
-                },
-                {
-                    "name": "ZBLL AS 25",
-                    "alg": "y' R U2 R' U' R U R D R' U2 R D' R2"
-                },
-                {
-                    "name": "ZBLL AS 26",
-                    "alg": "y2 R' U2 R' F' R U R U' R' F U2 R"
-                },
-                {
-                    "name": "ZBLL AS 27",
-                    "alg": "R2 D' R U2 R' D R U R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 28",
-                    "alg": "y2 F U R U' R' U R U' R2 F' R U2 R U2 R'"
-                },
-                {
-                    "name": "ZBLL AS 29",
-                    "alg": "y F U R U' R' U R U' R' U R2 D R' U' R D' R2 F'"
-                },
-                {
-                    "name": "ZBLL AS 30",
-                    "alg": "y2 L' U R U' L U R'"
-                },
-                {
-                    "name": "ZBLL AS 31",
-                    "alg": "y2 R' U R U R' U' R' D' R U R' D R U R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 32",
-                    "alg": "y R U R2 F' R U R U R' U' R U' R' F R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 33",
-                    "alg": "y' R U2 R' U' R U R D r' U2 r D' R2"
-                },
-                {
-                    "name": "ZBLL AS 34",
-                    "alg": "y' R U R U' R2 D U2 R' U' R U D' R"
-                },
-                {
-                    "name": "ZBLL AS 35",
-                    "alg": "y R D' U R U' R' U2 D R2 U' R U R"
-                },
-                {
-                    "name": "ZBLL AS 36",
-                    "alg": "R2 D' r U2 r' D R U R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 37",
-                    "alg": "R U R' F' R U R' U' R' F R2 U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 38",
-                    "alg": "y2 f' L F L' U2 L' U2 L U2 S"
-                },
-                {
-                    "name": "ZBLL AS 39",
-                    "alg": "y' F U R' U' R F' U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 40",
-                    "alg": "R' U' F' R U R' U' R' F R2 U' R' U R"
-                },
-                {
-                    "name": "ZBLL AS 41",
-                    "alg": "y R U R' U2 R U R' U' F' R U2 R' U' R U' R' F"
-                },
-                {
-                    "name": "ZBLL AS 42",
-                    "alg": "R2 D' R U' R' D F R U R U' R' F' R"
-                },
-                {
-                    "name": "ZBLL AS 43",
-                    "alg": "y2 R2 D r' U2 r D' R2 U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 44",
-                    "alg": "y R U R' U R U' R2 F R F' r U' r' U r U r'"
-                },
-                {
-                    "name": "ZBLL AS 45",
-                    "alg": "R U2 R' U' R U' R D R' U2 R D' R' U2 R'"
-                },
-                {
-                    "name": "ZBLL AS 46",
-                    "alg": "R U2 R' U' R' D' R U' R' D R2 U' R' U R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 47",
-                    "alg": "y2 R2 D R' U2 R D' R2 U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 48",
-                    "alg": "R U' R' U2 R U' R' U R' D' R U2 R' D R"
-                },
-                {
-                    "name": "ZBLL AS 49",
-                    "alg": "y R U' R' F' R U R' U' R' F R2 U' R' U2 R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 50",
-                    "alg": "y' R U2 R2 U' R2 U' R' F U' R' U' R U F'"
-                },
-                {
-                    "name": "ZBLL AS 51",
-                    "alg": "R U R' F' R U2 R' U' R U' R' F R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 52",
-                    "alg": "y2 R' U' R U' L U' R' U L' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 53",
-                    "alg": "y2 F R' F' R U R U' R2 F R U R' U' F' U R"
-                },
-                {
-                    "name": "ZBLL AS 54",
-                    "alg": "y2 F R2 U R2 U R2 U2 R' U2 R' U' R U' R' F'"
-                },
-                {
-                    "name": "ZBLL AS 55",
-                    "alg": "y' F U' R' U R U F' R' U R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 56",
-                    "alg": "y' F R U' R' U R U2 R' U' F' R U R' U' R' F R F'"
-                },
-                {
-                    "name": "ZBLL AS 57",
-                    "alg": "y' R2 U R2 F' R U R' U R U2 R' F R2 U' R2"
-                },
-                {
-                    "name": "ZBLL AS 58",
-                    "alg": "y' F R U R' U' R U R' F R' F' R U' F'"
-                },
-                {
-                    "name": "ZBLL AS 59",
-                    "alg": "y2 R' U F' R U R' U' R' F R U2 R U2 R' U' R"
-                },
-                {
-                    "name": "ZBLL AS 60",
-                    "alg": "y' R U' R2 D' U' R U' R' U2 D R2 U R'"
-                },
-                {
-                    "name": "ZBLL AS 61",
-                    "alg": "y R2 U R2 U R' U2 R' U R U R' U' R2"
-                },
-                {
-                    "name": "ZBLL AS 62",
-                    "alg": "y R' U' R U R U2 R' U' R U' R' U R' U R"
-                },
-                {
-                    "name": "ZBLL AS 63",
-                    "alg": "y2 R U R' U R' U' R U' R' U2 R U R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 64",
-                    "alg": "y' R' U' R U' R U R2 U R U' R U R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 65",
-                    "alg": "R' U' R2 U R2 U R2 U2 R2 U2 R"
-                },
-                {
-                    "name": "ZBLL AS 66",
-                    "alg": "y R U2 R' U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 67",
-                    "alg": "R U2 R2 U2 R2 U R2 U R2 U' R'"
-                },
-                {
-                    "name": "ZBLL AS 68",
-                    "alg": "R' U' R U' R' U2 R"
-                },
-                {
-                    "name": "ZBLL AS 69",
-                    "alg": "y R U R' U' R' U' R U R U' R' U' R' U R"
-                },
-                {
-                    "name": "ZBLL AS 70",
-                    "alg": "y R' U' R U R U2 R' U' R' U R U' R U' R'"
-                },
-                {
-                    "name": "ZBLL AS 71",
-                    "alg": "y2 R U R' U R' U' R2 U' R2 U2 R"
-                },
-                {
-                    "name": "ZBLL AS 72",
-                    "alg": "y' R2 D' R U2 R' D R U R' F R U R U' R' F' R"
-                }
-            ]
-        }
+        "ZBLS": [],
+        "ZBLL": [
+            {
+                "name": "ZBLL Pi 1",
+                "alg": "y' R U R' U R U2 R2 F' r U R U' r' F"
+            },
+            {
+                "name": "ZBLL Pi 2",
+                "alg": "y' r' F' r U' r' F2 r2 U R' U' r' F R F'"
+            },
+            {
+                "name": "ZBLL Pi 3",
+                "alg": "F R U' R' U R U R2 F' R U2 R U' R' U R U2 R' U'"
+            },
+            {
+                "name": "ZBLL Pi 4",
+                "alg": "y2 R U R D R' U' R D' R U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL Pi 5",
+                "alg": "F R' F' R U2 R U2 R' U' r U R' U R U2 r'"
+            },
+            {
+                "name": "ZBLL Pi 6",
+                "alg": "F R U R' U' R' F' R U2 R' U' R2 U' R2 U2 R"
+            },
+            {
+                "name": "ZBLL Pi 7",
+                "alg": "R2 F R U R U' R' F' R U' R' U' R U R' U R"
+            },
+            {
+                "name": "ZBLL Pi 8",
+                "alg": "y F U R U' R' U R U2 R' U' R U R' F'"
+            },
+            {
+                "name": "ZBLL Pi 9",
+                "alg": "y' R U R' U R U' R' U' R' F' R U2 R U2 R' F"
+            },
+            {
+                "name": "ZBLL Pi 10",
+                "alg": "y' F U' R U' R' U R U R' U2 R U2 R' U F'"
+            },
+            {
+                "name": "ZBLL Pi 11",
+                "alg": "y' R F U R2 U2 R2 U R2 U R2 F' R'"
+            },
+            {
+                "name": "ZBLL Pi 12",
+                "alg": "R' U' F' R U R' U' R' F R2 U2 R' U2 R"
+            },
+            {
+                "name": "ZBLL Pi 13",
+                "alg": "y R2 D' R U2 R' D R2 U R2 D' R U R' D R2"
+            },
+            {
+                "name": "ZBLL Pi 14",
+                "alg": "y' R2 D R' U2 R D' R2 U' R2 D R' U' R D' R2"
+            },
+            {
+                "name": "ZBLL Pi 15",
+                "alg": "R' U' R U' R2 D' R U R' D R2 U' R' U2 R"
+            },
+            {
+                "name": "ZBLL Pi 16",
+                "alg": "R U R' U R2 D R' U' R D' R2 U R U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 17",
+                "alg": "R' U' R U R2 F' R U R U' R' F U' R U R' U R"
+            },
+            {
+                "name": "ZBLL Pi 18",
+                "alg": "y R U2 R' U' R U2 R' U2 R U' R2 D' R U' R' D R"
+            },
+            {
+                "name": "ZBLL Pi 19",
+                "alg": "y' F U R U2 R' U R U R' F' R U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 20",
+                "alg": "y2 R U2 R' U' R U' R' U' F U R U2 R' U R U R' F'"
+            },
+            {
+                "name": "ZBLL Pi 21",
+                "alg": "y2 L' U R U' L U' R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 22",
+                "alg": "r' U r U r' U' r U R2 F R F' R"
+            },
+            {
+                "name": "ZBLL Pi 23",
+                "alg": "r U' r' U' r U r' U' R2 B' R' B R' U"
+            },
+            {
+                "name": "ZBLL Pi 24",
+                "alg": "y' R U R' U F' R U2 R' U2 R' F R"
+            },
+            {
+                "name": "ZBLL Pi 25",
+                "alg": "R' U' R' D' R U' R' D R2 U R' U' R U R' U R"
+            },
+            {
+                "name": "ZBLL Pi 26",
+                "alg": "R U' R' U' R U' R' U R U R' U R' F' R U R U' R' F"
+            },
+            {
+                "name": "ZBLL Pi 27",
+                "alg": "y R U R' U R U' R' U R2 D R' U' R D' R' U' R'"
+            },
+            {
+                "name": "ZBLL Pi 28",
+                "alg": "y2 R' U2 R U R' U' R U R2 F R U R U' R' F' R"
+            },
+            {
+                "name": "ZBLL Pi 29",
+                "alg": "R U' L' U R' U' L U' R U' L' U R' U' L"
+            },
+            {
+                "name": "ZBLL Pi 30",
+                "alg": "y F U R U' R' U R U' R2 F' R U R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 31",
+                "alg": "F U R U' R2 F' R2 U R' F' U' F U2 R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 32",
+                "alg": "y' R U R' U R U' R2 F R F' R U' R' F' U F"
+            },
+            {
+                "name": "ZBLL Pi 33",
+                "alg": "y R' U' R U' B2 R' U2 R U2 l U2 l'"
+            },
+            {
+                "name": "ZBLL Pi 34",
+                "alg": "y' R' U' R U' R' U R U' R' U R' D' R U R' D R2"
+            },
+            {
+                "name": "ZBLL Pi 35",
+                "alg": "y2 R2 D R' U R D' R' U R' U' R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 36",
+                "alg": "R' U' R U' R' U2 R U' L' U R U' L U R'"
+            },
+            {
+                "name": "ZBLL Pi 37",
+                "alg": "R' F R U R' U' R' F' R2 U' R' U R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL Pi 38",
+                "alg": "R U R D R' U R D' R2 U' R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 39",
+                "alg": "y' R2 F2 R2 U' R U R' U R2 F2 R' U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 40",
+                "alg": "y' R' U' R U' R' U R U' R2 D' R U R' D R U R"
+            },
+            {
+                "name": "ZBLL Pi 41",
+                "alg": "R U R' U' R' F R2 U R' U' R U R' U' F'"
+            },
+            {
+                "name": "ZBLL Pi 42",
+                "alg": "y2 R U2 R' U2 R' F R2 U' R' U2 R U2 R' U' F'"
+            },
+            {
+                "name": "ZBLL Pi 43",
+                "alg": "y R U2 R' U' R U R' U' R' D' R U' R' D R2 U' R' U R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 44",
+                "alg": "r' F' r U r U2 r' F2 U' R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 45",
+                "alg": "R U R' U R U2 R' U' R U' L' U R' U' L"
+            },
+            {
+                "name": "ZBLL Pi 46",
+                "alg": "y' R' U2 R U R' U R2 U' r' F R' F' r"
+            },
+            {
+                "name": "ZBLL Pi 47",
+                "alg": "y R U R' U R U' R' U R U' R D R' U' R D' R2"
+            },
+            {
+                "name": "ZBLL Pi 48",
+                "alg": "y' R U R' U F2 R U2 R' U2 R' F2 R"
+            },
+            {
+                "name": "ZBLL Pi 49",
+                "alg": "y R U2 R' U2 R' U' F U R2 U' R' U R U' R' F'"
+            },
+            {
+                "name": "ZBLL Pi 50",
+                "alg": "y' R U R' F' R U R' U R U2 R' F U R U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 51",
+                "alg": "y2 R F U' R2 U2 R U R' U R2 U F' R'"
+            },
+            {
+                "name": "ZBLL Pi 52",
+                "alg": "y R U R' U' R U R2 D' R U' R' D R U' R U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 53",
+                "alg": "F U R' U' R2 U' R2 U2 R U2 R U R' F'"
+            },
+            {
+                "name": "ZBLL Pi 54",
+                "alg": "R U2 R2 F R F' R' F R F' R' F R F' R U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 55",
+                "alg": "R2 D R' U' R D' R' U' R' U R U' R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 56",
+                "alg": "R2 D' R U R' D R U R U' R' U R U R' U R"
+            },
+            {
+                "name": "ZBLL Pi 57",
+                "alg": "y2 R U2 R' U R' D' R U R' D R2 U' R' U R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 58",
+                "alg": "R2 D R' U2 R D' R2 U' R U R D R' U2 R D' R2"
+            },
+            {
+                "name": "ZBLL Pi 59",
+                "alg": "y' r U R' U R' F R F' R U' R' U R U2 r'"
+            },
+            {
+                "name": "ZBLL Pi 60",
+                "alg": "y R U2 R' U' F' R U2 R' U' R U' R' F R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 61",
+                "alg": "R U2 R2 U' R2 U' R2 U2 R"
+            },
+            {
+                "name": "ZBLL Pi 62",
+                "alg": "y' R' U2 R U R' U R2 U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 63",
+                "alg": "y' R U2 R' U2 R U' R' U2 R U' R' U2 R U R'"
+            },
+            {
+                "name": "ZBLL Pi 64",
+                "alg": "y R' U2 R U2 R' U R U2 R' U R U2 R' U' R"
+            },
+            {
+                "name": "ZBLL Pi 65",
+                "alg": "y2 R' U R U' R2 U2 R U R' U R2 U' R' U R"
+            },
+            {
+                "name": "ZBLL Pi 66",
+                "alg": "y2 R U' R' U R2 U2 R' U' R U' R2 U R U' R'"
+            },
+            {
+                "name": "ZBLL Pi 67",
+                "alg": "y R U2 R' U' R U' R2 U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL Pi 68",
+                "alg": "R' U2 R2 U R2 U R2 U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 69",
+                "alg": "R U R' U R U2 R' U' R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 70",
+                "alg": "R' U' R U' R' U2 R U R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL Pi 71",
+                "alg": "y R U R' U R U2 R' U R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL Pi 72",
+                "alg": "F R U R' U' R U R' U' F' R U R' U' M' U R U' r'"
+            },
+            {
+                "name": "ZBLL U 1",
+                "alg": "R U' R' U' R U2 R' U' R' D' R U2 R' D R"
+            },
+            {
+                "name": "ZBLL U 2",
+                "alg": "y' R U2 R D R' U2 R D' R' U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL U 3",
+                "alg": "y2 R2 D r' U2 r D' R' U2 R'"
+            },
+            {
+                "name": "ZBLL U 4",
+                "alg": "y R U R2 D' R U R' D R2 U2 R'"
+            },
+            {
+                "name": "ZBLL U 5",
+                "alg": "y' R U2 R2 D' R U2 R' D R2 U' R' U2 R U2 R'"
+            },
+            {
+                "name": "ZBLL U 6",
+                "alg": "y2 R2 D R' U2 R D' R' U2 R'"
+            },
+            {
+                "name": "ZBLL U 7",
+                "alg": "y2 R' D' r U2 r' D R U2 R U' R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL U 8",
+                "alg": "R' U' R U R U R' U' R' U F R U R U' R' F'"
+            },
+            {
+                "name": "ZBLL U 9",
+                "alg": "y' R U R' U R U' R' U F' R U2 R' U2 R' F R"
+            },
+            {
+                "name": "ZBLL U 10",
+                "alg": "y' R2 D' R U' R' D R2 U R' U R U2 R' U R U2 R' U' R"
+            },
+            {
+                "name": "ZBLL U 11",
+                "alg": "y R U R' U R U' R' U R U' R' U' L' U R U' R' L"
+            },
+            {
+                "name": "ZBLL U 12",
+                "alg": "y' R U' R' U R U R' U2 R' D' R U R' D R2 U R'"
+            },
+            {
+                "name": "ZBLL U 13",
+                "alg": "R2 D' r U2 r' D R U2 R"
+            },
+            {
+                "name": "ZBLL U 14",
+                "alg": "y R2 D' R U' R' D R2 U' R' U2 R"
+            },
+            {
+                "name": "ZBLL U 15",
+                "alg": "y2 R' U R U R' U2 R U R D R' U2 R D' R'"
+            },
+            {
+                "name": "ZBLL U 16",
+                "alg": "y' R' U2 R' D' R U2 R' D R U2 R U R' U R"
+            },
+            {
+                "name": "ZBLL U 17",
+                "alg": "R2 D' R U2 R' D R U2 R"
+            },
+            {
+                "name": "ZBLL U 18",
+                "alg": "y' R' U2 R2 D R' U2 R D' R2 U R U2 R' U2 R"
+            },
+            {
+                "name": "ZBLL U 19",
+                "alg": "y' R' U R U R' U2 R y U2 R U' R' U2 R U' R'"
+            },
+            {
+                "name": "ZBLL U 20",
+                "alg": "y2 F R U R' U' R2 D R' U' R D' R2 U' R U R' F'"
+            },
+            {
+                "name": "ZBLL U 21",
+                "alg": "R2 D' R U2 R' U' D R' U' R2 U R U R2"
+            },
+            {
+                "name": "ZBLL U 22",
+                "alg": "y' R2 F' R U2 R U2 R' F U' R U R' U' R"
+            },
+            {
+                "name": "ZBLL U 23",
+                "alg": "y' R' U R U' R' U' R U2 R D R' U' R D' R2 U' R"
+            },
+            {
+                "name": "ZBLL U 24",
+                "alg": "F U R U' R D R' U' R D' R2 U R U R' F'"
+            },
+            {
+                "name": "ZBLL U 25",
+                "alg": "R' F R U' R' U' R U R' F' R U R' U' R' F R F' R"
+            },
+            {
+                "name": "ZBLL U 26",
+                "alg": "r2 F2 r U2 r U' L' U R' U R U' L"
+            },
+            {
+                "name": "ZBLL U 27",
+                "alg": "y' F2 R U' R' U' R U R' F' R U R' U' R' F R F2"
+            },
+            {
+                "name": "ZBLL U 28",
+                "alg": "R2 B2 R' B2 R' U R U' L U' L' U R'"
+            },
+            {
+                "name": "ZBLL U 29",
+                "alg": "y' F U R2 D' R U' R' D R2 F' R' U R"
+            },
+            {
+                "name": "ZBLL U 30",
+                "alg": "y' R' U' R F R2 D' R U R' D R2 U' F'"
+            },
+            {
+                "name": "ZBLL U 31",
+                "alg": "y R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL U 32",
+                "alg": "y' R2 F' R U R' U' R' F R2 U' R' U2 R2 U R' U R"
+            },
+            {
+                "name": "ZBLL U 33",
+                "alg": "y F U R U2 R' U R U R2 F' r U R U' r'"
+            },
+            {
+                "name": "ZBLL U 34",
+                "alg": "y R U R' U R U2 R' U R U2 R D R' U2 R D' R2"
+            },
+            {
+                "name": "ZBLL U 35",
+                "alg": "y' r U R' U' r' F R2 U' R' U' R U2 R' U' F'"
+            },
+            {
+                "name": "ZBLL U 36",
+                "alg": "R2 F R U R U' R' F' R U' R2 D' R U R' D R2"
+            },
+            {
+                "name": "ZBLL U 37",
+                "alg": "y2 R U R' U R U R' U2 R U' R2 D' R U' R' D R"
+            },
+            {
+                "name": "ZBLL U 38",
+                "alg": "R U R' U R U' R' U2 R' D' R U2 R' D R2 U' R'"
+            },
+            {
+                "name": "ZBLL U 39",
+                "alg": "R' U' R U2 R' F' R U R' U' R' F R2 U2 R' U R"
+            },
+            {
+                "name": "ZBLL U 40",
+                "alg": "y R2 D' R U2 R' D R U2 R U R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL U 41",
+                "alg": "x' R2 D2 R' U2 R D2 R' U2 R' x"
+            },
+            {
+                "name": "ZBLL U 42",
+                "alg": "y2 x R2 D2 R U2 R' D2 R U2 R x'"
+            },
+            {
+                "name": "ZBLL U 43",
+                "alg": "F R U' R' U R U R' U R U' R' F'"
+            },
+            {
+                "name": "ZBLL U 44",
+                "alg": "y2 R U' R2 F R U R U' R2 F' R U' F' U F"
+            },
+            {
+                "name": "ZBLL U 45",
+                "alg": "R U R' U R' D' R U2 R' D R2 U' R' U2 R U2 R'"
+            },
+            {
+                "name": "ZBLL U 46",
+                "alg": "y' R U' R' U' R U' R' U R' D' R U R' D R2 U R'"
+            },
+            {
+                "name": "ZBLL U 47",
+                "alg": "R' U2 R U R' U R' D' R U' R' D R U R"
+            },
+            {
+                "name": "ZBLL U 48",
+                "alg": "y2 R U2 R' U' R U' R D R' U R D' R' U' R'"
+            },
+            {
+                "name": "ZBLL U 49",
+                "alg": "R U' R' U' R U R D R' U R D' R2"
+            },
+            {
+                "name": "ZBLL U 50",
+                "alg": "y' F R U R' U' R U R' U' F' U' R' F' U' F U R"
+            },
+            {
+                "name": "ZBLL U 51",
+                "alg": "R U R' L' U2 R U' R' U' R U' R' L"
+            },
+            {
+                "name": "ZBLL U 52",
+                "alg": "R2 D' R U R' D R U R U' R' U' R"
+            },
+            {
+                "name": "ZBLL U 53",
+                "alg": "F U R U2 R' U R U R' U R U2 R' U R U R' F'"
+            },
+            {
+                "name": "ZBLL U 54",
+                "alg": "y' r U R' U' M U R U' R' F R U R' U' F'"
+            },
+            {
+                "name": "ZBLL U 55",
+                "alg": "y' r U2 R2 F R F' U2 r' R U R U' R'"
+            },
+            {
+                "name": "ZBLL U 56",
+                "alg": "y R' D R2 U' R' U R U2 R' U' R U R2 D' R"
+            },
+            {
+                "name": "ZBLL U 57",
+                "alg": "y' R' D' R U' R' D R2 U2 R' U R U R'"
+            },
+            {
+                "name": "ZBLL U 58",
+                "alg": "M' U R' U' F' U F R2 U R' U R U2 r'"
+            },
+            {
+                "name": "ZBLL U 59",
+                "alg": "y2 R' U R U R' U' R' D' R U' R' D R2"
+            },
+            {
+                "name": "ZBLL U 60",
+                "alg": "y2 R' U' F' U F U' R S' R' U R S"
+            },
+            {
+                "name": "ZBLL U 61",
+                "alg": "y' R' U' R U R' U R U2 R' U R U2 R' U' R"
+            },
+            {
+                "name": "ZBLL U 62",
+                "alg": "y' R U R' U' R U' R' U2 R U' R' U2 R U R'"
+            },
+            {
+                "name": "ZBLL U 63",
+                "alg": "y R U2 R' U' R U' R' U' R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL U 64",
+                "alg": "y R' U2 R2 U R2 U R U' R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL U 65",
+                "alg": "y R' U2 R U R' U R U R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL U 66",
+                "alg": "y R U2 R2 U' R2 U' R' U R' U' R U R' U R"
+            },
+            {
+                "name": "ZBLL U 67",
+                "alg": "y2 R U R' U R' U2 R2 U R2 U R2 U' R'"
+            },
+            {
+                "name": "ZBLL U 68",
+                "alg": "R' U' R U' R U2 R2 U' R2 U' R2 U R"
+            },
+            {
+                "name": "ZBLL U 69",
+                "alg": "R' U' R U' R' U2 R2 U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL U 70",
+                "alg": "y2 R U R' U R U2 R2 U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL U 71",
+                "alg": "R U R' U' R U' R U2 R2 U' R U R' U' R2 U' R2"
+            },
+            {
+                "name": "ZBLL U 72",
+                "alg": "y R U2 R' U' R U' R' L' U2 L U L' U L"
+            },
+            {
+                "name": "ZBLL T 1",
+                "alg": "y R' U' R U' R' U' R U2 L' R' U R U' L"
+            },
+            {
+                "name": "ZBLL T 2",
+                "alg": "y R' U2 R2 U R' U' R' U2 F' R U2 R U2 R' F"
+            },
+            {
+                "name": "ZBLL T 3",
+                "alg": "y2 R' U' R' D' R U' M' U2 r' D R2"
+            },
+            {
+                "name": "ZBLL T 4",
+                "alg": "y2 F R2 D R' U' R D' R2 U' R U2 R' U' F'"
+            },
+            {
+                "name": "ZBLL T 5",
+                "alg": "y F R U R' U' R U R' U' F' R U R' U' R' F R F'"
+            },
+            {
+                "name": "ZBLL T 6",
+                "alg": "y2 R' U' R' D' R U R' D R2"
+            },
+            {
+                "name": "ZBLL T 7",
+                "alg": "R' U2 R F U' R' U R U F' R' U R"
+            },
+            {
+                "name": "ZBLL T 8",
+                "alg": "y' R' U' R U R' U R L' U R' U' R L"
+            },
+            {
+                "name": "ZBLL T 9",
+                "alg": "y F U R U2 R' U R U R' F'"
+            },
+            {
+                "name": "ZBLL T 10",
+                "alg": "y R U R' U' R' F' R U2 R U2 R' F"
+            },
+            {
+                "name": "ZBLL T 11",
+                "alg": "y' F U R' U' R F' R' U' R U R' U R"
+            },
+            {
+                "name": "ZBLL T 12",
+                "alg": "y' R' U R U R' U' R' D' R U2 R' D R U R"
+            },
+            {
+                "name": "ZBLL T 13",
+                "alg": "y2 R' U' R U D' R U' R U R U' R2 D"
+            },
+            {
+                "name": "ZBLL T 14",
+                "alg": "y' R' D' R U R' D R2 U' R' U R U R' U' R U R'"
+            },
+            {
+                "name": "ZBLL T 15",
+                "alg": "y R U R' U R U R' U2 L R U' R' U L'"
+            },
+            {
+                "name": "ZBLL T 16",
+                "alg": "y2 F R U R' U' R' F' U2 R U R U' R2 U2 R"
+            },
+            {
+                "name": "ZBLL T 17",
+                "alg": "y' r U R' U' r' F R F'"
+            },
+            {
+                "name": "ZBLL T 18",
+                "alg": "R' U' R U' R2 F' R U R U' R' F U R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL T 19",
+                "alg": "U2 R U R D R' U2 R D' R' U' R' U R U' R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 20",
+                "alg": "y' R U R' U' R U' R' L U' R U R' L'"
+            },
+            {
+                "name": "ZBLL T 21",
+                "alg": "y' R U2 R' U2 R' F R U R U' R' F'"
+            },
+            {
+                "name": "ZBLL T 22",
+                "alg": "y' F' U' r' F2 r U F R U' R'"
+            },
+            {
+                "name": "ZBLL T 23",
+                "alg": "y' R U' R' U' R U R D R' U2 R D' R' U' R'"
+            },
+            {
+                "name": "ZBLL T 24",
+                "alg": "y2 R L' U R' U' L U R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 25",
+                "alg": "R' U R U2 L' R' U R U' L"
+            },
+            {
+                "name": "ZBLL T 26",
+                "alg": "y R U R2 F R F' R U' R' F' U F"
+            },
+            {
+                "name": "ZBLL T 27",
+                "alg": "y2 R U' R' U2 L R U' R' U L'"
+            },
+            {
+                "name": "ZBLL T 28",
+                "alg": "y' R' U' R' D' R U R' D R U2 R U R' U R"
+            },
+            {
+                "name": "ZBLL T 29",
+                "alg": "F R U' R' U' R U2 R' U' F' R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL T 30",
+                "alg": "R' U2 R U R' U R F U R U2 R' U R U R' F'"
+            },
+            {
+                "name": "ZBLL T 31",
+                "alg": "y2 r U' r U2 R' F R U2 r2 F"
+            },
+            {
+                "name": "ZBLL T 32",
+                "alg": "y2 R' U' R2 U R' F' R U R' U' R' F R2 U' R' U' R' U R"
+            },
+            {
+                "name": "ZBLL T 33",
+                "alg": "R U' R' U R U R' U' R U R' U' R' D' R U' R' D R"
+            },
+            {
+                "name": "ZBLL T 34",
+                "alg": "R U R' U R U' R' U' L' U2 R U2 R' U2 L"
+            },
+            {
+                "name": "ZBLL T 35",
+                "alg": "y2 R' D' R U R' D R U R U' R' U R U' R' U' R U R'"
+            },
+            {
+                "name": "ZBLL T 36",
+                "alg": "y L' U2 R U2 R' U2 L U R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 37",
+                "alg": "R' D' R U R' D R2 U R' U2 R U' R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 38",
+                "alg": "y' R U R2 D' R U2 R' D R U2 R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 39",
+                "alg": "y R' U' R U' F U' R' U R U F' R' U R"
+            },
+            {
+                "name": "ZBLL T 40",
+                "alg": "R' U2 R' D' R U2 R' D R2 U' R' U2 R U R' U R"
+            },
+            {
+                "name": "ZBLL T 41",
+                "alg": "y' l' U2 R' D2 R U2 R' D2 R2 x'"
+            },
+            {
+                "name": "ZBLL T 42",
+                "alg": "y' l U2 R D2 R' U2 R D2 R2 x"
+            },
+            {
+                "name": "ZBLL T 43",
+                "alg": "y2 F R U R' U' R U' R' U' R U R' F'"
+            },
+            {
+                "name": "ZBLL T 44",
+                "alg": "y' R U R' U2 R U' R' U2 R U' R2 F' R U R U' R' F"
+            },
+            {
+                "name": "ZBLL T 45",
+                "alg": "y R' U' R' D' R U R' D R U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL T 46",
+                "alg": "y R U R' U R' D' R U' R' D R U R U2 R'"
+            },
+            {
+                "name": "ZBLL T 47",
+                "alg": "r U R' U' r' F R F' R' U2 R U R' U R"
+            },
+            {
+                "name": "ZBLL T 48",
+                "alg": "y2 R U2 R' U' R U' R2 F' r U R U' r' F"
+            },
+            {
+                "name": "ZBLL T 49",
+                "alg": "y R' U' R U R' U' R2 D R' U R D' R' U2 R' U R"
+            },
+            {
+                "name": "ZBLL T 50",
+                "alg": "R U' R' U R U R' U' R U R' U R' D' R U R' D R"
+            },
+            {
+                "name": "ZBLL T 51",
+                "alg": "y R U' R2 D' r U2 r' D R2 U' R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 52",
+                "alg": "y2 R U R' U2 R' D' R U R' D R2 U' R' U R U' R'"
+            },
+            {
+                "name": "ZBLL T 53",
+                "alg": "y2 r2 U R' U' r' F R F' U R' U' r' F R F'"
+            },
+            {
+                "name": "ZBLL T 54",
+                "alg": "y2 R2 F R U R' U' R' F' R' U' R2 U2 R U2 R"
+            },
+            {
+                "name": "ZBLL T 55",
+                "alg": "y2 R U' R2 D' r U2 r' D R2 U R'"
+            },
+            {
+                "name": "ZBLL T 56",
+                "alg": "R' U R2 D r' U2 r D' R2 U' R"
+            },
+            {
+                "name": "ZBLL T 57",
+                "alg": "R' U' R U2 R D R' U' R D' R2 U R U' R' U R"
+            },
+            {
+                "name": "ZBLL T 58",
+                "alg": "y R' D' R U' R' D R U' R U' R' U R U' R' U' R U R'"
+            },
+            {
+                "name": "ZBLL T 59",
+                "alg": "y R U R' U' R U R2 D' R U' R' D R U2 R U' R'"
+            },
+            {
+                "name": "ZBLL T 60",
+                "alg": "y2 R U R' F' R U R' U' R' F R U' R' F R U R U' R' F'"
+            },
+            {
+                "name": "ZBLL T 61",
+                "alg": "y2 R U' R' U2 R U R' U2 R U R' U R U' R'"
+            },
+            {
+                "name": "ZBLL T 62",
+                "alg": "y' R U R' U R U2 R' U' R U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 63",
+                "alg": "y' R U R' U R U' R' U R' U' R2 U' R2 U2 R"
+            },
+            {
+                "name": "ZBLL T 64",
+                "alg": "R U2 R' U' R U' R' U R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL T 65",
+                "alg": "y' R' U' R U' R' U R U' R U R2 U R2 U2 R'"
+            },
+            {
+                "name": "ZBLL T 66",
+                "alg": "y2 R' U2 R U R' U R U' R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL T 67",
+                "alg": "y' R' U' R2 U R2 U R2 U2 R' U R' U R"
+            },
+            {
+                "name": "ZBLL T 68",
+                "alg": "y' R U R2 U' R2 U' R2 U2 R U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 69",
+                "alg": "R U2 R' U' R U' R2 U2 R U R' U R"
+            },
+            {
+                "name": "ZBLL T 70",
+                "alg": "y2 R' U2 R U R' U R2 U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL T 71",
+                "alg": "R' U R U2 R' U' R U' R U R' U' R' U' R U R U' R'"
+            },
+            {
+                "name": "ZBLL T 72",
+                "alg": "y' R U R' U R U2 R' U2 R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL L 1",
+                "alg": "y' R' U' R U' R' U2 R' D' R U2 R' D R U2 R"
+            },
+            {
+                "name": "ZBLL L 2",
+                "alg": "y R D R' U2 R D' R' U' R' U2 R U' R' U' R"
+            },
+            {
+                "name": "ZBLL L 3",
+                "alg": "y' R' U2 R U R2 D' R U R' D R2"
+            },
+            {
+                "name": "ZBLL L 4",
+                "alg": "R' U2 R' D' r U2 r' D R2"
+            },
+            {
+                "name": "ZBLL L 5",
+                "alg": "R' U2 R U2 R' U' R2 D R' U2 R D' R2 U2 R"
+            },
+            {
+                "name": "ZBLL L 6",
+                "alg": "R' U2 R' D' R U2 R' D R2"
+            },
+            {
+                "name": "ZBLL L 7",
+                "alg": "y' R' U' R U' R' U' R U2 R D r' U2 r D' R'"
+            },
+            {
+                "name": "ZBLL L 8",
+                "alg": "y' F R U' R' U R U R2 D' R U R' D R2 U' R' F'"
+            },
+            {
+                "name": "ZBLL L 9",
+                "alg": "y' R' U' R2 D r' U2 r D' R2 U R U R' U2 R"
+            },
+            {
+                "name": "ZBLL L 10",
+                "alg": "R' U R U' R' U F' R U2 R' U2 R' F R2"
+            },
+            {
+                "name": "ZBLL L 11",
+                "alg": "R' U R2 D R' U R D' R' U2 R' U R U R' U' R"
+            },
+            {
+                "name": "ZBLL L 12",
+                "alg": "y' F R U' R' U' R2 D R' U R D' R' U R' U' F'"
+            },
+            {
+                "name": "ZBLL L 13",
+                "alg": "R2 D' R U2 R' D R2 U R2 F' R U R U' R' F R"
+            },
+            {
+                "name": "ZBLL L 14",
+                "alg": "y R U' R' U R U' R' U' R U R2 D' R U' R' D R"
+            },
+            {
+                "name": "ZBLL L 15",
+                "alg": "L U' R U R' L' U2 R U' R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL L 16",
+                "alg": "R' U2 R2 U R' U' R' U2 F R U R U' R' F'"
+            },
+            {
+                "name": "ZBLL L 17",
+                "alg": "R' U' R U' R' U R U' R' U R U' R2 D' R U2 R' D R2"
+            },
+            {
+                "name": "ZBLL L 18",
+                "alg": "y F R' F' r U R U' r'"
+            },
+            {
+                "name": "ZBLL L 19",
+                "alg": "y' R' U2 R U2 D' R U' R U R U' R2 D"
+            },
+            {
+                "name": "ZBLL L 20",
+                "alg": "L R U' R' U L' R U R' U R U' R'"
+            },
+            {
+                "name": "ZBLL L 21",
+                "alg": "y R U R D R' U2 R D' R' U' R' U R U R'"
+            },
+            {
+                "name": "ZBLL L 22",
+                "alg": "R U R' U R U' R' U' L' U R U' R' L"
+            },
+            {
+                "name": "ZBLL L 23",
+                "alg": "y F R U R' U' R' F' R U2 R U2 R'"
+            },
+            {
+                "name": "ZBLL L 24",
+                "alg": "y' R' F' R U R' U' R' F R U' R U R' U R"
+            },
+            {
+                "name": "ZBLL L 25",
+                "alg": "y' R2 D' r U2 r' R U R' D R U R"
+            },
+            {
+                "name": "ZBLL L 26",
+                "alg": "y' R' U R U2 R' L' U R U L U r' F r"
+            },
+            {
+                "name": "ZBLL L 27",
+                "alg": "R' D R' U R D' R' U R2 U' R2 U' R2"
+            },
+            {
+                "name": "ZBLL L 28",
+                "alg": "y2 F' R U2 R' U2 R' F U2 R U R U' R2 U2 R"
+            },
+            {
+                "name": "ZBLL L 29",
+                "alg": "y2 F' r U R' U' r' F R"
+            },
+            {
+                "name": "ZBLL L 30",
+                "alg": "y R U R' U R U' R' U R U' R' U R2 D R' U2 R D' R2"
+            },
+            {
+                "name": "ZBLL L 31",
+                "alg": "y' R' F R U R U' R' F' U R U R' U R U' R'"
+            },
+            {
+                "name": "ZBLL L 32",
+                "alg": "y R' U' R U2 R' F' R U R' U' R' F R2 U R' U2 R"
+            },
+            {
+                "name": "ZBLL L 33",
+                "alg": "y2 F' R U2 R' U2 R' F R U R U' R'"
+            },
+            {
+                "name": "ZBLL L 34",
+                "alg": "y R U R' U R' D' R U2 R' D R2 U' R' U R U' R'"
+            },
+            {
+                "name": "ZBLL L 35",
+                "alg": "R' U' R' D' R U2 R' D R U R U' R' U' R"
+            },
+            {
+                "name": "ZBLL L 36",
+                "alg": "y' F R U' R' U' R U2 R' U' F'"
+            },
+            {
+                "name": "ZBLL L 37",
+                "alg": "y2 R U R' U R U2 R D R' U2 R D' R' U2 R'"
+            },
+            {
+                "name": "ZBLL L 38",
+                "alg": "y2 R U2 R' U' R2 D R' U' R D' R2"
+            },
+            {
+                "name": "ZBLL L 39",
+                "alg": "R' D' R U2 R' D R U R U2 R' U R U R'"
+            },
+            {
+                "name": "ZBLL L 40",
+                "alg": "R' F' R U R' U' R' F R2 U' R' U2 R"
+            },
+            {
+                "name": "ZBLL L 41",
+                "alg": "y R U2 R D R' U2 R D' R2"
+            },
+            {
+                "name": "ZBLL L 42",
+                "alg": "y R U2 R' U2 R U R2 D' R U2 R' D R2 U2 R'"
+            },
+            {
+                "name": "ZBLL L 43",
+                "alg": "y2 F R U R' U' R' F' U' R U R U' R' U' R' U R"
+            },
+            {
+                "name": "ZBLL L 44",
+                "alg": "y2 R U R' U R U R' U2 R' D' r U2 r' D R"
+            },
+            {
+                "name": "ZBLL L 45",
+                "alg": "y R U' R2 D' R U' R' D R U2 R U' R' U' R U R'"
+            },
+            {
+                "name": "ZBLL L 46",
+                "alg": "y2 R' F' R U2 R U2 R' F U' R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL L 47",
+                "alg": "y R' U R U2 R' U' R U2 R' U' R U' R2 D' R U R' D R2"
+            },
+            {
+                "name": "ZBLL L 48",
+                "alg": "y' R' F' R U R' U' R' F D' R U' R' D R2 U R' U R"
+            },
+            {
+                "name": "ZBLL L 49",
+                "alg": "y r U2 r2 F R F' r2 R' U2 r'"
+            },
+            {
+                "name": "ZBLL L 50",
+                "alg": "y R U' R' U R U' R' U' R U R' U2 R' D' R U R' D R"
+            },
+            {
+                "name": "ZBLL L 51",
+                "alg": "R' U R U' R' U R U R' U' R U2 R D R' U' R D' R'"
+            },
+            {
+                "name": "ZBLL L 52",
+                "alg": "r U2 R r2 F R' F' r2 U2 r'"
+            },
+            {
+                "name": "ZBLL L 53",
+                "alg": "y2 F' r U R' U R' D R U' R' D' R U' r' F R"
+            },
+            {
+                "name": "ZBLL L 54",
+                "alg": "r U R2 D' R U2 R' D R U r' F R F'"
+            },
+            {
+                "name": "ZBLL L 55",
+                "alg": "y R' U R U' R' U' R U' R' U2 R' D' R U' R' D R2"
+            },
+            {
+                "name": "ZBLL L 56",
+                "alg": "y2 B' R U R' U' R' F R2 U' R' U' R U R' S z'"
+            },
+            {
+                "name": "ZBLL L 57",
+                "alg": "y' R' U' R U R' F' R U R' U' R' F R2"
+            },
+            {
+                "name": "ZBLL L 58",
+                "alg": "y F R U R2 F R F' R U' R' F'"
+            },
+            {
+                "name": "ZBLL L 59",
+                "alg": "y' L' U2 R U' R' U2 L R U' R'"
+            },
+            {
+                "name": "ZBLL L 60",
+                "alg": "y2 R U R' U F' R U2 R' U' R' U' R' F R U R"
+            },
+            {
+                "name": "ZBLL L 61",
+                "alg": "y' R2 U R' U R' U' R U' R' U' R U R U' R2"
+            },
+            {
+                "name": "ZBLL L 62",
+                "alg": "y R U2 R' U' R U' R' U R' U2 R U R' U R"
+            },
+            {
+                "name": "ZBLL L 63",
+                "alg": "y R U R' U R U2 R' U R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL L 64",
+                "alg": "y R2 U' R U R U' R' U' R U' R' U R' U R2"
+            },
+            {
+                "name": "ZBLL L 65",
+                "alg": "R' U2 R U R' U R U' R U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL L 66",
+                "alg": "y2 R2 U' R U' R U R' U R U R' U' R' U R2"
+            },
+            {
+                "name": "ZBLL L 67",
+                "alg": "R' U' R U' R' U2 R U' R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL L 68",
+                "alg": "R2 U R' U' R' U R U R' U R U' R U' R2"
+            },
+            {
+                "name": "ZBLL L 69",
+                "alg": "y R U2 R' U' R U' R' U2 R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL L 70",
+                "alg": "y R U R' U R U2 R' U2 R U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL L 71",
+                "alg": "y' R U R' U R U' R' U R U' R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL L 72",
+                "alg": "R U R' U R U' R' U R U2 R' U' R U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL H 1",
+                "alg": "y F' r U R' U' r' F R2 U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL H 2",
+                "alg": "y' F R' F' r U R U' r2 F2 r U L' U L"
+            },
+            {
+                "name": "ZBLL H 3",
+                "alg": "y' R U2 R' U' R U R' U2 R' F R2 U' R' U' R U R' F'"
+            },
+            {
+                "name": "ZBLL H 4",
+                "alg": "y F' R U2 R' U2 R' F U' R U R U' R' U' R' U R"
+            },
+            {
+                "name": "ZBLL H 5",
+                "alg": "y2 R' U2 R2 U R2 U R U2 R' F R U R U' R' F'"
+            },
+            {
+                "name": "ZBLL H 6",
+                "alg": "y' R U2 R' U' R U R' U' F' R U R' U' R' F R2 U' R'"
+            },
+            {
+                "name": "ZBLL H 7",
+                "alg": "R U R' U R U' R2 F' R U2 R U2 R' F R U' R'"
+            },
+            {
+                "name": "ZBLL H 8",
+                "alg": "y2 F R U' R' U R U2 R' U' R U R' U' F'"
+            },
+            {
+                "name": "ZBLL H 9",
+                "alg": "y2 F R' F' R2 U2 R' U R U2 R' U R U' R2 F R F'"
+            },
+            {
+                "name": "ZBLL H 10",
+                "alg": "y' R' U2 R U2 R2 F' R U R U' R' F U R"
+            },
+            {
+                "name": "ZBLL H 11",
+                "alg": "y F' R U2 R' U2 R' F R U R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL H 12",
+                "alg": "F U' R U2 R' U2 R U' R' U' R U R' U F'"
+            },
+            {
+                "name": "ZBLL H 13",
+                "alg": "y' R' U2 R U R' U' F' R U R' U' R' F R U2 R"
+            },
+            {
+                "name": "ZBLL H 14",
+                "alg": "y' R U2 R' U' R2 D R' U R D' R2 U' R U' R'"
+            },
+            {
+                "name": "ZBLL H 15",
+                "alg": "y2 R2 D' R U' R' D R2 U' R2 D' R U2 R' D R2"
+            },
+            {
+                "name": "ZBLL H 16",
+                "alg": "y R' U2 R U R2 D' R U' R' D R2 U R' U R"
+            },
+            {
+                "name": "ZBLL H 17",
+                "alg": "F R' F' R U2 R U2 R' U' R' F2 r U r' F R"
+            },
+            {
+                "name": "ZBLL H 18",
+                "alg": "y2 R' U' R U' R' U F' R U R' U' R' F R2 U' R' U R"
+            },
+            {
+                "name": "ZBLL H 19",
+                "alg": "y' F R U' R' U' R U2 R' U' F' U R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL H 20",
+                "alg": "y R U R' U R U2 R' F R U' R' U' R U2 R' U' F'"
+            },
+            {
+                "name": "ZBLL H 21",
+                "alg": "R' F' R U2 R U2 R' F U' R U' R'"
+            },
+            {
+                "name": "ZBLL H 22",
+                "alg": "R U R' U R U r' F R' F' r"
+            },
+            {
+                "name": "ZBLL H 23",
+                "alg": "y R' F R' F' R2 U' r' U r U' r' U' r"
+            },
+            {
+                "name": "ZBLL H 24",
+                "alg": "y' R U R2 F R F' r U' r' U r U r'"
+            },
+            {
+                "name": "ZBLL H 25",
+                "alg": "F U' R2 U R U2 R' U R2 U2 R' U' R F'"
+            },
+            {
+                "name": "ZBLL H 26",
+                "alg": "y R U' R2 U' F2 U' R2 U R2 U F2 R2 U R'"
+            },
+            {
+                "name": "ZBLL H 27",
+                "alg": "y F R U R' U' R U R' U' R U R' U' F'"
+            },
+            {
+                "name": "ZBLL H 28",
+                "alg": "x' U' R U' R' U R' F2 R U' R U R' U x"
+            },
+            {
+                "name": "ZBLL H 29",
+                "alg": "R' U2 R U R' U R U R' U' R U R' F' R U R' U' R' F R2"
+            },
+            {
+                "name": "ZBLL H 30",
+                "alg": "R' U' R U' R' U2 R2 U2 L' U R' U' L U' R U' R'"
+            },
+            {
+                "name": "ZBLL H 31",
+                "alg": "R' U' F' U F R U' F U R U' R' U R U' R' F'"
+            },
+            {
+                "name": "ZBLL H 32",
+                "alg": "y' R U R' U y' R' U R U' R2 F R F' R"
+            },
+            {
+                "name": "ZBLL H 33",
+                "alg": "R U R' U R U' R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL H 34",
+                "alg": "R' U' R U' R' U R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL H 35",
+                "alg": "y' R' U2 R U R' U' R U R' U R"
+            },
+            {
+                "name": "ZBLL H 36",
+                "alg": "y' R U2 R' U' R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL H 37",
+                "alg": "y' R' U2 R U R' U R U R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL H 38",
+                "alg": "y R U2 R' U' R U' R' U' R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL H 39",
+                "alg": "R U R' U R U2 R' U' R' U2 R U R' U R"
+            },
+            {
+                "name": "ZBLL H 40",
+                "alg": "R U R' U R U' R' U R U' R' U R' U' R2 U' R' U R' U R"
+            },
+            {
+                "name": "ZBLL S 1",
+                "alg": "y2 R' U2 R U F R' U R U' F'"
+            },
+            {
+                "name": "ZBLL S 2",
+                "alg": "R U R' U R U' R2 F' R U R U' R' F R U' R'"
+            },
+            {
+                "name": "ZBLL S 3",
+                "alg": "R' U R U2 R' U R2 D R' U R D' R'"
+            },
+            {
+                "name": "ZBLL S 4",
+                "alg": "y2 S' U2 L' U2 L U2 L F' L' f"
+            },
+            {
+                "name": "ZBLL S 5",
+                "alg": "y R' F R U R' U' R' F' D' R U R' D R2"
+            },
+            {
+                "name": "ZBLL S 6",
+                "alg": "F' R U R' U R U2 R' F U R U' R' U2 R U' R'"
+            },
+            {
+                "name": "ZBLL S 7",
+                "alg": "y' R' U' R U R2 U' R' U' R U D' R U R' D R'"
+            },
+            {
+                "name": "ZBLL S 8",
+                "alg": "y2 R U R' U R2 D r' U2 r D' R2"
+            },
+            {
+                "name": "ZBLL S 9",
+                "alg": "y R U R' U' R U R2 D' R U R' D R U R U2 R'"
+            },
+            {
+                "name": "ZBLL S 10",
+                "alg": "y2 R U R' U R2 D R' U2 R D' R2"
+            },
+            {
+                "name": "ZBLL S 11",
+                "alg": "y' R' D' R U2 R' D R U' R U R' U2 R U R'"
+            },
+            {
+                "name": "ZBLL S 12",
+                "alg": "R U2 R D R' U2 R D' R' U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL S 13",
+                "alg": "R U R' U' R2 U' L' U R2 U' L U' R U2 R'"
+            },
+            {
+                "name": "ZBLL S 14",
+                "alg": "R U R' U R' F R F' R U' R' F' U F R U' R'"
+            },
+            {
+                "name": "ZBLL S 15",
+                "alg": "y R' U' F2 U' R2 U R2 U F2 R2 U2 R'"
+            },
+            {
+                "name": "ZBLL S 16",
+                "alg": "y2 R U2 R' U' R U R' U' R U R D R' U2 R D' R2"
+            },
+            {
+                "name": "ZBLL S 17",
+                "alg": "y' F R' U R U F' R' U F U F' R"
+            },
+            {
+                "name": "ZBLL S 18",
+                "alg": "y' F R' U2 R F' R' F U2 F' R"
+            },
+            {
+                "name": "ZBLL S 19",
+                "alg": "y' R U R' U R U' R D R' U R r' U2 r D' R2"
+            },
+            {
+                "name": "ZBLL S 20",
+                "alg": "R U' R' U' R U R D R' U2 R D' R2 U R U2 R'"
+            },
+            {
+                "name": "ZBLL S 21",
+                "alg": "y' R' U2 R' D' R U R' D R U' R U R' U R"
+            },
+            {
+                "name": "ZBLL S 22",
+                "alg": "y2 R U R' U R U' R D R' U R D' R' U2 R'"
+            },
+            {
+                "name": "ZBLL S 23",
+                "alg": "y' R U R' U R U' R D R' U' R D' R2"
+            },
+            {
+                "name": "ZBLL S 24",
+                "alg": "y2 R2 D' R U' R' D R U' R U R' U R"
+            },
+            {
+                "name": "ZBLL S 25",
+                "alg": "R2 D R' U2 R D' R' U' R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL S 26",
+                "alg": "y' R' U2 F' R U R' U' R' F R U2 R"
+            },
+            {
+                "name": "ZBLL S 27",
+                "alg": "y R' U2 R U R' U' R' D' R U2 R' D R2"
+            },
+            {
+                "name": "ZBLL S 28",
+                "alg": "y R U R' U R U' R2 D' R U R' D R2 U2 R'"
+            },
+            {
+                "name": "ZBLL S 29",
+                "alg": "R U' L' U R' U' L"
+            },
+            {
+                "name": "ZBLL S 30",
+                "alg": "y' R' U2 R2 U R D' R U R' D R2 U' R U' R'"
+            },
+            {
+                "name": "ZBLL S 31",
+                "alg": "y' R U R' U R U2 R2 U R U2 L' R' U R U' L"
+            },
+            {
+                "name": "ZBLL S 32",
+                "alg": "y2 R U R' F' R U R' U R U' R' U' R' F R2 U' R'"
+            },
+            {
+                "name": "ZBLL S 33",
+                "alg": "y R' U' R' U R2 D' U2 R U R' U' D R'"
+            },
+            {
+                "name": "ZBLL S 34",
+                "alg": "y2 L U' R' U L' R' U' R' U' R' U R U R2"
+            },
+            {
+                "name": "ZBLL S 35",
+                "alg": "R2 D r' U2 r D' R' U' R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL S 36",
+                "alg": "y' R' U' D R' U R D' U2 R2 U R' U' R'"
+            },
+            {
+                "name": "ZBLL S 37",
+                "alg": "L' R U R' U' L U2 R U2 R'"
+            },
+            {
+                "name": "ZBLL S 38",
+                "alg": "y R' D' R U R' D R2 U R' U2 R U R'"
+            },
+            {
+                "name": "ZBLL S 39",
+                "alg": "y R' U2 R U R2 D' R U' R' D R U2 R"
+            },
+            {
+                "name": "ZBLL S 40",
+                "alg": "f R' F' R U2 R U2 R' U2 S'"
+            },
+            {
+                "name": "ZBLL S 41",
+                "alg": "y R U' L' U R' U2 L U R U' L' U R' L"
+            },
+            {
+                "name": "ZBLL S 42",
+                "alg": "R' F' R U R U R' U' R U' R' F R U R' U R U' R'"
+            },
+            {
+                "name": "ZBLL S 43",
+                "alg": "y2 R2 D' r U2 r' D R2 U R' U R"
+            },
+            {
+                "name": "ZBLL S 44",
+                "alg": "F U R U' R' S R' F' R U R U' R' S'"
+            },
+            {
+                "name": "ZBLL S 45",
+                "alg": "F R U R' U' R' F' R U2 R U' R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL S 46",
+                "alg": "R' U2 R U R' U R' D' R U2 R' D R U2 R"
+            },
+            {
+                "name": "ZBLL S 47",
+                "alg": "R2 F R U R U' R' F' R U' R' U R"
+            },
+            {
+                "name": "ZBLL S 48",
+                "alg": "y2 R2 D' R U2 R' D R2 U R' U R"
+            },
+            {
+                "name": "ZBLL S 49",
+                "alg": "y R2 U R2 F' R U2 R' U' R U' R' F R2 U' R2"
+            },
+            {
+                "name": "ZBLL S 50",
+                "alg": "y F U R' F R F' R U' R' U R U' R' F'"
+            },
+            {
+                "name": "ZBLL S 51",
+                "alg": "y' R U' R2 U2 D' R U R' U D R2 U R'"
+            },
+            {
+                "name": "ZBLL S 52",
+                "alg": "y F' R U R' D R U R' U' D' R U' R' F"
+            },
+            {
+                "name": "ZBLL S 53",
+                "alg": "y' R' U2 R2 U R' F' R U R' U' R' F R2 U' R2 U R"
+            },
+            {
+                "name": "ZBLL S 54",
+                "alg": "F R U R' U R U2 R U2 R2 U' R2 U' R2 F'"
+            },
+            {
+                "name": "ZBLL S 55",
+                "alg": "R' U2 R U R' U' R F U' R' U' R U F'"
+            },
+            {
+                "name": "ZBLL S 56",
+                "alg": "L' U2 R U' R' U2 L U R U' R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL S 57",
+                "alg": "y2 R U R' U L' U R U' L U2 R'"
+            },
+            {
+                "name": "ZBLL S 58",
+                "alg": "F U' R' U R U F' R U R2 U R2 U2 R'"
+            },
+            {
+                "name": "ZBLL S 59",
+                "alg": "R' U2 L U' R U L' U R' U R"
+            },
+            {
+                "name": "ZBLL S 60",
+                "alg": "F R U' R2 U2 R U R' U R2 U R' F'"
+            },
+            {
+                "name": "ZBLL S 61",
+                "alg": "y' R U R' U' R' U2 R U R' U R U' R U' R'"
+            },
+            {
+                "name": "ZBLL S 62",
+                "alg": "R U R' U R U' R' U R' U' R2 U' R' U R' U R"
+            },
+            {
+                "name": "ZBLL S 63",
+                "alg": "R U R2 U' R2 U' R2 U2 R2 U2 R'"
+            },
+            {
+                "name": "ZBLL S 64",
+                "alg": "y' R' U2 R U R' U R"
+            },
+            {
+                "name": "ZBLL S 65",
+                "alg": "R U R' U R U R U R U R U' R' U' R2"
+            },
+            {
+                "name": "ZBLL S 66",
+                "alg": "R U R2 F' R U2 R U' R' U' R' F R2 U' R'"
+            },
+            {
+                "name": "ZBLL S 67",
+                "alg": "R U R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL S 68",
+                "alg": "R' U2 R2 U2 R2 U' R2 U' R2 U R"
+            },
+            {
+                "name": "ZBLL S 69",
+                "alg": "y' R U R' U' R' U2 R U R U' R' U R' U R"
+            },
+            {
+                "name": "ZBLL S 70",
+                "alg": "y' R' U' R U R U R' U' R' U R U R U' R'"
+            },
+            {
+                "name": "ZBLL S 71",
+                "alg": "y' R' U2 R2 U R2 U R U' R U' R'"
+            },
+            {
+                "name": "ZBLL S 72",
+                "alg": "R U R' U' R U R' U R U R U2 R' U' R U' R' U R'"
+            },
+            {
+                "name": "ZBLL AS 1",
+                "alg": "y' R2 D R' U2 R D' R' U' R' U R U' R' U R U2 R'"
+            },
+            {
+                "name": "ZBLL AS 2",
+                "alg": "y2 R' U2 F' R U R' U' R' F R2 U R' U R"
+            },
+            {
+                "name": "ZBLL AS 3",
+                "alg": "y2 R' U R U R' U R U2 R' U' R2 D R' U2 R D' R'"
+            },
+            {
+                "name": "ZBLL AS 4",
+                "alg": "y' R' D' R U2 R' D R2 U' R' U2 R U R' U R U R'"
+            },
+            {
+                "name": "ZBLL AS 5",
+                "alg": "y2 R' F U2 F' R F R' U2 R F'"
+            },
+            {
+                "name": "ZBLL AS 6",
+                "alg": "y2 R' F U' F' U' R F U' R' U' R F'"
+            },
+            {
+                "name": "ZBLL AS 7",
+                "alg": "y2 R2 D r' U2 r R' U' R D' R' U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 8",
+                "alg": "y' R U2 R' U' R2 D R' U2 R D' R' U' R' U R U R'"
+            },
+            {
+                "name": "ZBLL AS 9",
+                "alg": "y2 R' U' R U' R D R' U' R D' R' U R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 10",
+                "alg": "y R U2 R D R' U' R D' R' U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 11",
+                "alg": "y2 R2 D R' U R D' R' U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 12",
+                "alg": "y R' U' R U' R' U R' D' R U R' D R2"
+            },
+            {
+                "name": "ZBLL AS 13",
+                "alg": "R U' R' U2 R U' R2 D' R U' R' D R"
+            },
+            {
+                "name": "ZBLL AS 14",
+                "alg": "S U2 R U2 R' U2 R' F R f'"
+            },
+            {
+                "name": "ZBLL AS 15",
+                "alg": "y2 R U2 R' U2 L' U R U' R' L"
+            },
+            {
+                "name": "ZBLL AS 16",
+                "alg": "y' R' U2 R' D' R U R' D R2 U' R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 17",
+                "alg": "y R U R' U' R U' R' F' R U R' U R U' R' U' R' F R"
+            },
+            {
+                "name": "ZBLL AS 18",
+                "alg": "y R2 D R' U R D' R2 U' r' F R F' M'"
+            },
+            {
+                "name": "ZBLL AS 19",
+                "alg": "y2 S R U R' U' R' F R S' R U R' U' F'"
+            },
+            {
+                "name": "ZBLL AS 20",
+                "alg": "y2 R' U' R U' R2 D' r U2 r' D R2"
+            },
+            {
+                "name": "ZBLL AS 21",
+                "alg": "y2 R' U' R U' R2 D' R U2 R' D R2"
+            },
+            {
+                "name": "ZBLL AS 22",
+                "alg": "y2 R U2 R' U' R U R' U2 R' F R U R U' R' F'"
+            },
+            {
+                "name": "ZBLL AS 23",
+                "alg": "R' U2 R' D' R U2 R' D R U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 24",
+                "alg": "R' U' R U R' F R U R' U' R' F' R2"
+            },
+            {
+                "name": "ZBLL AS 25",
+                "alg": "y' R U2 R' U' R U R D R' U2 R D' R2"
+            },
+            {
+                "name": "ZBLL AS 26",
+                "alg": "y2 R' U2 R' F' R U R U' R' F U2 R"
+            },
+            {
+                "name": "ZBLL AS 27",
+                "alg": "R2 D' R U2 R' D R U R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 28",
+                "alg": "y2 F U R U' R' U R U' R2 F' R U2 R U2 R'"
+            },
+            {
+                "name": "ZBLL AS 29",
+                "alg": "y F U R U' R' U R U' R' U R2 D R' U' R D' R2 F'"
+            },
+            {
+                "name": "ZBLL AS 30",
+                "alg": "y2 L' U R U' L U R'"
+            },
+            {
+                "name": "ZBLL AS 31",
+                "alg": "y2 R' U R U R' U' R' D' R U R' D R U R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 32",
+                "alg": "y R U R2 F' R U R U R' U' R U' R' F R U' R'"
+            },
+            {
+                "name": "ZBLL AS 33",
+                "alg": "y' R U2 R' U' R U R D r' U2 r D' R2"
+            },
+            {
+                "name": "ZBLL AS 34",
+                "alg": "y' R U R U' R2 D U2 R' U' R U D' R"
+            },
+            {
+                "name": "ZBLL AS 35",
+                "alg": "y R D' U R U' R' U2 D R2 U' R U R"
+            },
+            {
+                "name": "ZBLL AS 36",
+                "alg": "R2 D' r U2 r' D R U R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 37",
+                "alg": "R U R' F' R U R' U' R' F R2 U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 38",
+                "alg": "y2 f' L F L' U2 L' U2 L U2 S"
+            },
+            {
+                "name": "ZBLL AS 39",
+                "alg": "y' F U R' U' R F' U' R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 40",
+                "alg": "R' U' F' R U R' U' R' F R2 U' R' U R"
+            },
+            {
+                "name": "ZBLL AS 41",
+                "alg": "y R U R' U2 R U R' U' F' R U2 R' U' R U' R' F"
+            },
+            {
+                "name": "ZBLL AS 42",
+                "alg": "R2 D' R U' R' D F R U R U' R' F' R"
+            },
+            {
+                "name": "ZBLL AS 43",
+                "alg": "y2 R2 D r' U2 r D' R2 U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 44",
+                "alg": "y R U R' U R U' R2 F R F' r U' r' U r U r'"
+            },
+            {
+                "name": "ZBLL AS 45",
+                "alg": "R U2 R' U' R U' R D R' U2 R D' R' U2 R'"
+            },
+            {
+                "name": "ZBLL AS 46",
+                "alg": "R U2 R' U' R' D' R U' R' D R2 U' R' U R U' R'"
+            },
+            {
+                "name": "ZBLL AS 47",
+                "alg": "y2 R2 D R' U2 R D' R2 U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 48",
+                "alg": "R U' R' U2 R U' R' U R' D' R U2 R' D R"
+            },
+            {
+                "name": "ZBLL AS 49",
+                "alg": "y R U' R' F' R U R' U' R' F R2 U' R' U2 R U' R'"
+            },
+            {
+                "name": "ZBLL AS 50",
+                "alg": "y' R U2 R2 U' R2 U' R' F U' R' U' R U F'"
+            },
+            {
+                "name": "ZBLL AS 51",
+                "alg": "R U R' F' R U2 R' U' R U' R' F R U' R'"
+            },
+            {
+                "name": "ZBLL AS 52",
+                "alg": "y2 R' U' R U' L U' R' U L' U2 R"
+            },
+            {
+                "name": "ZBLL AS 53",
+                "alg": "y2 F R' F' R U R U' R2 F R U R' U' F' U R"
+            },
+            {
+                "name": "ZBLL AS 54",
+                "alg": "y2 F R2 U R2 U R2 U2 R' U2 R' U' R U' R' F'"
+            },
+            {
+                "name": "ZBLL AS 55",
+                "alg": "y' F U' R' U R U F' R' U R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 56",
+                "alg": "y' F R U' R' U R U2 R' U' F' R U R' U' R' F R F'"
+            },
+            {
+                "name": "ZBLL AS 57",
+                "alg": "y' R2 U R2 F' R U R' U R U2 R' F R2 U' R2"
+            },
+            {
+                "name": "ZBLL AS 58",
+                "alg": "y' F R U R' U' R U R' F R' F' R U' F'"
+            },
+            {
+                "name": "ZBLL AS 59",
+                "alg": "y2 R' U F' R U R' U' R' F R U2 R U2 R' U' R"
+            },
+            {
+                "name": "ZBLL AS 60",
+                "alg": "y' R U' R2 D' U' R U' R' U2 D R2 U R'"
+            },
+            {
+                "name": "ZBLL AS 61",
+                "alg": "y R2 U R2 U R' U2 R' U R U R' U' R2"
+            },
+            {
+                "name": "ZBLL AS 62",
+                "alg": "y R' U' R U R U2 R' U' R U' R' U R' U R"
+            },
+            {
+                "name": "ZBLL AS 63",
+                "alg": "y2 R U R' U R' U' R U' R' U2 R U R U' R'"
+            },
+            {
+                "name": "ZBLL AS 64",
+                "alg": "y' R' U' R U' R U R2 U R U' R U R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 65",
+                "alg": "R' U' R2 U R2 U R2 U2 R2 U2 R"
+            },
+            {
+                "name": "ZBLL AS 66",
+                "alg": "y R U2 R' U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 67",
+                "alg": "R U2 R2 U2 R2 U R2 U R2 U' R'"
+            },
+            {
+                "name": "ZBLL AS 68",
+                "alg": "R' U' R U' R' U2 R"
+            },
+            {
+                "name": "ZBLL AS 69",
+                "alg": "y R U R' U' R' U' R U R U' R' U' R' U R"
+            },
+            {
+                "name": "ZBLL AS 70",
+                "alg": "y R' U' R U R U2 R' U' R' U R U' R U' R'"
+            },
+            {
+                "name": "ZBLL AS 71",
+                "alg": "y2 R U R' U R' U' R2 U' R2 U2 R"
+            },
+            {
+                "name": "ZBLL AS 72",
+                "alg": "y' R2 D' R U2 R' D R U R' F R U R U' R' F' R"
+            }
+        ]
     },
     "4x4": {
         "OLL Parity": [
             {
-                "name": "Standard OLL Parity",
+                "name": "Basic",
                 "alg": "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'"
             },
             {
-                "name": "Lucas Parity",
-                "alg": "Rw U2 Rw U2 Rw' U2 Rw U2 Lw' U2 Rw U2 Rw' U2 x' Rw' U2 Rw'"
+                "name": "Pure",
+                "alg": "2R' U2 2L F2 2L' F2 2R2 U2 2R U2 2R' U2 F2 2R2 F2"
+            },
+            {
+                "name": "M",
+                "alg": "M Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw' M'"
             }
         ],
         "PLL Parity": [
             {
-                "name": "Opposite Edge Swap (Pure Parity)",
-                "alg": "Rw2 B2 Rw' U2 Rw' U2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw2 B2 Rw2"
+                "name": "OPP Parity",
+                "alg": "2R2 U2 2R2 Uw2 2R2 Uw2"
             },
             {
-                "name": "Adjacent Edge Swap (Pure Parity)",
-                "alg": "Uw Rw2 Uw2 Rw2 Uw' Rw2 Uw2 Rw2 Uw"
+                "name": "Adj Parity",
+                "alg": "R' U R U' 2R2 U2' 2R2 Uw2' 2R2 Uw2' U' R' U' R"
             },
             {
-                "name": "U Perm a (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U' R' U' R U R D R' U' R D' R' U2 R' U'"
+                "name": "CwO",
+                "alg": "M2 U' M2 U' M' U2 M2 U2 M' Parity Alg (2R2)M2 U' M2 U' M' U2 M2 U2 M' 2R2 U2 2R2 Uw2 2R2 Uw2"
             },
             {
-                "name": "U Perm b (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R2 U R' U R U2 R' U R2 U' R' U' R U' R2"
+                "name": "CcwO",
+                "alg": "Uw2 2L2 Uw2 2L2 U2 3Rw' Rw2 R' U2 M2 U2 M' U M2 U M2"
             },
             {
-                "name": "Z Perm (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 M' U M2 U M2 U M' U2 M2"
+                "name": "W",
+                "alg": "R' U R' U' R' U' R' U R U Rw2 U2 2R2 Uw2 2R2 Uw2"
             },
             {
-                "name": "H Perm (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 M2 U M2 U2 M2 U M2"
+                "name": "Pj",
+                "alg": "R U R' U' R' F R2 U' R' U' R U R' F' U' 2L2 U2 2L2 Uw2 2L2 Uw2"
             },
             {
-                "name": "A Perm a (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 x R' U R' D2 R U' R' D2 R2 x'"
+                "name": "Ba",
+                "alg": "Uw2 2L2 Uw2 2L2 U2 2L2 U R U R' F' R U R' U' R' F R2 U' R'"
             },
             {
-                "name": "A Perm b (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 x R2 D2 R U R' D2 R U' R x'"
+                "name": "Bb",
+                "alg": "y x Rw2 U2 Rw2 Uw2 2R2 Uw2 B 3Rw' U R' U2 L U' R"
             },
             {
-                "name": "E Perm (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 x' R U' R' D R U R' D' R U R' D R U' R' D' x"
+                "name": "Ca",
+                "alg": "y2 Uw2 2R2 Uw2 2R2 U2 Rw2 F R U R U' R' F' R U2 R' U2 R"
             },
             {
-                "name": "T Perm (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U R' U' R' F R2 U' R' U' R U R' F'"
+                "name": "Cb",
+                "alg": "y R' U2 R U2 R' F R U R' U' R' F' Rw2 U2 2R2 Uw2 2R2 Uw2"
             },
             {
-                "name": "F Perm (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R"
+                "name": "Da",
+                "alg": "R' U L' U2 R U' 3Rw B Rw2 U2 Rw2 Uw2 2R2 Uw2 x'"
             },
             {
-                "name": "Y Perm (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 F R U' R' U' R U R' F' R U R' U' R' F R F'"
+                "name": "Db",
+                "alg": "R U R' F' R U R' U' R' F R2 U' R' u2 2R2 u2 2R2 U2 2R2"
             },
             {
-                "name": "J Perm a (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U L' U2 R U' R' U2 R L"
+                "name": "Ka",
+                "alg": "y 3Lw' U R' D2 R U' R' D2 x' Rw2 U2 2R2 Uw2 2R2 Uw2"
             },
             {
-                "name": "J Perm b (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U R' F' R U R' U' R' F R2 U' R' U'"
+                "name": "Kb",
+                "alg": "r2 F2 U2 r2 R2 U2 x R' D' R U2 R' D R r2 x' U'"
             },
             {
-                "name": "R Perm a (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U' R' U' R U R D R' U' R D' R' U2 R' U'"
+                "name": "M",
+                "alg": "y2 Rw2 F2 U2 2R2 U R' U' R U R' D R D' R F2 U Rw2"
             },
             {
-                "name": "R Perm b (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U2 R U2 R' F R U R' U' R' F' R2"
+                "name": "Pa",
+                "alg": "R U R' F' R U R' U' R' F R2 U' R' U' 2R2 U2 2R2 u2 2R2 u2"
             },
             {
-                "name": "V Perm (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U R' U' y R' F' R2 U' R' U R' F R F"
+                "name": "Pb",
+                "alg": "2R2 U2 2R2 u2 2R2 u2 R U R' F' R U R' U' R' F R2 U' R'"
             },
             {
-                "name": "N Perm a (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U R U' R' F' U' F R U R' F R' F' R U' R"
+                "name": "Diag C",
+                "alg": "F R U' R' U' R U R' F' U' 2R2 U2 2R2 u2 2R2 u2 U' R U R' U' R' F R F'"
             },
             {
-                "name": "N Perm b (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U R' F R F' R U' R' F' U F R U R' U' R"
+                "name": "Q",
+                "alg": "z Rw2 Uw2' R2' Uw2' F R U R' U' R U R' U' R U R' U' F' U2' R2 Uw2' Rw2' z'"
             },
             {
-                "name": "G Perm a (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R2 U R' U R' U' R U' R2 D U' R' U R D'"
+                "name": "Sa",
+                "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' U' 2R2 U2 2R2 u2 2R2 u2"
             },
             {
-                "name": "G Perm b (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R' U' R U D' R2 U R' U R U' R U' R2 D"
+                "name": "Sb",
+                "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' 2R2 U2 2R2 u2 2R2 u2"
             },
             {
-                "name": "G Perm c (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R2 U' R U' R U R' U R2 D' U R U' R' D"
-            },
-            {
-                "name": "G Perm d (Parity)",
-                "alg": "Rw2 Uw2 Rw2 U2 Rw2 Uw2 Rw2 R U R' U' D R2 U' R U' R' U R' U R2 D'"
+                "name": "X",
+                "alg": "Rw2 F2 U2 Rw2 F' U' R' U R U' R' U R U' R' U R F R2 U2 F2 Rw2"
             }
         ]
     },
@@ -2938,7 +2867,7 @@ const ALGORITHMS = {
                 "alg": "R U R' U R U R'"
             },
             {
-                "name": "Anti-Sune",
+                "name": "AntiSune",
                 "alg": "R U' R' U' R U' R'"
             },
             {
@@ -2950,461 +2879,372 @@ const ALGORITHMS = {
                 "alg": "L U R U' R' L'"
             },
             {
-                "name": "Sledge (FR-FL)",
+                "name": "Sledge",
                 "alg": "R' L R L'"
             },
             {
-                "name": "Sledge (FR-BL)",
+                "name": "Sledge",
                 "alg": "L U' R' L R L2'"
             },
             {
-                "name": "Sledge (FR-BR)",
+                "name": "Sledge",
                 "alg": "U R' U L' U' L R"
             },
             {
-                "name": "Hedge (FL-FR)",
+                "name": "Hedge",
                 "alg": "L R' L' R"
             },
             {
-                "name": "Hedge (FL-BR)",
+                "name": "Hedge",
                 "alg": "U' L U' R U R' L'"
             },
             {
-                "name": "Hedge (FL-BL)",
+                "name": "Hedge",
                 "alg": "R' U L R' L' R2"
             },
             {
-                "name": "Clockwise 3-Cycle (FRU\u2192BRU\u2192BLU)",
+                "name": "Clockwise",
                 "alg": "L R' L' R2 U' R'"
             },
             {
-                "name": "Clockwise 3-Cycle (FRU\u2192BLU\u2192FLU)",
+                "name": "Clockwise",
                 "alg": "U' L2 R' L' R L'"
             },
             {
-                "name": "Clockwise 3-Cycle (FRU\u2192FLU\u2192BRU)",
+                "name": "Clockwise",
                 "alg": "U R' L R' L' R2"
             },
             {
-                "name": "Counter-Clockwise 3-Cycle (FRU\u2192BLU\u2192BRU)",
+                "name": "Counterclockwise",
                 "alg": "R' L R L2' U L"
             },
             {
-                "name": "Counter-Clockwise 3-Cycle (FRU\u2192FLU\u2192BLU)",
+                "name": "Counterclockwise",
                 "alg": "U' L R' L R L2'"
             },
             {
-                "name": "Counter-Clockwise 3-Cycle (FRU\u2192BRU\u2192FLU)",
+                "name": "Counterclockwise",
                 "alg": "U R2' L R L' R"
             },
             {
-                "name": "Righty (FR flipped only)",
+                "name": "Righty",
                 "alg": "R U' R'"
             },
             {
-                "name": "Righty-L (FL flipped only)",
+                "name": "Righty",
                 "alg": "L U' L'"
             },
             {
-                "name": "Lefty (FL flipped only)",
+                "name": "Lefty",
                 "alg": "L' U L"
             },
             {
-                "name": "Lefty-R (FR flipped only)",
+                "name": "Lefty",
                 "alg": "R' U R"
             },
             {
-                "name": "Sexy (FR flip with AUF)",
+                "name": "Sexy",
                 "alg": "U' R U R'"
             },
             {
-                "name": "Sexy-L (FL flip with AUF)",
+                "name": "Sexy",
                 "alg": "U' L U L'"
             },
             {
-                "name": "Left Sexy (FL flip with reverse AUF)",
+                "name": "Left Sexy",
                 "alg": "U L' U' L"
             },
             {
-                "name": "Left Sexy-R (FR flip with reverse AUF)",
+                "name": "Left Sexy",
                 "alg": "U R' U' R"
             },
             {
-                "name": "2-Flip (FR+FL flipped)",
+                "name": "2 Flip",
                 "alg": "R' L R L' U L' U' L"
             },
             {
-                "name": "DR-Flip (FR+DR flipped) v1",
+                "name": "DR Flip",
                 "alg": "L' U L U' R U' R'"
             },
             {
-                "name": "DR-Flip (FR+DR flipped) v2",
+                "name": "DR Flip",
                 "alg": "L U' L R' L' R L'"
             },
             {
-                "name": "DR-Flip (FR+DR flipped) v3",
+                "name": "DR Flip",
                 "alg": "R' U' L' U' L2 R' L' R2"
             },
             {
-                "name": "DL-Flip (FL+DL flipped) v1",
+                "name": "DL Flip",
                 "alg": "R' L R L' R U' R'"
             },
             {
-                "name": "DL-Flip (FL+DL flipped) v2",
+                "name": "DL Flip",
                 "alg": "L U R U R2' L R L2'"
             },
             {
-                "name": "DL-Flip (FL+DL flipped) v3",
+                "name": "DL Flip",
                 "alg": "R' U R' L R L' R"
             },
             {
-                "name": "DB-Flip (BR+BL flipped) v1",
+                "name": "DB Flip",
                 "alg": "R U R' U L' U' L"
             },
             {
-                "name": "DB-Flip (BR+BL flipped) v2",
+                "name": "DB Flip",
                 "alg": "L R' L R L' U L'"
             },
             {
-                "name": "DB-Flip (BR+BL flipped) v3",
+                "name": "DB Flip",
                 "alg": "R' L R' L' R U' R"
             },
             {
-                "name": "4-Flip (All edges flipped) v1",
+                "name": "4 Flip",
                 "alg": "L' U L R U' R' L' U L R U' R'"
             },
             {
-                "name": "4-Flip (All edges flipped) v2",
+                "name": "4 Flip",
                 "alg": "L R U' R' L' U L R U' R' L'"
             },
             {
-                "name": "4-Flip (All edges flipped) v3",
+                "name": "4 Flip",
                 "alg": "R' L' U L R U' R' L' U L R"
             },
             {
-                "name": "Right Polish Flip v1",
+                "name": "Right Polish Flip",
                 "alg": "R U' R' L' U' L"
             },
             {
-                "name": "Right Polish Flip v2",
+                "name": "Right Polish Flip",
                 "alg": "U' L R U' R' L' U' L U L'"
             },
             {
-                "name": "Right Polish Flip v3",
+                "name": "Right Polish Flip",
                 "alg": "R' L' U L R U' R' U R"
             },
             {
-                "name": "Left Polish Flip v1",
+                "name": "Left Polish Flip",
                 "alg": "L' U L R U R'"
             },
             {
-                "name": "Left Polish Flip v2",
+                "name": "Left Polish Flip",
                 "alg": "L R U' R' L' U L U' L'"
             },
             {
-                "name": "Left Polish Flip v3",
+                "name": "Left Polish Flip",
                 "alg": "U R' L' U L R U R' U' R"
             },
             {
-                "name": "SUS (swap + flip) v1",
+                "name": "SUS",
                 "alg": "R' L R L' U' R' L R L'"
             },
             {
-                "name": "SUS (swap + flip) v2",
+                "name": "SUS",
                 "alg": "L R U' R2' L R L2'"
             },
             {
-                "name": "SUS (swap + flip) v3",
+                "name": "SUS",
                 "alg": "R2' L R L2' U' L R"
             },
             {
-                "name": "Anti-SUS v1",
+                "name": "Anti SUS",
                 "alg": "L R' L' R U L R' L' R"
             },
             {
-                "name": "Anti-SUS v2",
+                "name": "Anti SUS",
                 "alg": "L2 R' L' R2 U R' L'"
             },
             {
-                "name": "Anti-SUS v3",
+                "name": "Anti SUS",
                 "alg": "R' L' U L2 R' L' R2"
             },
             {
-                "name": "Good Niky v1",
+                "name": "Good Niky",
                 "alg": "R U' R' L' U L"
             },
             {
-                "name": "Good Niky v2",
+                "name": "Good Niky",
                 "alg": "L R U R' L'"
             },
             {
-                "name": "Good Niky v3",
+                "name": "Good Niky",
                 "alg": "R' L' U L R"
             },
             {
-                "name": "Good Sochi v1",
+                "name": "Good Sochi",
                 "alg": "L' U L R U' R'"
             },
             {
-                "name": "Good Sochi v2",
+                "name": "Good Sochi",
                 "alg": "L R U' R' L'"
             },
             {
-                "name": "Good Sochi v3",
+                "name": "Good Sochi",
                 "alg": "R' L' U' L R"
             },
             {
-                "name": "Super Sledge v1",
+                "name": "Super Sledge",
                 "alg": "R U' R2' L R L'"
             },
             {
-                "name": "Super Sledge v2",
+                "name": "Super Sledge",
                 "alg": "L U R' L R L2'"
             },
             {
-                "name": "Super Sledge v3",
+                "name": "Super Sledge",
                 "alg": "R' L' U L2 R' L' R U' R"
             },
             {
-                "name": "Super Hedge v1",
+                "name": "Super Hedge",
                 "alg": "L' U L2' R' L' R"
             },
             {
-                "name": "Super Hedge v2",
+                "name": "Super Hedge",
                 "alg": "L R U R2' L R L' U L'"
             },
             {
-                "name": "Super Hedge v3",
+                "name": "Super Hedge",
                 "alg": "R' U' L R' L' R2"
             },
             {
-                "name": "Bad Niky v1",
+                "name": "Bad Niky",
                 "alg": "R U' R' U' L' U L"
             },
             {
-                "name": "Bad Niky v2",
+                "name": "Bad Niky",
                 "alg": "U L U R U' R' U' L'"
             },
             {
-                "name": "Bad Niky v3",
+                "name": "Bad Niky",
                 "alg": "R' U' L' U' L U R"
             },
             {
-                "name": "Bad Sochi v1",
+                "name": "Bad Sochi",
                 "alg": "L' U L U R U' R'"
             },
             {
-                "name": "Bad Sochi v2",
+                "name": "Bad Sochi",
                 "alg": "L U R U R' U' L'"
             },
             {
-                "name": "Bad Sochi v3",
+                "name": "Bad Sochi",
                 "alg": "U' R' U' L' U L U R"
             },
             {
-                "name": "Right Spam v1",
+                "name": "Right Spam",
                 "alg": "R U R' U R' L R L'"
             },
             {
-                "name": "Right Spam v2",
+                "name": "Right Spam",
                 "alg": "L U R U' R' U L'"
             },
             {
-                "name": "Right Spam v3",
+                "name": "Right Spam",
                 "alg": "R' L' U L2 R' L' R U R"
             },
             {
-                "name": "Left Spam v1",
+                "name": "Left Spam",
                 "alg": "L' U' L U' L R' L' R"
             },
             {
-                "name": "Left Spam v2",
+                "name": "Left Spam",
                 "alg": "L R U' R2' L R L' U' L'"
             },
             {
-                "name": "Left Spam v3",
+                "name": "Left Spam",
                 "alg": "R' U' L' U L U' R"
             },
             {
-                "name": "Bad Sledge v1",
+                "name": "Bad Sledge",
                 "alg": "L R' L' R U' R U' R'"
             },
             {
-                "name": "Bad Sledge v2",
+                "name": "Bad Sledge",
                 "alg": "L R U R' U L'"
             },
             {
-                "name": "Bad Sledge v3",
+                "name": "Bad Sledge",
                 "alg": "R' U' R' L R L2' U' L R"
             },
             {
-                "name": "Bad Hedge v1",
+                "name": "Bad Hedge",
                 "alg": "R' L R L' U L' U L"
             },
             {
-                "name": "Bad Hedge v2",
+                "name": "Bad Hedge",
                 "alg": "L U L R' L' R2 U R' L'"
             },
             {
-                "name": "Bad Hedge v3",
+                "name": "Bad Hedge",
                 "alg": "R' L' U' L U' R"
             },
             {
-                "name": "Bad Sexy v1",
+                "name": "Bad Sexy",
                 "alg": "L' U' L U' R U' R'"
             },
             {
-                "name": "Bad Sexy v2",
+                "name": "Bad Sexy",
                 "alg": "U L2 R' L' R2 U' R' L'"
             },
             {
-                "name": "Bad Sexy v3",
+                "name": "Bad Sexy",
                 "alg": "R' L' U' L2 R' L' R2"
             },
             {
-                "name": "Bad Ugly v1",
+                "name": "Bad Ugly",
                 "alg": "R U R' U L' U L"
             },
             {
-                "name": "Bad Ugly v2",
+                "name": "Bad Ugly",
                 "alg": "L R U R2' L R L2'"
             },
             {
-                "name": "Bad Ugly v3",
+                "name": "Bad Ugly",
                 "alg": "U' R2' L R L2' U L R"
             },
             {
-                "name": "Bad Righty v1",
+                "name": "Bad Righty",
                 "alg": "L' U L U' R U R'"
             },
             {
-                "name": "Bad Righty v2",
+                "name": "Bad Righty",
                 "alg": "L U' L R' L' R U' L'"
             },
             {
-                "name": "Bad Righty v3",
+                "name": "Bad Righty",
                 "alg": "R' U' L R' L' R U' R"
             },
             {
-                "name": "Bad Lefty v1",
+                "name": "Bad Lefty",
                 "alg": "R U' R' U L' U' L"
             },
             {
-                "name": "Bad Lefty v2",
+                "name": "Bad Lefty",
                 "alg": "L U R' L R L' U L'"
             },
             {
-                "name": "Bad Lefty v3",
+                "name": "Bad Lefty",
                 "alg": "R' U R' L R L' U R"
             },
             {
-                "name": "Double Sexy (FR+BL cycle) v1",
+                "name": "Double Sexy",
                 "alg": "R U' R' U' R U R'"
             },
             {
-                "name": "Double Sexy (FL+BR cycle) v2",
+                "name": "Double Sexy",
                 "alg": "L U' L' U' L U L'"
             },
             {
-                "name": "Double Ugly v1",
+                "name": "Double Ugly",
                 "alg": "L' U L U L' U' L"
             },
             {
-                "name": "Double Ugly v2",
+                "name": "Double Ugly",
                 "alg": "R' U R U R' U' R"
             }
         ]
     },
     "Megaminx": {
-        "PLL": [
-            {
-                "name": "Skip (Solved)",
-                "alg": "skip"
-            },
-            {
-                "name": "U Perm (3-cycle clockwise)",
-                "alg": "R U' R U R U R U' R' U' R2"
-            },
-            {
-                "name": "U Perm Mirror (3-cycle counter-clockwise)",
-                "alg": "R2 U R U R' U' R' U' R' U R'"
-            },
-            {
-                "name": "A Perm (3-corner clockwise)",
-                "alg": "R' F R' B2 R F' R' B2 R2"
-            },
-            {
-                "name": "A Perm Mirror (3-corner counter-clockwise)",
-                "alg": "R2 B2 R F R' B2 R F' R"
-            },
-            {
-                "name": "Z Perm (2-edge swap adjacent)",
-                "alg": "M2 U M2 U M' U2 M2 U2 M' U2"
-            },
-            {
-                "name": "H Perm (2 opposite edge swaps)",
-                "alg": "M2 U M2 U2 M2 U M2"
-            },
-            {
-                "name": "E Perm (2-corner + 2-edge opposite swap)",
-                "alg": "R B' R' F R B R' F' R B R' F R B' R' F'"
-            },
-            {
-                "name": "T Perm (1-edge + 1-corner adjacent swap)",
-                "alg": "R U R' U' R' F R2 U' R' U' R U R' F'"
-            },
-            {
-                "name": "Y Perm (diagonal corner swap + edge swap)",
-                "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F'"
-            },
-            {
-                "name": "J Perm a (corner + edge adjacent swap)",
-                "alg": "R' U L' U2 R U' R' U2 R L"
-            },
-            {
-                "name": "J Perm b (mirror J Perm)",
-                "alg": "L U' R U2 L' U L U2 L' R'"
-            },
-            {
-                "name": "F Perm (adjacent corner + edge swap)",
-                "alg": "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R"
-            },
-            {
-                "name": "R Perm a (3-cycle corners + edge)",
-                "alg": "R U R' F' R U2 R' U2 R' F R U R U2 R' U'"
-            },
-            {
-                "name": "R Perm b (mirror R Perm a)",
-                "alg": "R' U2 R U2 R' F R U R' U' R' F' R2 U'"
-            },
-            {
-                "name": "V Perm (diagonal corner swap)",
-                "alg": "R' U R' U' y R' F' R2 U' R' U R' F R F"
-            },
-            {
-                "name": "N Perm a (two corner 3-cycles)",
-                "alg": "R' U R' U' R' U' R' U R U R2 U R' U R U2 R' U'"
-            },
-            {
-                "name": "N Perm b (mirror N Perm a)",
-                "alg": "U R U' R U R U R U' R' U' R2 U' R' U' R U' R'"
-            },
-            {
-                "name": "G Perm a (3-cycle edges + 3-cycle corners)",
-                "alg": "R2 U R' U R' U' R U' R2 D U' R' U R D'"
-            },
-            {
-                "name": "G Perm b (mirror G Perm a)",
-                "alg": "R' U' R U D' R2 U R' U R U' R U' R2 D"
-            },
-            {
-                "name": "G Perm c (inverse G Perm a)",
-                "alg": "R2 F2 R U2 R U2 R' F R U R' U' R' F R2"
-            },
-            {
-                "name": "G Perm d (inverse G Perm b)",
-                "alg": "R U R' U' D R2 U' R U' R' U R' U R2 D'"
-            }
-        ]
+        "PLL": []
     }
 };
