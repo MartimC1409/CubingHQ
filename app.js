@@ -1,5 +1,5 @@
 /* ============================================================
-   SimulateCubing — Application Logic (WCA API Integrated)
+   CubingHQ — Application Logic (WCA API Integrated)
    ============================================================ */
 
 (function () {
@@ -585,6 +585,37 @@
             algEventSelect.addEventListener('change', initializeAlgorithmsUI);
         }
 
+        // ---- Professional case previews --------------------------------
+        // Cube-shaped events are displayed the way algorithm sheets are
+        // read: yellow on top, green in front (z2 from the standard
+        // white-top scheme the renderer starts in). Note: twisty-player's
+        // built-in stickering masks are defined against the white-top
+        // scheme and mis-color the case when combined with a z2 setup, so
+        // previews use full colors on purpose.
+        function caseOrientationFor(event, subset, subgroup) {
+            if (event === '2x2' || event === '3x3' || event === '4x4' || event === '5x5' || event === 'Skewb') return 'z2';
+            return '';
+        }
+
+        // Pyraminx previews mimic SpeedCubeDB: a 3D view looking down at
+        // the top vertex (three faces visible around the tip), plus a
+        // small back view for the hidden face.
+        function tunePlayerForEvent(el, twistyPuzzleId) {
+            if (twistyPuzzleId !== 'pyraminx') return;
+            el.setAttribute('visualization', '3D');
+            el.setAttribute('back-view', 'top-right');
+            el.setAttribute('camera-latitude', '90');
+            el.setAttribute('camera-latitude-limit', '90');
+        }
+
+        // Apply the display orientation to a live twisty-player element
+        // (used by the trainer / hint players).
+        function applyCaseAppearance(el, event) {
+            const rot = caseOrientationFor(event, trainerState.currentSubset, trainerState.currentSubgroup);
+            if (rot) el.setAttribute('experimental-setup-alg', rot);
+            else el.removeAttribute('experimental-setup-alg');
+        }
+
         // Lazily instantiate twisty-player previews as cards scroll into view
         // (critical for big sets like ZBLL — 472 cases).
         let _algObserver = null;
@@ -603,12 +634,14 @@
                     // Anchor at the end: the player shows the state the alg
                     // SOLVES (i.e. the case), for every notation incl. SQ1.
                     player.setAttribute('experimental-setup-anchor', 'end');
+                    if (holder.dataset.setupRot) player.setAttribute('experimental-setup-alg', holder.dataset.setupRot);
                     // Square-1 has no 2D net in the renderer — 3D (with back view).
                     if (window.ScrambleEngine) {
                         window.ScrambleEngine.applyViz(player, holder.dataset.puzzle);
                     } else {
                         player.setAttribute('visualization', '2D');
                     }
+                    tunePlayerForEvent(player, holder.dataset.puzzle);
                     player.setAttribute('background', 'none');
                     player.setAttribute('control-panel', 'none');
                     player.setAttribute('viewer-link', 'none');
@@ -624,11 +657,43 @@
         // Track current selection so the search box can re-render.
         let _algCurrent = { event: null, subset: null, subgroup: null };
 
+        // Slot-view selector for Pyraminx L4E: rotates the case picture so
+        // the working slot sits at the front / left / right (y rotations
+        // around the top tip). View-only — algorithms are unchanged.
+        let _pyraSlot = '';
+        let _pyraSlotBar = null;
+        function ensurePyraSlotBar() {
+            if (_pyraSlotBar) return _pyraSlotBar;
+            _pyraSlotBar = document.createElement('div');
+            _pyraSlotBar.id = 'pyra-slot-bar';
+            _pyraSlotBar.style.cssText = 'display:none;gap:0.5rem;margin:0.5rem 0;flex-wrap:wrap;align-items:center;';
+            const lbl = document.createElement('span');
+            lbl.textContent = 'Slot:';
+            lbl.style.cssText = 'color:var(--clr-text-muted);font-size:0.85rem;';
+            _pyraSlotBar.appendChild(lbl);
+            [['', 'Front slot'], ["y'", 'Left slot'], ['y', 'Right slot']].forEach(([rot, label], idx) => {
+                const b = document.createElement('button');
+                b.className = 'btn btn-secondary btn-sm pyra-slot-btn' + (idx === 0 ? ' active' : '');
+                b.textContent = label;
+                b.addEventListener('click', () => {
+                    _pyraSlot = rot;
+                    _pyraSlotBar.querySelectorAll('.pyra-slot-btn').forEach(x => x.classList.toggle('active', x === b));
+                    if (_algCurrent.event) renderAlgorithms(_algCurrent.event, _algCurrent.subset, _algCurrent.subgroup);
+                });
+                _pyraSlotBar.appendChild(b);
+            });
+            algSubsetContainer.parentNode.insertBefore(_pyraSlotBar, algSubsetContainer.nextSibling);
+            return _pyraSlotBar;
+        }
+
         // Render logic
         function renderAlgorithms(event, subset, subgroup) {
             const grid = $('#algorithms-grid');
             if (!grid || typeof ALGORITHMS === 'undefined') return;
             _algCurrent = { event, subset, subgroup };
+
+            ensurePyraSlotBar().style.display =
+                (event === 'Pyraminx' && subset === 'L4E') ? 'flex' : 'none';
 
             grid.innerHTML = '';
             let algs = [];
@@ -670,6 +735,11 @@
                 if (isPreviewable(event, item.alg)) {
                     holder.dataset.puzzle = puzzleName;
                     holder.dataset.alg = previewAlg;
+                    let setupRot = caseOrientationFor(event, subset, subgroup);
+                    if (event === 'Pyraminx' && subset === 'L4E' && _pyraSlot) {
+                        setupRot = (_pyraSlot + ' ' + setupRot).trim();
+                    }
+                    if (setupRot) holder.dataset.setupRot = setupRot;
                     holder.innerHTML = '<span style="color:var(--clr-text-muted);font-size:0.75rem;">…</span>';
                     obs.observe(holder);
                 } else {
@@ -807,6 +877,8 @@
             const validAlgs = algData.filter(a => a.alg && a.alg !== 'skip');
             trainerState.algList = validAlgs;
             trainerState.currentEvent = event;
+            trainerState.currentSubset = subset;
+            trainerState.currentSubgroup = subgroupVal;
 
             const label = subgroupVal ? `${subset} ${subgroupVal}` : subset;
             trainerState.currentSetName = `${event} ${label}`;
@@ -876,6 +948,8 @@
                 window.ScrambleEngine.applyViz($('#trainer-twisty'), puzzle);
                 window.ScrambleEngine.applyViz($('#hint-twisty'), puzzle);
             }
+            tunePlayerForEvent($('#trainer-twisty'), puzzle);
+            tunePlayerForEvent($('#hint-twisty'), puzzle);
 
             renderTimeList();
             loadNextCase();
@@ -909,6 +983,7 @@
                 if (window.ScrambleEngine) caseAlg = window.ScrambleEngine.normalizeAlgFor(getPuzzleName(event), caseAlg);
                 twisty.style.visibility = 'visible';
                 twisty.setAttribute('experimental-setup-anchor', 'end');
+                applyCaseAppearance(twisty, event);
                 twisty.setAttribute('alg', caseAlg);
             } else {
                 twisty.setAttribute('alg', '');
@@ -1011,7 +1086,9 @@
                 hintTwisty.style.visibility = 'visible';
                 hintTwisty.setAttribute('puzzle', puzzle);
                 if (window.ScrambleEngine) window.ScrambleEngine.applyViz(hintTwisty, puzzle);
+                tunePlayerForEvent(hintTwisty, puzzle);
                 hintTwisty.setAttribute('experimental-setup-anchor', 'end');
+                applyCaseAppearance(hintTwisty, event);
                 hintTwisty.setAttribute('alg', caseAlg);
             } else {
                 hintTwisty.setAttribute('alg', '');
@@ -2683,7 +2760,9 @@
         if (state.currentSolve >= state.numSolves) return;
         const scramble = state.scrambles[state.currentSolve];
         const scrambleEl = $('#scramble-text');
-        scrambleEl.textContent = scramble;
+        scrambleEl.textContent = state.event === 'sq1'
+            ? 'Square-1 scrambles are under construction — check back soon!'
+            : scramble;
         renderCubeNet(state.event);
         // Also refresh scorecard to reveal current scramble and hide future
         renderScorecardTemplate();
@@ -2723,14 +2802,13 @@
 
         const scramble = state.scrambles[state.currentSolve];
 
-        // Square-1: use our own flat diagram instead of twisty-player's
-        // 3D/hyper-orbit renderer (which draws extra bevel facelets and
-        // looks like ~2x too many pieces per layer).
-        if (event === 'sq1' && window.Square1Drawer) {
-            const holder = document.createElement('div');
-            holder.style.cssText = 'width:100%;max-width:260px;margin:0 auto;';
-            container.appendChild(holder);
-            window.Square1Drawer.render(holder, scramble);
+        // Square-1 diagram: under construction — show a placeholder
+        // instead of a diagram we're not yet confident is correct.
+        if (event === 'sq1') {
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = 'color: var(--clr-text-muted); font-size: 0.85rem; text-align: center;';
+            placeholder.textContent = 'Square-1 diagram — under construction';
+            container.appendChild(placeholder);
             return;
         }
 
@@ -3380,7 +3458,7 @@
         const validSolves = state.solves.filter(s => s.penalty !== 'dnf');
         const best = validSolves.length > 0 ? Math.min(...validSolves.map(s => s.result)) : Infinity;
 
-        let text = `SimulateCubing Results\n━━━━━━━━━━━━━━━━━━━━━\n`;
+        let text = `CubingHQ Results\n━━━━━━━━━━━━━━━━━━━━━\n`;
         text += `Competition: ${state.compName}\nEvent: ${EVENT_NAMES[state.event]} | ${ROUND_NAMES[state.round]}\n`;
         text += `Player: ${state.playerName} (${state.playerWcaId})\n━━━━━━━━━━━━━━━━━━━━━\n`;
 

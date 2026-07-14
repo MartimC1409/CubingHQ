@@ -1,9 +1,10 @@
 /* ============================================================
-   SimulateCubing — Standalone Square-1 scramble diagram
+   CubingHQ — Standalone Square-1 scramble diagram
    ------------------------------------------------------------
    Independent of cubing.js / twisty-player. Draws a flat, two-
-   layer diagram (top ring + bottom ring + equator bar) from a
-   WCA Square-1 scramble string, e.g. "(3,0) / (-1,1) / (0,-3) /".
+   layer diagram (csTimer-style: two squares with side-sticker
+   tabs + equator bar) from a WCA Square-1 scramble string,
+   e.g. "(3,0) / (-1,1) / (0,-3) /".
 
    Model:
    - Each layer is 12 angular "units" of 30 degrees each.
@@ -38,11 +39,14 @@
     function makeSolvedLayer(poleColor, isTop) {
         // units[i] = { piece } ; piece is shared object reference for both
         // units of a corner (subSlot 0/1 distinguishes which half).
+        // Color offset puts green (front) on the edge facing the equator
+        // bar: the bottom edge for the top layer, top edge for the bottom.
+        const off = isTop ? 2 : 0;
         const units = new Array(12);
         let unitIdx = 0;
         for (let c = 0; c < 4; c++) {
-            const sideA = COLORS[c];
-            const sideB = COLORS[(c + 1) % 4];
+            const sideA = COLORS[(c + off) % 4];
+            const sideB = COLORS[(c + off + 1) % 4];
             const corner = { type: 'corner', pole: poleColor, sideA, sideB, flipped: false };
             units[unitIdx] = { piece: corner, subSlot: 0 };
             units[unitIdx + 1] = { piece: corner, subSlot: 1 };
@@ -88,8 +92,11 @@
 
     // A slice is legal only if no piece straddles the 11/0 or 5/6 boundary
     // in either layer (i.e. unit 0 and unit 6 must each start a new piece).
+    // Detect the straddle by shared piece reference, not subSlot: a slice
+    // can reverse which corner half (subSlot 0 vs 1) lands first, so a
+    // reversed corner legitimately starting AT the cut has subSlot 1 there.
     function sliceIsLegal(units) {
-        return units[0].subSlot !== 1 && units[6].subSlot !== 1;
+        return units[0].piece !== units[11].piece && units[6].piece !== units[5].piece;
     }
 
     function applySlice(state) {
@@ -134,29 +141,62 @@
     }
 
     // ---------- Color lookup ----------
-    function unitColor(unit) {
+    // The layer-facing sticker of a piece is ALWAYS its pole sticker: when
+    // a slice moves a piece to the other layer the piece is inverted, so
+    // its pole sticker faces that layer's outside. `flipped` only mirrors
+    // the left/right order of a corner's two side stickers.
+    function faceColor(unit) {
+        return unit.piece.pole;
+    }
+
+    function sideColor(unit) {
         const p = unit.piece;
-        if (p.type === 'edge') return p.flipped ? p.side : p.pole;
-        // corner
-        if (!p.flipped) return p.pole;
-        return unit.subSlot === 0 ? p.sideA : p.sideB;
+        if (p.type === 'edge') return p.side;
+        if (unit.subSlot === 0) return p.flipped ? p.sideB : p.sideA;
+        return p.flipped ? p.sideA : p.sideB;
     }
 
-    // ---------- Drawing ----------
-    function polar(cx, cy, r, angleDeg) {
-        const a = (angleDeg - 90) * Math.PI / 180;
-        return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    // ---------- Drawing (csTimer-style squares) ----------
+    // Each layer is a square viewed from its pole. A piece spanning
+    // angles [a1,a2] (30° units, 0° at 12 o'clock, clockwise) is a wedge
+    // from the center to the square's boundary; side stickers are drawn
+    // as tabs just outside the square edge.
+    function squarePoint(cx, cy, size, angleDeg) {
+        const a = angleDeg * Math.PI / 180;
+        const dx = Math.sin(a), dy = -Math.cos(a);
+        const k = size / Math.max(Math.abs(dx), Math.abs(dy));
+        return [cx + dx * k, cy + dy * k];
     }
 
-    function wedgePath(cx, cy, r, startAngle, endAngle) {
-        const [x1, y1] = polar(cx, cy, r, startAngle);
-        const [x2, y2] = polar(cx, cy, r, endAngle);
-        const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
-        return `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+    // Boundary points from a1 to a2 including any square corners
+    // (45°, 135°, 225°, 315°) crossed along the way.
+    function boundaryPoints(cx, cy, size, a1, a2) {
+        const pts = [squarePoint(cx, cy, size, a1)];
+        for (let c = 45; c < 720; c += 90) {
+            if (c > a1 && c < a2) pts.push(squarePoint(cx, cy, size, c));
+        }
+        pts.push(squarePoint(cx, cy, size, a2));
+        return pts;
     }
 
-    function drawLayer(svgParts, units, cx, cy, r) {
+    function polyAttr(pts) {
+        return pts.map(p => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
+    }
+
+    function drawLayer(svgParts, units, cx, cy, size) {
+        const TAB_GAP = 1.5, TAB_W = 8;
+        // Side-sticker tabs (one per unit, outside the square edge).
+        for (let i = 0; i < 12; i++) {
+            const a1 = i * 30, a2 = a1 + 30;
+            const inner = boundaryPoints(cx, cy, size + TAB_GAP, a1, a2);
+            const outer = boundaryPoints(cx, cy, size + TAB_GAP + TAB_W, a1, a2).reverse();
+            svgParts.push(`<polygon points="${polyAttr(inner.concat(outer))}" fill="${sideColor(units[i])}" stroke="#222" stroke-width="1"/>`);
+        }
+        // Piece bodies (corner pair = one merged wedge). A corner may
+        // straddle the 12 o'clock boundary in the final state (units 11+0):
+        // skip unit 0 and let the merge at i=11 wrap past 360°.
         let i = 0;
+        if (units[0].piece.type === 'corner' && units[0].piece === units[11].piece) i = 1;
         while (i < 12) {
             const unit = units[i];
             // A corner's two halves always occupy adjacent array slots, but
@@ -164,25 +204,11 @@
             // so detect the pair by shared piece reference, not by subSlot.
             const isCornerStart = unit.piece.type === 'corner'
                 && units[(i + 1) % 12].piece === unit.piece;
-            const startAngle = i * 30;
-            if (isCornerStart) {
-                const endAngle = startAngle + 60;
-                const midAngle = startAngle + 30;
-                const outlineColor = unitColor(unit); // first half color (or merged pole)
-                svgParts.push(`<path d="${wedgePath(cx, cy, r, startAngle, endAngle)}" fill="${outlineColor}" stroke="#222" stroke-width="1.5"/>`);
-                if (unit.piece.flipped) {
-                    // overlay the second half in its own color, no stroke,
-                    // so the pair still reads as ONE merged piece.
-                    const secondColor = unitColor(units[(i + 1) % 12]);
-                    svgParts.push(`<path d="${wedgePath(cx, cy, r, midAngle, endAngle)}" fill="${secondColor}" stroke="none"/>`);
-                    svgParts.push(`<line x1="${cx}" y1="${cy}" x2="${polar(cx, cy, r, midAngle)[0].toFixed(2)}" y2="${polar(cx, cy, r, midAngle)[1].toFixed(2)}" stroke="#222" stroke-width="0.4" stroke-opacity="0.35"/>`);
-                }
-                i += 2;
-            } else {
-                const endAngle = startAngle + 30;
-                svgParts.push(`<path d="${wedgePath(cx, cy, r, startAngle, endAngle)}" fill="${unitColor(unit)}" stroke="#222" stroke-width="1.5"/>`);
-                i += 1;
-            }
+            const a1 = i * 30;
+            const a2 = a1 + (isCornerStart ? 60 : 30);
+            const pts = [[cx, cy]].concat(boundaryPoints(cx, cy, size, a1, a2));
+            svgParts.push(`<polygon points="${polyAttr(pts)}" fill="${faceColor(unit)}" stroke="#222" stroke-width="1.5"/>`);
+            i += isCornerStart ? 2 : 1;
         }
     }
 
@@ -191,19 +217,18 @@
         const state = makeSolvedState();
         applyMoves(state, parseScramble(scrambleStr || ''));
 
-        const W = 220, topCY = 95, botCY = 235, R = 80;
+        const W = 220, topCY = 82, botCY = 248, S = 56;
         const parts = [];
         parts.push(`<svg viewBox="0 0 ${W} 330" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:260px;display:block;margin:0 auto;">`);
-        drawLayer(parts, state.top, W / 2, topCY, R);
-        // equator bar: small rect showing alignment, colored from the
-        // boundary units on each side.
-        const barY = topCY + R + 8;
-        const leftColor = unitColor(state.top[11]);
-        const rightColor = unitColor(state.top[0]);
-        const offset = state.middleFlipped ? 14 : 0;
-        parts.push(`<rect x="${W / 2 - 40 + offset}" y="${barY}" width="40" height="14" fill="${leftColor}" stroke="#222" stroke-width="1"/>`);
-        parts.push(`<rect x="${W / 2 + offset}" y="${barY}" width="40" height="14" fill="${rightColor}" stroke="#222" stroke-width="1"/>`);
-        drawLayer(parts, state.bottom, W / 2, botCY, R);
+        drawLayer(parts, state.top, W / 2, topCY, S);
+        // Equator bar: shows middle-slice alignment. The front of the
+        // middle layer is green when square; after an odd number of
+        // slices the right half shows the back color instead.
+        const barY = (topCY + botCY) / 2 - 7;
+        const offset = state.middleFlipped ? 12 : 0;
+        parts.push(`<rect x="${W / 2 - 40}" y="${barY}" width="40" height="14" fill="green" stroke="#222" stroke-width="1"/>`);
+        parts.push(`<rect x="${W / 2 + offset}" y="${barY}" width="40" height="14" fill="${state.middleFlipped ? 'blue' : 'green'}" stroke="#222" stroke-width="1"/>`);
+        drawLayer(parts, state.bottom, W / 2, botCY, S);
         parts.push(`</svg>`);
 
         container.innerHTML = parts.join('');

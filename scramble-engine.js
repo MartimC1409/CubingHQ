@@ -1,11 +1,17 @@
 /* ============================================================
-   SimulateCubing — Shared Scramble Engine
+   CubingHQ — Shared Scramble Engine
    ------------------------------------------------------------
    Single source of truth for scramble generation and puzzle ids.
 
-   - Primary: official random-state scrambles from cubing.js
-     (same scramble program family used by csTimer / WCA tooling).
-   - Fallback: local random-move generators (offline safe).
+   - Primary: official WCA random-state scrambles from the
+     `cubing/scramble` program (cubing.js) — the browser build of
+     the WCA scramble ecosystem, producing TNoodle-grade
+     random-state scrambles for every WCA event (this is the same
+     program that powers scramble.cubing.net). TNoodle itself is a
+     JVM application and cannot run inside a browser; this is the
+     official web equivalent.
+   - Fallback: local random-move generators, used ONLY when the
+     scramble program cannot be loaded at all (fully offline).
 
    Exposed as window.ScrambleEngine:
      .get(eventId)      -> Promise<string>  (scramble text)
@@ -82,11 +88,35 @@
         return alg;
     }
 
-    // ---------- cubing.js loader (cached) ----------
+    // ---------- WCA scramble program loader (cached, multi-CDN) ----------
+    // Primary CDN first; mirrors keep random-state scrambles available even
+    // if one CDN is unreachable. Only a total failure of all three drops the
+    // engine down to the local random-move fallback.
+    const SCRAMBLE_PROGRAM_CDNS = [
+        'https://cdn.cubing.net/v0/js/cubing/scramble',
+        'https://cdn.jsdelivr.net/npm/cubing@0/scramble/+esm',
+        'https://esm.sh/cubing@0/scramble',
+    ];
+
     let scramblerModulePromise = null;
+    let cdnIndex = 0;
+
+    async function importFirstAvailable(urls) {
+        let lastErr = null;
+        for (const url of urls) {
+            try {
+                return await import(url);
+            } catch (err) {
+                lastErr = err;
+                console.warn(`[ScrambleEngine] could not load scramble program from ${url}`, err);
+            }
+        }
+        throw lastErr || new Error('No scramble program CDN reachable');
+    }
+
     function loadScrambler() {
         if (!scramblerModulePromise) {
-            scramblerModulePromise = import('https://cdn.cubing.net/v0/js/cubing/scramble')
+            scramblerModulePromise = importFirstAvailable(SCRAMBLE_PROGRAM_CDNS.slice(cdnIndex))
                 .catch(err => {
                     scramblerModulePromise = null; // allow retry later
                     throw err;
@@ -97,14 +127,25 @@
 
     async function get(eventId) {
         const wcaId = wcaEventId(eventId);
-        try {
-            const { randomScrambleForEvent } = await loadScrambler();
-            const alg = await randomScrambleForEvent(wcaId);
-            return alg.toString();
-        } catch (e) {
-            console.warn(`[ScrambleEngine] random-state scramble failed for ${wcaId}, using fallback`, e);
-            return fallbackScramble(wcaId);
+        // Retry transient failures (worker hiccup, first-load race). A module
+        // whose lazy solver chunk keeps failing will never succeed, so after
+        // two failures on the same CDN roll over to the next one.
+        const maxAttempts = 2 * SCRAMBLE_PROGRAM_CDNS.length;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                const { randomScrambleForEvent } = await loadScrambler();
+                const alg = await randomScrambleForEvent(wcaId);
+                return alg.toString();
+            } catch (e) {
+                console.warn(`[ScrambleEngine] random-state scramble attempt ${attempt} failed for ${wcaId}`, e);
+                if (attempt % 2 === 0 && cdnIndex < SCRAMBLE_PROGRAM_CDNS.length - 1) {
+                    cdnIndex++;
+                    scramblerModulePromise = null;
+                }
+            }
         }
+        console.warn(`[ScrambleEngine] all random-state attempts failed for ${wcaId} — using local fallback (offline?)`);
+        return fallbackScramble(wcaId);
     }
 
     function prewarm(eventId) {
@@ -112,6 +153,11 @@
         // real scramble (esp. 4x4+ / sq1) appears quickly.
         get(eventId).catch(() => { /* ignored */ });
     }
+
+    // Warm up the scramble program as soon as the page goes idle so the
+    // first real scramble is instant and CDN problems surface early.
+    const _idle = window.requestIdleCallback || (cb => setTimeout(cb, 1500));
+    _idle(() => prewarm('333'));
 
     // ---------- Local fallbacks (offline safe, WCA-shaped) ----------
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -172,16 +218,79 @@
     }
 
     function sq1Scramble() {
-        // Random-move approximation (real random-state comes from cubing.js).
+        // Random-move approximation (real random-state comes from the WCA
+        // scramble program). Tracks the actual piece layout of both layers so
+        // every twist keeps the slice plane clear — no illegal moves.
+        // Layers are arrays of piece widths in 30° units (corner=2, edge=1),
+        // clockwise from the slice plane; widths always sum to 12. Solved
+        // layers start with a corner at the slice plane (matches the WCA
+        // solved state and Square1Drawer's model).
+        let top = [2, 1, 2, 1, 2, 1, 2, 1];
+        let bottom = [2, 1, 2, 1, 2, 1, 2, 1];
+
+        function boundaries(layer) {
+            const b = new Set();
+            let acc = 0;
+            for (const w of layer) { b.add(acc); acc += w; }
+            return b;
+        }
+
+        // Rotations (in units) that leave piece boundaries at both slice
+        // positions (0 and 6) so the following "/" is a legal move.
+        function legalTurns(layer) {
+            const b = boundaries(layer);
+            const legal = [];
+            for (let a = -5; a <= 6; a++) {
+                if (b.has(((-a % 12) + 12) % 12) && b.has(((6 - a) % 12 + 12) % 12)) legal.push(a);
+            }
+            return legal;
+        }
+
+        function rotate(layer, a) {
+            // Shift the layer so the piece boundary at position (-a mod 12)
+            // becomes the new start (position 0 after turning by `a`).
+            const start = ((-a % 12) + 12) % 12;
+            let acc = 0, idx = 0;
+            for (let i = 0; i < layer.length; i++) {
+                if (acc === start) { idx = i; break; }
+                acc += layer[i];
+            }
+            return layer.slice(idx).concat(layer.slice(0, idx));
+        }
+
+        function half(layer, fromStart) {
+            // Split a layer (with boundaries at 0 and 6) into [0,6) / [6,12).
+            const first = [];
+            const second = [];
+            let acc = 0;
+            for (const w of layer) {
+                (acc < 6 ? first : second).push(w);
+                acc += w;
+            }
+            return fromStart ? first : second;
+        }
+
         const moves = [];
         for (let i = 0; i < 12; i++) {
-            let top = 0, bot = 0;
-            while (top === 0 && bot === 0) {
-                top = Math.floor(Math.random() * 12) - 5; // -5..6
-                bot = Math.floor(Math.random() * 12) - 5;
+            const tOptions = legalTurns(top);
+            const bOptions = legalTurns(bottom);
+            let a = pick(tOptions);
+            let b = pick(bOptions);
+            if (a === 0 && b === 0) {
+                const nzTop = tOptions.filter(v => v !== 0);
+                const nzBot = bOptions.filter(v => v !== 0);
+                if (Math.random() < 0.5 && nzTop.length) a = pick(nzTop);
+                else if (nzBot.length) b = pick(nzBot);
+                else if (nzTop.length) a = pick(nzTop);
             }
-            moves.push(`(${top},${bot})`);
-            moves.push('/');
+            moves.push(`(${a},${b})/`);
+            top = rotate(top, a);
+            bottom = rotate(bottom, b);
+            // "/" swaps the right halves (each flipped 180°, reversing order).
+            const newTop = half(top, true).concat(half(bottom, false).reverse());
+            const newBottom = half(bottom, true).concat(half(top, false).reverse());
+            top = newTop;
+            bottom = newBottom;
         }
         return moves.join(' ');
     }

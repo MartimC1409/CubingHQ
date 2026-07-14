@@ -1,5 +1,5 @@
 /* ============================================================
-   SimulateCubing — csTimer-Compatible Timer Module
+   CubingHQ — csTimer-Compatible Timer Module
    ============================================================ */
 
 (function () {
@@ -941,8 +941,14 @@
     }
 
     function renderScramble() {
+        const sess = getSession();
         const disp = $('#cs-scramble-text');
-        if (disp) disp.textContent = TSTATE.currentScramble || 'Generating scramble…';
+        if (!disp) return;
+        if (sess && sess.event === 'sq1') {
+            disp.textContent = 'Square-1 scrambles are under construction — check back soon!';
+            return;
+        }
+        disp.textContent = TSTATE.currentScramble || 'Generating scramble…';
     }
 
     function renderTwisty() {
@@ -953,12 +959,13 @@
         const info = EVENT_INFO[sess.event];
         const puzzle = info?.puzzle || '3x3x3';
 
-        // Square-1: use our own flat diagram (twisty-player's renderer
-        // draws extra bevel facelets and looks like ~2x too many pieces).
-        if (sess.event === 'sq1' && window.Square1Drawer && sq1Diagram) {
+        // Square-1 diagram: under construction — show a placeholder
+        // instead of a diagram we're not yet confident is correct.
+        if (sess.event === 'sq1' && sq1Diagram) {
             twisty.style.display = 'none';
-            sq1Diagram.style.display = '';
-            window.Square1Drawer.render(sq1Diagram, TSTATE.currentScramble || '');
+            sq1Diagram.style.display = 'flex';
+            sq1Diagram.style.cssText += 'align-items:center;justify-content:center;text-align:center;color:var(--clr-text-muted);font-size:0.85rem;padding:1rem;';
+            sq1Diagram.textContent = 'Square-1 diagram — under construction';
             return;
         }
         if (sq1Diagram) sq1Diagram.style.display = 'none';
@@ -1286,7 +1293,7 @@
             settings: TSTATE.settings,
             activeSession: TSTATE.activeSession,
             exportedAt: nowIso(),
-            app: 'SimulateCubing/csTimer-Clone v1'
+            app: 'CubingHQ/csTimer-Clone v1'
         }, null, 2);
         const blob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);

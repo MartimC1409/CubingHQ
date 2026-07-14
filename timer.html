@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timer — SimulateCubing</title>
+    <title>Timer — CubingHQ</title>
     <meta name="description" content="Standalone csTimer-style speedcubing practice timer. Hold space to start, tap any key to stop.">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3Crect x='12' y='2' width='8' height='8' rx='1.5' fill='%23F7C948'/%3E%3Crect x='22' y='2' width='8' height='8' rx='1.5' fill='%232ECC71'/%3E%3Crect x='2' y='12' width='8' height='8' rx='1.5' fill='%23E74C3C'/%3E%3Crect x='12' y='12' width='8' height='8' rx='1.5' fill='%236366F1'/%3E%3Crect x='22' y='12' width='8' height='8' rx='1.5' fill='%233498DB'/%3E%3Crect x='2' y='22' width='8' height='8' rx='1.5' fill='%239B59B6'/%3E%3Crect x='12' y='22' width='8' height='8' rx='1.5' fill='%231ABC9C'/%3E%3Crect x='22' y='22' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -89,7 +89,7 @@
                         <rect x="22" y="22" width="8" height="8" rx="1.5" fill="#FF6B35"/>
                     </svg>
                 </div>
-                <span class="brand-name">Simulate<span class="brand-accent">Cubing</span></span>
+                <span class="brand-name">Cubing<span class="brand-accent">HQ</span></span>
             </div>
         </nav>
     </header>
@@ -375,9 +375,9 @@
             return id;
         }
     </script>
-    <script src="scramble-engine.js"></script>
-    <script src="square1-drawer.js"></script>
-    <script src="timer.js"></script>
+    <script src="scramble-engine.js?v=2"></script>
+    <script src="square1-drawer.js?v=2"></script>
+    <script src="timer.js?v=2"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.TimerModule && typeof window.TimerModule.init === 'function') {

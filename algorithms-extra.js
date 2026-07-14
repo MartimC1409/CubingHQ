@@ -1,5 +1,5 @@
 /* ============================================================
-   SimulateCubing — Extended Algorithm Database
+   CubingHQ — Extended Algorithm Database
    ------------------------------------------------------------
    Sets sourced from SpeedCubeDB (https://speedcubedb.com), using
    the top community-voted algorithm per case. Merged into the
@@ -358,17 +358,6 @@
             { name: '19f (Peanut + Wat)', alg: "z S z2 S z H z H" },
             { name: '19g (Peanut + Wat)', alg: "z2 S z2 S z H z S" },
             { name: '19h (Peanut + Wat)', alg: "z S z2 S z' S z' H" }
-        ]
-    });
-
-    // ==================== Pyraminx — Last Layer (L3E) ====================
-    merge('Pyraminx', {
-        'Last Layer': [
-            { name: 'Sune', alg: "R U R' U R U R'", setup: "L' U' L U' L' U' L" },
-            { name: 'Anti Sune', alg: "R' U' R U' R' U' R", setup: "R U R' U R U R'" },
-            { name: 'Lefty Bars', alg: "R' U' L' U L R", setup: "R' L' U' L U R" },
-            { name: 'Righty Bars', alg: "U' R' L' U' L U R", setup: "L R U R' U' L'" },
-            { name: '2 Flip', alg: "L R' L' R U' R U R'", setup: "U' R' U L' U L U' R" }
         ]
     });
 })();
