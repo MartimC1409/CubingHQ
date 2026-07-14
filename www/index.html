@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0B0D17">
+    <title>CubingHQ — WCA Competition Simulator</title>
+    <meta name="description" content="Practice for your upcoming Rubik's cube competition with CubingHQ! Simulate real WCA competition rounds with scrambles, timers, scorecards, and live leaderboards.">
+    <meta property="og:title" content="CubingHQ — WCA Competition Simulator">
+    <meta property="og:description" content="The ultimate speedcubing competition simulator. Practice under real competition pressure.">
+    <meta property="og:type" content="website">
+    <meta name="keywords" content="speedcubing, WCA, competition simulator, Rubik's cube, cubing practice">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3Crect x='12' y='2' width='8' height='8' rx='1.5' fill='%23F7C948'/%3E%3Crect x='22' y='2' width='8' height='8' rx='1.5' fill='%232ECC71'/%3E%3Crect x='2' y='12' width='8' height='8' rx='1.5' fill='%23E74C3C'/%3E%3Crect x='12' y='12' width='8' height='8' rx='1.5' fill='%236366F1'/%3E%3Crect x='22' y='12' width='8' height='8' rx='1.5' fill='%233498DB'/%3E%3Crect x='2' y='22' width='8' height='8' rx='1.5' fill='%239B59B6'/%3E%3Crect x='12' y='22' width='8' height='8' rx='1.5' fill='%231ABC9C'/%3E%3Crect x='22' y='22' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="mobile-app.css">
+    <!-- Chart.js for stats -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- TwistyPlayer for native algorithm rendering -->
+    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YQSNC2LYVS"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-YQSNC2LYVS');
+    </script>
+    
+    <!-- AdSense removed for the native app build: AdSense is web-only and its policy prohibits serving inside a native WebView shell. -->
+</head>
+<body>
+    <a href="#app-main" class="skip-link">Skip to main content</a>
+    <!-- Animated Background -->
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow bg-glow--1"></div>
+    <div class="bg-glow bg-glow--2"></div>
+    <div class="bg-glow bg-glow--3"></div>
+
+    <!-- Navigation -->
+    <header id="site-header">
+        <nav class="navbar">
+            <div class="nav-brand" id="nav-logo" style="cursor: pointer;">
+                <div class="brand-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <rect x="2" y="2" width="8" height="8" rx="1.5" fill="#FF6B35"/>
+                        <rect x="12" y="2" width="8" height="8" rx="1.5" fill="#F7C948"/>
+                        <rect x="22" y="2" width="8" height="8" rx="1.5" fill="#2ECC71"/>
+                        <rect x="2" y="12" width="8" height="8" rx="1.5" fill="#E74C3C"/>
+                        <rect x="12" y="12" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.15"/>
+                        <rect x="22" y="12" width="8" height="8" rx="1.5" fill="#3498DB"/>
+                        <rect x="2" y="22" width="8" height="8" rx="1.5" fill="#9B59B6"/>
+                        <rect x="12" y="22" width="8" height="8" rx="1.5" fill="#1ABC9C"/>
+                        <rect x="22" y="22" width="8" height="8" rx="1.5" fill="#FF6B35"/>
+                    </svg>
+                </div>
+                <span class="brand-name">Cubing<span class="brand-accent">HQ</span></span>
+            </div>
+        </nav>
+    </header>
+
+    <div class="nav-links" id="nav-links" role="navigation" aria-label="Primary navigation">
+        <button class="nav-btn" id="nav-home-btn" title="Home">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Home
+        </button>
+        <button class="nav-btn" id="nav-timer-btn" title="Timer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Timer
+        </button>
+        <button class="nav-btn" id="nav-simulation-btn" title="Comp Simulation">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            Comp Sim
+        </button>
+        <button class="nav-btn" id="nav-records-btn" title="Records & Rankings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+            Records
+        </button>
+        <button class="nav-btn" id="nav-competitions-btn" title="Competitions">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Competitions
+        </button>
+        <button class="nav-btn" id="nav-algorithms-btn" title="Algorithms & Drills">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Algorithms
+        </button>
+        <button class="nav-btn" id="nav-history-btn" title="History">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 14"/></svg>
+            History
+        </button>
+        <!-- Battle Button -->
+        <button class="nav-btn nav-btn--battle" id="nav-battle-btn" title="Battle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+            Battle
+        </button>
+        <!-- Login Button -->
+        <button class="nav-btn" id="nav-login-btn" title="Login">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            Login
+        </button>
+        <div class="theme-toggle" id="theme-toggle" title="Toggle theme" role="button" tabindex="0" aria-label="Toggle light/dark theme">
+            <svg class="theme-icon sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="theme-icon moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+    </div>    <!-- Login Modal (Premium Redesign) -->
+    <div id="login-modal" class="modal auth-modal" style="display:none;">
+        <div class="modal-content glass-panel">
+            <div class="modal-header" style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <h2 style="margin: 0;">Welcome!</h2>
+                <p class="auth-subtitle" style="margin: 0; font-size: 0.9em; opacity: 0.8;">Login to access your personalized simulation data.</p>
+                <button id="login-close-btn" class="modal-close-btn" style="position: absolute; right: 20px; top: 20px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-bottom: var(--space-xl); padding-top: var(--space-md);">
+                <div class="login-methods" style="justify-content: center; display: flex;">
+                    <button id="wca-login-btn" class="btn auth-provider-btn wca-auth-btn" style="width: 100%; max-width: 300px; display: flex; align-items: center; justify-content: center;">
+                        Login with WCA
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main id="app-main">
+        <!-- ========== TIMER VIEW (csTimer Clone) ========== -->
+        <section id="timer-view" class="view">
+            <div class="cstimer-layout">
+                <!-- LEFT: Session tabs + Stats summary -->
+                <aside class="cstimer-left">
+                    <div class="cs-session-tabs" id="cs-session-tabs">
+                        <!-- Session tabs injected by timer.js -->
+                    </div>
+                    <div class="cs-panel">
+                        <div class="cs-panel-header">
+                            <h3 class="cs-panel-title">
+                                <span id="cs-session-title">Session</span>
+                                <button id="cs-btn-rename-session" class="cs-icon-btn" title="Rename session">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                            </h3>
+                            <div class="cs-event-line">
+                                <span class="cs-event-label" id="cs-event-label">3x3x3</span>
+                                <span class="cs-event-naming" id="cs-event-naming">Average of 5</span>
+                            </div>
+                        </div>
+                        <div class="cs-stats-summary" id="cs-stats-summary">
+                            <!-- Populated by timer.js -->
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- CENTER: Timer + Scramble -->
+                <main class="cstimer-center">
+                    <div class="cs-scramble-bar">
+                        <div class="cs-scramble-text" id="cs-scramble-text">—</div>
+                        <div class="cs-scramble-actions">
+                            <button id="cs-btn-new-scramble" class="cs-btn-secondary" title="New scramble (press space when idle)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                New Scramble
+                            </button>
+                        </div>
+                    </div>
+
+                    <twisty-player id="cs-twisty" puzzle="3x3x3" alg="" visualization="2D" background="none" control-panel="none" viewer-link="none" class="cs-twisty"></twisty-player>
+
+                    <div class="cs-timer-display-area" id="cs-timer-display-area">
+                        <div class="cs-status-text" id="cs-status-text">Hold Space / Tap</div>
+                        <div class="cs-timer-display" id="timer-display-text">0.00</div>
+                        <div class="cs-timer-hint">Space = start/stop · 1=OK · 2=+2 · 3=DNF · Ctrl+Z=delete last</div>
+                    </div>
+
+                    <div class="cs-manual-entry" id="cs-manual-entry" style="display:none;">
+                        <div class="cs-manual-hint">Type time and press Enter<br><small>e.g. <code>1234</code> = 12.34s &nbsp;·&nbsp; <code>1:05.30</code> = 1m 5.30s</small></div>
+                        <div class="cs-manual-input-row">
+                            <input type="text" id="cs-manual-input" class="cs-manual-input" placeholder="Type time..." autocomplete="off" inputmode="numeric">
+                            <button id="cs-manual-submit" class="cs-btn-primary">Submit</button>
+                        </div>
+                    </div>
+
+                    <div class="cs-bottom-bar">
+                        <button id="cs-btn-clear-session" class="cs-btn-ghost" title="Clear all solves in current session">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                            Clear Session
+                        </button>
+                        <button id="cs-btn-export" class="cs-btn-ghost" title="Export JSON backup">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Export
+                        </button>
+                        <button id="cs-btn-import" class="cs-btn-ghost" title="Import JSON backup">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Import
+                        </button>
+                        <input type="file" id="cs-import-file" accept="application/json" style="display:none">
+                        <button id="cs-btn-fullscreen" class="cs-btn-ghost" title="Fullscreen">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                        </button>
+                    </div>
+                </main>
+
+                <!-- RIGHT: Solve list + Settings -->
+                <aside class="cstimer-right">
+                    <div class="cs-panel cs-solve-list-panel">
+                        <div class="cs-panel-header">
+                            <h3 class="cs-panel-title">Time List</h3>
+                            <div class="cs-panel-actions">
+                                <button class="cs-icon-btn" id="cs-btn-delete-last" title="Delete last solve (Ctrl+Z)">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="cs-solve-list" id="cs-solve-list">
+                            <div class="cs-empty">No solves yet — press space to start!</div>
+                        </div>
+                    </div>
+
+                    <div class="cs-panel cs-settings-panel">
+                        <div class="cs-panel-header"><h3 class="cs-panel-title">Settings</h3></div>
+
+                        <details class="cs-settings-group" open>
+                            <summary>Timer</summary>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-event">Event</label>
+                                <select id="cs-setting-event" class="cs-input">
+                                    <option value="333">3x3x3</option>
+                                    <option value="222">2x2x2</option>
+                                    <option value="444">4x4x4</option>
+                                    <option value="555">5x5x5</option>
+                                    <option value="666">6x6x6</option>
+                                    <option value="777">7x7x7</option>
+                                    <option value="333oh">3x3 OH</option>
+                                    <option value="pyram">Pyraminx</option>
+                                    <option value="skewb">Skewb</option>
+                                    <option value="sq1">Square-1</option>
+                                    <option value="minx">Megaminx</option>
+                                    <option value="clock">Clock</option>
+                                </select>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-hold-delay">Hold (ms)</label>
+                                <input type="number" id="cs-setting-hold-delay" value="300" min="0" max="1000" step="50" class="cs-input cs-input-num">
+                            </div>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-inspection">Inspection</label>
+                                <select id="cs-setting-inspection" class="cs-input">
+                                    <option value="off">Off</option>
+                                    <option value="on">On (15s)</option>
+                                </select>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-voice">Voice cues</label>
+                                <select id="cs-setting-voice" class="cs-input">
+                                    <option value="off">Off</option>
+                                    <option value="on">On (8s, 12s)</option>
+                                </select>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-manual-mode">Manual entry</label>
+                                <label class="cs-toggle">
+                                    <input type="checkbox" id="cs-setting-manual-mode">
+                                    <span class="cs-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </details>
+
+                        <details class="cs-settings-group">
+                            <summary>Display</summary>
+                            <div class="cs-setting-row">
+                                <label for="cs-setting-show-last">Show solves</label>
+                                <select id="cs-setting-show-last" class="cs-input">
+                                    <option value="0">All</option>
+                                    <option value="5">Last 5</option>
+                                    <option value="10">Last 10</option>
+                                    <option value="20">Last 20</option>
+                                    <option value="50">Last 50</option>
+                                </select>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label>Hide time while solving</label>
+                                <label class="cs-toggle">
+                                    <input type="checkbox" id="cs-setting-hide-time">
+                                    <span class="cs-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="cs-setting-row">
+                                <label>Hide scramble while solving</label>
+                                <label class="cs-toggle">
+                                    <input type="checkbox" id="cs-setting-hide-scramble">
+                                    <span class="cs-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </details>
+
+                        <details class="cs-settings-group">
+                            <summary>Data</summary>
+                            <div class="cs-setting-desc">Auto-saves locally and syncs to cloud when signed in.</div>
+                            <button class="cs-btn-block cs-btn-secondary" onclick="window.TimerModule && TimerModule.exportCSV && TimerModule.exportCSV()">Export current session as CSV</button>
+                            <button class="cs-btn-block cs-btn-warn" id="cs-btn-clear-session-2">Clear current session data</button>
+                        </details>
+
+                        <details class="cs-settings-group">
+                            <summary>About</summary>
+                            <div class="cs-about">
+                                <p><strong>SimTimer</strong> — a csTimer-inspired speedcubing practice tool.</p>
+                                <p>Features:</p>
+                                <ul class="cs-about-list">
+                                    <li>Hold spacebar → tap to start (configurable hold)</li>
+                                    <li>WCA-style 15s inspection with optional voice</li>
+                                    <li>Per-solve penalty marking (1=OK, 2=+2, 3=DNF)</li>
+                                    <li>Multiple sessions, all saved locally + optionally cloud</li>
+                                    <li>Statistics: best Ao5/Ao12/Ao100, single PBs, std dev, success %</li>
+                                    <li>Click any time to edit, click penalty to cycle</li>
+                                    <li>Export/Import JSON backup</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <!-- ========== HOME VIEW ========== -->
+        <section id="home-view" class="view active">
+            <div class="setup-container" style="text-align: center; margin-top: var(--space-xl);">
+                <div class="setup-hero">
+                    <div class="hero-badge">WELCOME TO</div>
+                    <h1 class="hero-title"><span class="gradient-text">Cubing</span>HQ</h1>
+                    <p class="hero-subtitle">The ultimate platform for speedcubers. Simulate real WCA competitions, learn new algorithms, and track your records.</p>
+                </div>
+                
+                <div class="setup-grid" style="margin-top: 3rem;">
+                    <div class="home-feature-card" onclick="document.getElementById('nav-simulation-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">🏁</span> Comp Simulation</h2>
+                        <p class="card-desc">Experience the pressure of an official WCA competition with full simulation.</p>
+                    </div>
+                    <div class="home-feature-card" onclick="document.getElementById('nav-algorithms-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">🧩</span> Algorithm Database</h2>
+                        <p class="card-desc">Browse thousands of native 2D algorithms across all WCA events.</p>
+                    </div>
+                    <div class="home-feature-card" onclick="document.getElementById('nav-records-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">👑</span> WCA Records</h2>
+                        <p class="card-desc">Keep track of the latest global, continental, and national records.</p>
+                    </div>
+                    <div class="home-feature-card" onclick="window.location.href='index.html#competitions'" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">📊</span> Competitions</h2>
+                        <p class="card-desc">Track your progress and analyze your personal speedcubing stats.</p>
+                    </div>
+                    <div class="home-feature-card" onclick="document.getElementById('nav-battle-btn') && document.getElementById('nav-battle-btn').click()" style="cursor: pointer;">
+                        <h2 class="card-title"><span class="icon">⚔️</span> Battle</h2>
+                        <p class="card-desc">Real-time head-to-head speedcubing against other cubers around the world.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== SETUP VIEW ========== -->
+        <section id="setup-view" class="view">
+            <div class="setup-container">
+                <div class="setup-hero">
+                    <div class="hero-badge">WCA COMPETITION SIMULATOR</div>
+                    <h1 class="hero-title">Practice Like It's <span class="gradient-text">Competition Day</span></h1>
+                    <p class="hero-subtitle">Enter your WCA ID and competition ID below. We'll pull real competition data, your PRs, and simulate the experience.</p>
+                </div>
+
+                <form id="setup-form" class="setup-form">
+                    <div class="setup-grid">
+                        <!-- Competition Card -->
+                        <div class="setup-card" id="setup-card-comp">
+                            <div class="card-header">
+                                <div class="card-icon">🏆</div>
+                                <h2 class="card-title">Competition</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="comp-id" class="form-label">Competition ID</label>
+                                    <div class="input-with-action">
+                                        <input type="text" id="comp-id" class="form-input" placeholder="e.g. Euro2024">
+                                        <button type="button" id="search-comp-btn" class="input-action-btn" title="Look up competition">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        </button>
+                                    </div>
+                                    <span class="form-hint">The ID from the WCA competition URL</span>
+                                </div>
+                                <!-- Competition info loaded from API -->
+                                <div id="comp-info-display" class="api-info-card" style="display:none;">
+                                    <div class="api-info-header">
+                                        <span class="api-status-dot success"></span>
+                                        <span class="api-info-title" id="comp-display-name">—</span>
+                                    </div>
+                                    <div class="api-info-details">
+                                        <div class="api-detail"><span class="api-detail-icon">📅</span><span id="comp-display-date">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🏢</span><span id="comp-display-venue">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">📍</span><span id="comp-display-city">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">👥</span><span id="comp-display-limit">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🧩</span><span id="comp-display-events">—</span></div>
+                                    </div>
+                                </div>
+                                <div id="comp-error-display" class="api-error-card" style="display:none;">
+                                    <span class="api-status-dot error"></span>
+                                    <span id="comp-error-text">Competition not found</span>
+                                </div>
+                                <div id="comp-loading" class="api-loading" style="display:none;">
+                                    <div class="spinner"></div>
+                                    <span>Fetching competition data...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Event Card -->
+                        <div class="setup-card" id="setup-card-event">
+                            <div class="card-header">
+                                <div class="card-icon">🧩</div>
+                                <h2 class="card-title">Event & Round</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label">Select Event</label>
+                                    <div class="event-grid" id="event-grid">
+                                        <label class="event-chip selected" data-event="333">
+                                            <input type="radio" name="event" value="333" checked>
+                                            <span class="chip-label">3x3</span>
+                                        </label>
+                                        <label class="event-chip" data-event="222">
+                                            <input type="radio" name="event" value="222">
+                                            <span class="chip-label">2x2</span>
+                                        </label>
+                                        <label class="event-chip" data-event="444">
+                                            <input type="radio" name="event" value="444">
+                                            <span class="chip-label">4x4</span>
+                                        </label>
+                                        <label class="event-chip" data-event="555">
+                                            <input type="radio" name="event" value="555">
+                                            <span class="chip-label">5x5</span>
+                                        </label>
+                                        <label class="event-chip" data-event="666">
+                                            <input type="radio" name="event" value="666">
+                                            <span class="chip-label">6x6</span>
+                                        </label>
+                                        <label class="event-chip" data-event="777">
+                                            <input type="radio" name="event" value="777">
+                                            <span class="chip-label">7x7</span>
+                                        </label>
+                                        <label class="event-chip" data-event="333oh">
+                                            <input type="radio" name="event" value="333oh">
+                                            <span class="chip-label">OH</span>
+                                        </label>
+                                        <label class="event-chip" data-event="pyram">
+                                            <input type="radio" name="event" value="pyram">
+                                            <span class="chip-label">Pyra</span>
+                                        </label>
+                                        <label class="event-chip" data-event="skewb">
+                                            <input type="radio" name="event" value="skewb">
+                                            <span class="chip-label">Skewb</span>
+                                        </label>
+                                        <label class="event-chip" data-event="sq1">
+                                            <input type="radio" name="event" value="sq1">
+                                            <span class="chip-label">SQ-1</span>
+                                        </label>
+                                        <label class="event-chip" data-event="minx">
+                                            <input type="radio" name="event" value="minx">
+                                            <span class="chip-label">Mega</span>
+                                        </label>
+                                        <label class="event-chip" data-event="clock">
+                                            <input type="radio" name="event" value="clock">
+                                            <span class="chip-label">Clock</span>
+                                        </label>
+                                    </div>
+                                    <span class="form-hint" id="event-format-hint">Average of 5</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="round-select" class="form-label">Starting Round</label>
+                                    <select id="round-select" class="form-select">
+                                        <option value="1">Round 1</option>
+                                        <option value="2">Round 2</option>
+                                        <option value="3">Semi-Final</option>
+                                        <option value="4">Final</option>
+                                    </select>
+                                </div>
+                                <!-- Event info from competition displayed here -->
+                                <div id="event-comp-info" class="event-comp-info" style="display:none;">
+                                    <div class="event-info-row">
+                                        <span class="event-info-label">Time Limit</span>
+                                        <span class="event-info-value" id="event-time-limit">—</span>
+                                    </div>
+                                    <div class="event-info-row">
+                                        <span class="event-info-label">Cutoff</span>
+                                        <span class="event-info-value" id="event-cutoff">—</span>
+                                    </div>
+                                    <div class="event-info-row">
+                                        <span class="event-info-label">Rounds</span>
+                                        <span class="event-info-value" id="event-rounds-count">—</span>
+                                    </div>
+                                    <div class="event-info-row">
+                                        <span class="event-info-label">Competitors</span>
+                                        <span class="event-info-value" id="event-competitor-count">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Player Card (WCA ID based) -->
+                        <div class="setup-card" id="setup-card-player">
+                            <div class="card-header">
+                                <div class="card-icon">👤</div>
+                                <h2 class="card-title">Your Profile</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="wca-id" class="form-label">WCA ID</label>
+                                    <div class="input-with-action">
+                                        <input type="text" id="wca-id" class="form-input" placeholder="e.g. 2023CARV02">
+                                        <button type="button" id="search-wca-btn" class="input-action-btn" title="Look up WCA profile">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        </button>
+                                    </div>
+                                    <span class="form-hint">Your World Cube Association identifier</span>
+                                </div>
+                                <!-- WCA profile info loaded from API -->
+                                <div id="wca-info-display" class="api-info-card" style="display:none;">
+                                    <div class="api-info-header">
+                                        <img id="wca-avatar" class="wca-avatar" src="" alt="Avatar" style="display:none;">
+                                        <div>
+                                            <span class="api-status-dot success"></span>
+                                            <span class="api-info-title" id="wca-display-name">—</span>
+                                        </div>
+                                    </div>
+                                    <div class="api-info-details">
+                                        <div class="api-detail"><span class="api-detail-icon">🌍</span><span id="wca-display-country">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🏅</span><span id="wca-display-medals">—</span></div>
+                                        <div class="api-detail"><span class="api-detail-icon">🔢</span><span id="wca-display-comps">—</span></div>
+                                    </div>
+                                    <div class="pr-display" id="pr-display">
+                                        <h4 class="pr-title" style="margin-bottom: 12px; margin-top: 10px;">Personal Records</h4>
+                                        <div class="records-table-wrap" style="max-height: 280px; overflow-y: auto; border: 1px solid var(--clr-border); border-radius: var(--radius-md);">
+                                            <table class="records-table-enhanced" style="width: 100%;">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="rec-th-event">Event</th>
+                                                        <th class="rec-th-time" style="text-align: center;">Single</th>
+                                                        <th class="rec-th-time" style="text-align: center;">Average</th>
+                                                        <th class="rec-th-time" style="text-align: center;">NR</th>
+                                                        <th class="rec-th-time" style="text-align: center;">WR</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="pr-table-body">
+                                                    <!-- Populated by JS -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="wca-error-display" class="api-error-card" style="display:none;">
+                                    <span class="api-status-dot error"></span>
+                                    <span id="wca-error-text">WCA ID not found</span>
+                                </div>
+                                <div id="wca-loading" class="api-loading" style="display:none;">
+                                    <div class="spinner"></div>
+                                    <span>Fetching WCA profile...</span>
+                                </div>
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label for="goal-time" class="form-label">Goal Average (sec)</label>
+                                    <input type="number" id="goal-time" class="form-input" min="0.5" max="600" step="0.01" placeholder="e.g. 10.00">
+                                    <span class="form-hint">What you're aiming for today</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Settings Card -->
+                        <div class="setup-card" id="setup-card-settings">
+                            <div class="card-header">
+                                <div class="card-icon">⚙️</div>
+                                <h2 class="card-title">Simulation Settings</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="toggle-label">
+                                        <span>Competition Noise</span>
+                                        <div class="toggle-switch">
+                                            <input type="checkbox" id="sound-toggle" checked>
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="toggle-label">
+                                        <span>Spacebar Timer<span class="form-hint" style="display:block;margin-top:2px;">Hold Space to start, tap to stop — instead of typing times</span></span>
+                                        <div class="toggle-switch">
+                                            <input type="checkbox" id="spacebar-timer-toggle">
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setup-actions">
+                        <button type="submit" id="start-sim-btn" class="btn btn-primary btn-lg">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Start Simulation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ========== DASHBOARD VIEW ========== -->
+        <section id="dashboard-view" class="view">
+            <div class="dashboard-container">
+                <!-- Top Bar -->
+                <div class="dash-topbar">
+                    <div class="dash-info">
+                        <h2 id="dash-comp-name" class="dash-comp-title">Competition Name</h2>
+                        <div class="dash-meta">
+                            <span class="dash-badge event-badge" id="dash-event-badge">3x3</span>
+                            <span class="dash-badge round-badge" id="dash-round-badge">Round 1</span>
+                            <span class="dash-badge solve-badge" id="dash-solve-badge">Solve 1/5</span>
+                        </div>
+                    </div>
+                    <div class="dash-actions">
+                        <button class="btn btn-ghost btn-sm" id="back-to-setup-btn" title="Back to Setup">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                            Setup
+                        </button>
+                        <button class="btn btn-ghost btn-sm" id="fullscreen-btn" title="Fullscreen">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                        </button>
+                        <div class="dash-volume-control">
+                            <button class="btn btn-ghost btn-sm" id="mute-noise-btn" title="Mute/Unmute competition noise">
+                                <svg id="mute-icon-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                                </svg>
+                                <svg id="mute-icon-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                    <line x1="23" y1="9" x2="17" y2="15"/>
+                                    <line x1="17" y1="9" x2="23" y2="15"/>
+                                </svg>
+                            </button>
+                            <input type="range" id="comp-volume-slider" class="comp-volume-slider" min="0" max="100" value="40" title="Competition noise volume">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dash-grid">
+                    <!-- Scramble Panel -->
+                    <div class="dash-card scramble-card" id="scramble-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title">📋 Scramble</h3>
+                            <button class="btn btn-sm btn-outline" id="toggle-scramble-colors-btn" title="Toggle Scramble Colors">🎨 Colors</button>
+                        </div>
+                        <div class="scramble-content">
+                            <p class="scramble-text" id="scramble-text">Press Start to generate scramble...</p>
+                        </div>
+                        <div class="scramble-visual" id="scramble-visual"></div>
+                    </div>
+
+                    <!-- Manual Entry / Timer Panel -->
+                    <div class="dash-card timer-card" id="manual-entry-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title" id="timer-card-title">⌨️ Enter Time</h3>
+                            <div class="timer-status ready" id="timer-status">INPUT</div>
+                        </div>
+                        <div class="timer-display-wrap">
+                            <input type="text" id="manual-time-input" class="manual-time-input" placeholder="0.00" autocomplete="off" inputmode="numeric">
+                            <div class="sim-space-timer" id="sim-space-timer" style="display:none;">0.00</div>
+                            <p class="timer-hint" id="timer-hint">Type numbers (e.g. 954 for 9.54s) and press Enter</p>
+                        </div>
+                        <div class="penalty-bar">
+                            <button class="penalty-btn active" id="penalty-none" data-penalty="none">OK</button>
+                            <button class="penalty-btn" id="penalty-plus2" data-penalty="+2">+2</button>
+                            <button class="penalty-btn" id="penalty-dnf" data-penalty="dnf">DNF</button>
+                            <div class="penalty-divider"></div>
+                            <button class="btn btn-accent btn-sm" id="submit-solve-btn">Submit Solve</button>
+                        </div>
+                    </div>
+
+                    <!-- Scorecard Panel -->
+                    <div class="dash-card scorecard-card" id="scorecard-panel">
+                        <div class="card-header-bar">
+                            <div>
+                                <h3 class="card-bar-title">📝 Scorecard</h3>
+                                <div style="font-size:0.72rem;color:var(--clr-text-muted);margin-top:2px;" id="scorecard-event">3x3x3 — Round 1</div>
+                            </div>
+                            <span class="card-bar-info" id="scorecard-name">—</span>
+                        </div>
+                        <div style="overflow:auto;flex:1;padding:var(--space-sm);">
+                            <table class="scorecard-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Scramble</th>
+                                        <th>Time</th>
+                                        <th>Pen</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scorecard-body"></tbody>
+                            </table>
+                        </div>
+                        <div style="display:flex;gap:var(--space-lg);padding:var(--space-md) var(--space-lg);border-top:1px solid var(--clr-border);background:var(--clr-surface);">
+                            <div style="text-align:center;flex:1;">
+                                <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--clr-text-muted);margin-bottom:4px;">Best</div>
+                                <div style="font-family:var(--font-mono);font-weight:700;color:var(--clr-success);" id="stat-best">—</div>
+                            </div>
+                            <div style="text-align:center;flex:1;">
+                                <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--clr-text-muted);margin-bottom:4px;">Worst</div>
+                                <div style="font-family:var(--font-mono);font-weight:700;color:var(--clr-danger);" id="stat-worst">—</div>
+                            </div>
+                            <div style="text-align:center;flex:1;">
+                                <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--clr-text-muted);margin-bottom:4px;">Average</div>
+                                <div style="font-family:var(--font-mono);font-weight:700;color:var(--clr-primary);" id="stat-average">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Goal Tracker Panel -->
+                    <div class="dash-card goal-card" id="goal-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title">🎯 Goal Tracker</h3>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:center;padding:var(--space-lg);gap:var(--space-lg);flex:1;">
+                            <div class="goal-ring-wrap" id="goal-ring-wrap">
+                                <svg class="goal-ring" id="goal-ring" viewBox="0 0 110 110">
+                                    <circle class="ring-bg" cx="55" cy="55" r="52"/>
+                                    <circle class="ring-fill" id="goal-ring-fill" cx="55" cy="55" r="52"/>
+                                </svg>
+                                <div class="goal-ring-text">
+                                    <span class="ring-pct" id="ring-pct">0%</span>
+                                    <span class="ring-label">Progress</span>
+                                </div>
+                            </div>
+                            <div class="goal-details">
+                                <div class="goal-detail-row">
+                                    <span>Target</span>
+                                    <span class="goal-val" id="goal-target-avg">—</span>
+                                </div>
+                                <div class="goal-detail-row">
+                                    <span>PR Avg</span>
+                                    <span class="goal-val" id="goal-pr-avg">—</span>
+                                </div>
+                                <div class="goal-detail-row">
+                                    <span>Current</span>
+                                    <span class="goal-val" id="goal-current-avg">—</span>
+                                </div>
+                                <div class="goal-detail-row">
+                                    <span>Status</span>
+                                    <span class="goal-val goal-status" id="goal-status">Waiting...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard Panel -->
+                    <div class="dash-card leaderboard-card" id="leaderboard-panel">
+                        <div class="card-header-bar">
+                            <h3 class="card-bar-title">🏆 Leaderboard</h3>
+                            <span class="card-bar-info" id="lb-count">0 competitors</span>
+                        </div>
+                        <div class="leaderboard-wrap" id="leaderboard-wrap">
+                            <table class="leaderboard-table" id="leaderboard-table">
+                                <thead>
+                                    <tr>
+                                        <th class="lb-rank">#</th>
+                                        <th class="lb-name">Name</th>
+                                        <th class="lb-pr">PR</th>
+                                        <th class="lb-best">Best</th>
+                                        <th class="lb-avg">Average</th>
+                                        <th class="lb-status">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboard-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Round End Overlay -->
+                <div class="round-end-overlay" id="round-end-overlay" style="display:none;">
+                    <div class="round-end-card">
+                        <div class="round-end-confetti" id="confetti-container"></div>
+                        <h2 class="round-end-title" id="round-end-title">Round Complete!</h2>
+                        <div class="round-end-stats">
+                            <div class="end-stat">
+                                <span class="end-stat-label">Your Average</span>
+                                <span class="end-stat-value" id="end-avg">—</span>
+                            </div>
+                            <div class="end-stat">
+                                <span class="end-stat-label">Placement</span>
+                                <span class="end-stat-value" id="end-placement">—</span>
+                            </div>
+                            <div class="end-stat">
+                                <span class="end-stat-label">Best Single</span>
+                                <span class="end-stat-value" id="end-best">—</span>
+                            </div>
+                        </div>
+                        <div class="round-end-message" id="round-end-message"></div>
+                        <div class="round-end-actions">
+                            <button class="btn btn-primary" id="next-round-btn" style="display:none;">Next Round →</button>
+                            <button class="btn btn-accent" id="new-sim-btn">New Simulation</button>
+                            <button class="btn btn-ghost" id="copy-results-btn">📋 Copy Results</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== HISTORY VIEW ========== -->
+        <section id="history-view" class="view">
+            <div class="history-container">
+                <div class="history-header">
+                    <h2>📜 Simulation History</h2>
+                    <button class="btn btn-ghost btn-sm" id="clear-history-btn">Clear All</button>
+                </div>
+                <div class="history-list" id="history-list">
+                    <div class="history-empty" id="history-empty">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <p>No simulation history yet.<br>Complete a round to see results here.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Statistics View -->
+        <div id="statistics-view" class="view">
+            <div class="container">
+                <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-xl); margin-top: var(--space-xl);">
+                    <div class="hero-badge">STATISTICS</div>
+                    <h1 class="hero-title">Official WCA <span class="gradient-text">Profile</span></h1>
+                    <p class="hero-subtitle">View official World Cube Association statistics, medal counts, and personal records.</p>
+                </div>
+                <div id="stats-placeholder" class="setup-card" style="padding: 4rem 2rem; text-align: center; border: 1px solid var(--clr-border); background: var(--clr-surface);">
+                    <div style="font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.8;">📊</div>
+                    <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--clr-text); margin-bottom: var(--space-sm);">No Profile Loaded</h2>
+                    <p style="color: var(--clr-text-muted); font-size: 1.1rem; max-width: 400px; margin: 0 auto; line-height: 1.6;">
+                        Log in with WCA or look up a WCA ID on the setup page to view official statistics!
+                    </p>
+                </div>
+                <div id="stats-content" style="display: none;">
+                    <div class="setup-card" style="margin-bottom: var(--space-xl); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem 2rem; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%);">
+                        <img id="stats-avatar" src="" alt="Avatar" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid var(--clr-primary); box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3); margin-bottom: 1.5rem;">
+                        <h2 id="stats-name" style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800; letter-spacing: -0.5px;">Name</h2>
+                        
+                        <div style="display: flex; gap: 0.8rem; justify-content: center; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                            <span style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; font-family: var(--font-mono); border: 1px solid rgba(255,255,255,0.1);"><span style="opacity: 0.5; margin-right: 5px;">ID</span><strong id="stats-wcaid" style="color: var(--clr-text);"></strong></span>
+                            <span style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.1);"><span style="opacity: 0.5; margin-right: 5px;">🌍</span><strong id="stats-country">Country</strong></span>
+                            <span id="stats-gender-badge" style="background: rgba(255,255,255,0.08); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.95rem; border: 1px solid rgba(255,255,255,0.1); display: none;"><span style="opacity: 0.5; margin-right: 5px;">👤</span><strong id="stats-gender">Gender</strong></span>
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;" id="logout-container">
+                            <button id="logout-btn" class="btn btn-secondary btn-sm" style="border: 1px solid rgba(255,100,100,0.5); color: #ff8888;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: text-bottom;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                Logout
+                            </button>
+                        </div>
+                        
+                        <div style="display: flex; gap: 3rem; color: var(--clr-text-muted); font-size: 1.1rem; border-top: 1px solid var(--clr-border); padding-top: 1.5rem; width: 100%; max-width: 400px; justify-content: center;">
+                            <div style="display: flex; flex-direction: column;"><strong style="color: var(--clr-text); font-size: 1.5rem;" id="stats-total-events">0</strong> <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Events</span></div>
+                            <div style="display: flex; flex-direction: column;"><strong style="color: var(--clr-text); font-size: 1.5rem;" id="stats-total-medals">0</strong> <span style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Total Medals</span></div>
+                        </div>
+                    </div>
+                    <div class="setup-card" style="text-align: center; padding: 2rem; margin-bottom: var(--space-lg);">
+                        <h2 style="font-size: 3rem; color: var(--clr-primary); margin-bottom: 0.5rem; font-weight: 800;" id="stat-comps-count">0</h2>
+                        <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Competitions</p>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-lg); margin-bottom: var(--space-xl);">
+                        <div class="setup-card" style="text-align: center; padding: 2rem;">
+                            <h2 style="font-size: 2.5rem; color: #F7C948; margin-bottom: 0.5rem; font-weight: 800;" id="stat-gold">0</h2>
+                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Gold</p>
+                        </div>
+                        <div class="setup-card" style="text-align: center; padding: 2rem;">
+                            <h2 style="font-size: 2.5rem; color: #CBD5E1; margin-bottom: 0.5rem; font-weight: 800;" id="stat-silver">0</h2>
+                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Silver</p>
+                        </div>
+                        <div class="setup-card" style="text-align: center; padding: 2rem;">
+                            <h2 style="font-size: 2.5rem; color: #D97706; margin-bottom: 0.5rem; font-weight: 800;" id="stat-bronze">0</h2>
+                            <p style="color: var(--clr-text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85rem;">Bronze</p>
+                        </div>
+                    </div>
+                    <div class="setup-card" style="padding: 0; overflow: hidden;">
+                        <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--clr-border); background: rgba(255,255,255,0.02); text-align: center;">
+                            <h3 style="font-size: 1.5rem; font-weight: 700; letter-spacing: 0.5px; color: var(--clr-text);">Personal Records & Rankings</h3>
+                        </div>
+                        <div class="records-table-wrap" style="margin-top: 0; border: none; background: transparent;">
+                            <table class="records-table-enhanced" style="width: 100%; text-align: center; margin: 0;">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: center; padding: 1rem;">Event</th>
+                                        <th style="text-align: center; padding: 1rem;">Single</th>
+                                        <th style="text-align: center; padding: 1rem;">Average</th>
+                                        <th style="text-align: center; padding: 1rem;">National Rank</th>
+                                        <th style="text-align: center; padding: 1rem;">World Rank</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stats-pr-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Records View -->
+        <div id="records-view" class="view">
+            <div class="records-container" style="display: flex; flex-direction: column; height: 100vh; padding-top: 60px;">
+                <div class="dash-header" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-xl); margin-bottom: 0; background: var(--clr-surface); border-bottom: 1px solid var(--clr-border); flex-wrap: wrap; gap: var(--space-md);">
+                    <div>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 4px;">World Records</h2>
+                        <p style="color: var(--clr-text-muted); font-size: 0.9rem;">Official WCA Rankings and Records</p>
+                    </div>
+                </div>
+                <div style="flex-grow: 1; overflow-y: auto; padding: var(--space-xl); background: var(--clr-bg);">
+                    <div class="setup-card records-table-card" style="padding: 0; overflow: hidden; max-width: 1200px; margin: 0 auto;">
+                        <div id="records-loading" class="records-loading-state" style="display: none;">
+                            <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>
+                            <span>Loading records...</span>
+                        </div>
+                        <div class="records-table-wrap">
+                            <table class="records-table-enhanced" id="records-table" style="display: none;">
+                                <thead>
+                                    <tr>
+                                        <th class="rec-th-event">Event</th>
+                                        <th class="rec-th-time">WR Single</th>
+                                        <th class="rec-th-holder">Holder</th>
+                                        <th class="rec-th-time">WR Average</th>
+                                        <th class="rec-th-holder">Holder</th>
+                                        <th class="rec-th-expand"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="records-table-body">
+                                    <!-- Records populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="records-footer-hint">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            Click any event row to view detailed record information
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Competitions View -->
+        <div id="competitions-view" class="view">
+            <div class="container">
+                <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-lg); margin-top: var(--space-xl);">
+                    <div class="hero-badge">COMPETITIONS</div>
+                    <h1 class="hero-title">Discover <span class="gradient-text">Competitions</span></h1>
+                    <p class="hero-subtitle">Browse upcoming competitions globally or search a WCA ID to see past competitions attended by a competitor.</p>
+                </div>
+
+                <div class="competitions-search-grid">
+                    <div class="setup-card" style="width: 100%; text-align: center; padding: 2.5rem 2rem;">
+                        <h3 class="card-title" style="justify-content: center;"><span class="icon">🔍</span> Search Past Competitions</h3>
+                        <p class="card-desc">Enter a WCA ID (e.g. 2023CARV02) to see all past competitions.</p>
+                        
+                        <div class="wca-lookup" style="justify-content: center;">
+                            <input type="text" id="past-comp-wca-id" class="form-input" placeholder="e.g. 2023CARV02" autocomplete="off" spellcheck="false" style="text-transform: uppercase; text-align: center; max-width: 250px; background-color: var(--clr-surface-alt); border: 1px solid var(--clr-border);">
+                            <button id="search-past-comps-btn" class="btn btn-primary" style="flex-shrink: 0;">Search</button>
+                        </div>
+                        
+                        <div id="past-comps-loading" class="comp-info-state" style="display: none;">
+                            <div class="spinner"></div>
+                            <span>Fetching WCA results...</span>
+                        </div>
+                        <div id="past-comps-error" class="comp-info-state error" style="display: none;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span id="past-comps-error-text">WCA ID not found.</span>
+                        </div>
+                        <div id="past-comps-results" class="upcoming-comps-list" style="display: none; margin-top: var(--space-md); max-height: 600px; overflow-y: auto;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Competitions for WCA ID -->
+                    <div class="setup-card" style="width: 100%; text-align: center; padding: 2.5rem 2rem;">
+                        <h3 class="card-title" style="justify-content: center;"><span class="icon">&#128302;</span> Search Upcoming Registrations</h3>
+                        <p class="card-desc">Enter any WCA ID to see upcoming competitions that person is associated with.</p>
+
+                        <div class="wca-lookup" style="justify-content: center;">
+                            <input type="text" id="upcoming-comp-wca-id" class="form-input" placeholder="e.g. 2023CARV02" autocomplete="off" spellcheck="false" aria-label="WCA ID to look up" style="text-transform: uppercase; text-align: center; max-width: 250px; background-color: var(--clr-surface-alt); border: 1px solid var(--clr-border);">
+                            <button id="search-upcoming-comps-btn" class="btn btn-primary" style="flex-shrink: 0;" aria-label="Search upcoming competitions for this WCA ID">Search</button>
+                        </div>
+
+                        <div id="upcoming-comps-search-loading" class="comp-info-state" style="display: none;">
+                            <div class="spinner"></div>
+                            <span>Fetching competitions...</span>
+                        </div>
+                        <div id="upcoming-comps-search-error" class="comp-info-state error" style="display: none;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span id="upcoming-comps-search-error-text">WCA ID not found.</span>
+                        </div>
+                        <div id="upcoming-comps-search-results" class="upcoming-comps-list" style="display: none; margin-top: var(--space-md); max-height: 600px; overflow-y: auto;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div><!-- /.competitions-search-grid -->
+
+                <!-- Upcoming Competitions (WCA Live style) -->
+                <div class="upcoming-comps-section" id="upcoming-comps-section">
+                    <div class="upcoming-comps-header">
+                        <h3 class="upcoming-comps-title">📅 Upcoming Competitions</h3>
+                        <a href="https://live.worldcubeassociation.org/" target="_blank" rel="noopener noreferrer" class="upcoming-comps-link">View on WCA Live →</a>
+                    </div>
+                    <div class="upcoming-comps-list" id="upcoming-comps-list">
+                        <div class="upcoming-comps-loading">
+                            <div class="spinner"></div>
+                            <span>Loading upcoming competitions...</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- ====== BATTLE VIEW ====== -->
+        <div id="battle-view" class="view">
+            <!-- Battle Lobby -->
+            <div id="battle-lobby" class="battle-lobby-container" style="display:none;">
+                <div class="battle-lobby-header">
+                    <div>
+                        <h1 class="battle-title">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+                            Battle Lobby
+                        </h1>
+                        <p class="battle-lobby-subtitle">Real-time speedcubing — join a room and race live</p>
+                    </div>
+                    <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+                        <button class="btn btn-secondary" id="battle-refresh-btn" title="Refresh rooms">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            Refresh
+                        </button>
+                        <button class="btn btn-primary battle-create-btn" id="battle-create-room-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Create Room
+                        </button>
+                    </div>
+                </div>
+                <div class="battle-event-filters" id="battle-event-filters">
+                    <button class="battle-filter-chip active" data-event="all">All</button>
+                    <button class="battle-filter-chip" data-event="3x3">3x3</button>
+                    <button class="battle-filter-chip" data-event="2x2">2x2</button>
+                    <button class="battle-filter-chip" data-event="4x4">4x4</button>
+                    <button class="battle-filter-chip" data-event="5x5">5x5</button>
+                    <button class="battle-filter-chip" data-event="6x6">6x6</button>
+                    <button class="battle-filter-chip" data-event="7x7">7x7</button>
+                    <button class="battle-filter-chip" data-event="oh">OH</button>
+                    <button class="battle-filter-chip" data-event="clock">Clock</button>
+                    <button class="battle-filter-chip" data-event="mega">Mega</button>
+                    <button class="battle-filter-chip" data-event="pyra">Pyraminx</button>
+                    <button class="battle-filter-chip" data-event="skewb">Skewb</button>
+                    <button class="battle-filter-chip" data-event="sq1">Sq-1</button>
+                </div>
+                <div class="battle-rooms-grid" id="battle-rooms-grid">
+                    <div class="battle-lobby-loading"><div class="battle-loading-spinner"></div><p>Loading rooms...</p></div>
+                </div>
+            </div>
+
+            <!-- Battle Room (In-Game) -->
+            <div id="battle-room-view" class="battle-room-view" style="display:none;">
+                <div class="battle-room-topbar">
+                    <button class="battle-back-btn" id="battle-leave-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                        Leave Room
+                    </button>
+                    <div class="battle-room-info">
+                        <span class="battle-room-name-tag" id="battle-room-name-display">Room</span>
+                        <span class="battle-room-event-badge" id="battle-room-event-badge">3x3</span>
+                    </div>
+                    <div class="battle-room-status" id="battle-room-status-bar">
+                        <span class="battle-status-dot"></span>
+                        <span id="battle-status-text">Live</span>
+                    </div>
+                </div>
+                <div class="battle-room-body">
+                    <!-- Left: Event Selector + Scramble + Timer -->
+                    <div class="battle-room-left">
+                        <div class="battle-event-selector-bar" id="battle-event-selector-bar">
+                            <span class="battle-event-selector-label">Event:</span>
+                            <div class="battle-event-chips" id="battle-event-chips">
+                                <button class="battle-event-chip active" data-event="3x3">3x3</button>
+                                <button class="battle-event-chip" data-event="2x2">2x2</button>
+                                <button class="battle-event-chip" data-event="4x4">4x4</button>
+                                <button class="battle-event-chip" data-event="5x5">5x5</button>
+                                <button class="battle-event-chip" data-event="6x6">6x6</button>
+                                <button class="battle-event-chip" data-event="7x7">7x7</button>
+                                <button class="battle-event-chip" data-event="oh">OH</button>
+                                <button class="battle-event-chip" data-event="clock">Clock</button>
+                                <button class="battle-event-chip" data-event="mega">Mega</button>
+                                <button class="battle-event-chip" data-event="pyra">Pyra</button>
+                                <button class="battle-event-chip" data-event="skewb">Skewb</button>
+                                <button class="battle-event-chip" data-event="sq1">Sq-1</button>
+                            </div>
+                            <button class="btn btn-secondary" id="battle-new-scramble-btn" style="white-space:nowrap;font-size:0.8rem;padding:0.4rem 0.8rem;display:none;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                New Scramble
+                            </button>
+                        </div>
+                        <div class="battle-scramble-panel">
+                            <div class="battle-scramble-label">SCRAMBLE</div>
+                            <div class="battle-scramble-text" id="battle-scramble-text">Waiting for scramble...</div>
+                            <div class="battle-scramble-viz">
+                                <twisty-player id="battle-twisty" puzzle="3x3x3" alg="" visualization="2D" background="none" control-panel="none" viewer-link="none" style="width:140px;height:140px;"></twisty-player>
+                            </div>
+                        </div>
+                        <div class="battle-timer-panel" id="battle-timer-panel">
+                            <!-- Mode selector -->
+                            <div class="battle-input-mode-bar">
+                                <button class="battle-mode-btn active" id="battle-mode-keyboard" title="Keyboard timer (spacebar)">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/></svg>
+                                    Keyboard
+                                </button>
+                                <button class="battle-mode-btn" id="battle-mode-typing" title="Type your time manually">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Typing
+                                </button>
+                            </div>
+                            <!-- Keyboard mode -->
+                            <div id="battle-keyboard-mode" style="touch-action: manipulation; user-select: none; cursor: pointer;">
+                                <div class="battle-timer-status" id="battle-timer-status">Hold Space/Touch to start timer</div>
+                                <div class="battle-timer-time" id="battle-timer-time">0.00</div>
+                                <div class="battle-keyboard-hint">Hold Space/Touch (0.5s) → Release to start &nbsp;·&nbsp; Press/Tap to stop</div>
+                            </div>
+                            <!-- Typing mode -->
+                            <div id="battle-typing-mode" style="display:none; flex-direction:column; align-items:center; gap:1rem; width:100%;">
+                                <div class="battle-timer-time" id="battle-typing-display">0.00</div>
+                                <div class="battle-typing-input-wrap">
+                                    <input type="text" id="battle-typing-input" class="battle-typing-input"
+                                        placeholder="e.g. 1234 = 12.34s" maxlength="8" inputmode="numeric">
+                                    <button class="btn btn-primary" id="battle-typing-submit">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Submit
+                                    </button>
+                                </div>
+                                <div class="battle-keyboard-hint">Type digits: 1234 = 12.34s &nbsp;·&nbsp; 10234 = 1:02.34 &nbsp;·&nbsp; Press Enter to submit</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right: Cross-table (per scramble per player) -->
+                    <div class="battle-room-right">
+                        <div class="battle-panel-header">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            Results <span id="battle-scores-event-label" style="color:var(--clr-text-muted);font-size:0.75rem;font-weight:400;margin-left:4px;"></span>
+                        </div>
+                        <div class="battle-cross-table-wrap" id="battle-cross-table-wrap">
+                            <div class="battle-scores-empty">No solves yet — start solving!</div>
+                        </div>
+                    </div>
+                    <!-- Battle Room Chat (RTDB-backed) -->
+                    <div class="battle-chat-panel" id="battle-chat-panel">
+                        <div class="battle-panel-header">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Room Chat
+                            <span class="battle-chat-status" id="battle-chat-status">connecting…</span>
+                        </div>
+                        <div class="battle-chat-messages" id="battle-chat-messages">
+                            <div class="battle-chat-empty">No messages yet — say hi!</div>
+                        </div>
+                        <div class="battle-chat-input-row">
+                            <input type="text" id="battle-chat-input" placeholder="Type a message…" maxlength="500" autocomplete="off" aria-label="Chat message">
+                            <button id="battle-chat-send-btn" class="btn btn-primary btn-sm" aria-label="Send message">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== CREATE ROOM MODAL ====== -->
+        <div id="battle-create-modal" class="battle-modal-overlay" style="display:none;">
+            <div class="battle-modal-card">
+                <div class="battle-modal-header">
+                    <h3>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Create Battle Room
+                    </h3>
+                    <button class="modal-close-btn" id="battle-create-close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="battle-modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="battle-room-name-input">Room Name <span style="color:var(--clr-accent)">*</span></label>
+                        <input type="text" id="battle-room-name-input" class="form-input" placeholder="e.g. Friday Night Speed Run" maxlength="40">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <div class="battle-visibility-toggle">
+                            <button class="battle-vis-btn active" id="battle-vis-public" data-vis="public">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                                Public Room
+                            </button>
+                            <button class="battle-vis-btn" id="battle-vis-private" data-vis="private">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                Private Room
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group" id="battle-password-group" style="display:none;">
+                        <label class="form-label" for="battle-room-password">Room Password <span style="color:var(--clr-accent)">*</span></label>
+                        <input type="password" id="battle-room-password" class="form-input" placeholder="Set a password for your room">
+                    </div>
+                    <p style="font-size:0.82rem;color:var(--clr-text-muted);background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.15);border-radius:8px;padding:0.6rem 0.8rem;margin:0;">
+                        You will choose the event inside the room. Solves are saved per-event so you can switch events freely without losing history.
+                    </p>
+                </div>
+                <div class="battle-modal-footer">
+                    <button class="btn btn-secondary" id="battle-create-cancel">Cancel</button>
+                    <button class="btn btn-primary" id="battle-create-confirm">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Create Room
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== JOIN PRIVATE ROOM MODAL ====== -->
+        <div id="battle-password-modal" class="battle-modal-overlay" style="display:none;">
+            <div class="battle-modal-card battle-modal-card--sm">
+                <div class="battle-modal-header">
+                    <h3>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Private Room
+                    </h3>
+                    <button class="modal-close-btn" id="battle-pw-close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="battle-modal-body">
+                    <p style="color:var(--clr-text-muted);">This room is password protected. Enter the password to join.</p>
+                    <div class="form-group">
+                        <label class="form-label" for="battle-pw-input">Password</label>
+                        <input type="password" id="battle-pw-input" class="form-input" placeholder="Enter room password">
+                    </div>
+                    <div class="battle-pw-error" id="battle-pw-error" style="display:none;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Incorrect password. Try again.
+                    </div>
+                </div>
+                <div class="battle-modal-footer">
+                    <button class="btn btn-secondary" id="battle-pw-cancel">Cancel</button>
+                    <button class="btn btn-primary" id="battle-pw-confirm">Join Room</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Algorithms View -->
+        <div id="algorithms-view" class="view">
+            <div class="algorithms-container" style="display: flex; flex-direction: column; height: 100vh; padding-top: 60px;">
+                <div class="dash-header" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-xl); margin-bottom: 0; background: var(--clr-surface); border-bottom: 1px solid var(--clr-border); flex-wrap: wrap; gap: var(--space-md);">
+                    <div>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 4px;">Learn & Practice</h2>
+                        <p style="color: var(--clr-text-muted); font-size: 0.9rem;">Native Algorithm Database</p>
+                    </div>
+                    <div style="display: flex; gap: var(--space-md); align-items: center; flex-wrap: wrap;">
+                        <select id="alg-event-select" class="form-input" style="width: 150px; padding: 0.5rem;" aria-label="Select event">
+                            <option value="2x2">2x2</option>
+                            <option value="3x3" selected>3x3</option>
+                            <option value="4x4">4x4</option>
+                            <option value="5x5">5x5</option>
+                            <option value="Pyraminx">Pyraminx</option>
+                            <option value="Megaminx">Megaminx</option>
+                            <option value="Square-1">Square-1</option>
+                            <option value="Skewb">Skewb</option>
+                        </select>
+                        <input type="search" id="alg-search" class="form-input" placeholder="Search cases…" aria-label="Search algorithm cases" style="width: 170px; padding: 0.5rem;">
+                        <span id="alg-count" class="alg-count-badge" style="color: var(--clr-text-muted); font-size: 0.85rem; min-width: 70px;" aria-live="polite"></span>
+                        <div id="alg-subset-container" style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+                            <!-- Populated by JS -->
+                        </div>
+                        <select id="alg-subgroup-select" class="form-input" style="width: 150px; padding: 0.5rem; display: none;">
+                            <!-- Populated by JS -->
+                        </select>
+                        <button id="alg-practice-btn" class="btn btn-primary" style="display: flex; align-items: center; gap: 6px; padding: 0.5rem 1.25rem; font-size: 0.9rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+                            Practice
+                        </button>
+                    </div>
+                </div>
+                <div style="flex-grow: 1; overflow-y: auto; padding: var(--space-xl); background: var(--clr-bg);">
+                    <div id="algorithms-grid" class="setup-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-md);">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Closes algorithms-view -->
+
+        <!-- ====== PRACTICE TRAINER VIEW ====== -->
+        <section id="practice-view" class="view">
+            <div id="alg-trainer-overlay" class="alg-trainer-overlay">
+                <!-- Top Bar -->
+                <div class="alg-trainer-topbar">
+                    <button id="trainer-back-btn" class="trainer-back-btn" title="Back to algorithm browser">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                        Exit Practice
+                    </button>
+                    <div class="trainer-topbar-center">
+                        <span class="trainer-set-name" id="trainer-set-name">PLL Practice</span>
+                        <span class="trainer-case-count" id="trainer-case-count">0 cases</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label for="hold-time-select" style="font-size:0.8rem; color:var(--clr-text-muted);">Hold:</label>
+                        <select id="hold-time-select" class="form-select" style="padding:0.2rem 0.5rem; font-size:0.8rem;">
+                            <option value="0">0.0s</option>
+                            <option value="300">0.3s</option>
+                            <option value="500" selected>0.5s</option>
+                            <option value="1000">1.0s</option>
+                        </select>
+                        <button id="trainer-settings-btn" class="trainer-icon-btn" title="Settings" aria-label="Trainer settings">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scramble Bar -->
+                <div class="alg-trainer-scramble-bar">
+                    <div class="alg-trainer-scramble-label">SCRAMBLE</div>
+                    <div class="alg-trainer-scramble" id="trainer-scramble">—</div>
+                </div>
+
+                <!-- Main Area -->
+                <div class="alg-trainer-body">
+                    <!-- Left: Timer Area -->
+                    <div class="alg-trainer-main">
+                        <div class="trainer-case-viz" id="trainer-case-viz">
+                            <twisty-player id="trainer-twisty" puzzle="3x3x3" alg="" visualization="2D" background="none" control-panel="none" viewer-link="none" style="width:160px;height:160px;"></twisty-player>
+                        </div>
+                        <div class="trainer-timer-display" id="trainer-timer-display">
+                            <span class="trainer-timer-status" id="trainer-timer-status">Press Space to start</span>
+                            <span class="trainer-timer-time" id="trainer-timer-time">0.00</span>
+                        </div>
+                        <div class="trainer-action-bar">
+                            <button id="trainer-hint-btn" class="trainer-action-btn" title="Show hint (H)">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                Hint
+                            </button>
+                            <button id="trainer-skip-btn" class="trainer-action-btn" title="Skip (S)">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                                Skip
+                            </button>
+                            <button id="trainer-redo-btn" class="trainer-action-btn" title="Redo last (R)">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+                                Redo
+                            </button>
+                        </div>
+                        <div class="trainer-keyboard-hint">Space = start/stop timer</div>
+                    </div>
+
+                    <!-- Right: Time List -->
+                    <div class="alg-trainer-sidebar">
+                        <div class="trainer-sidebar-header">
+                            <span>Times</span>
+                            <button id="trainer-clear-times-btn" class="trainer-clear-btn" title="Clear times">Clear</button>
+                        </div>
+                        <div class="trainer-stats-row">
+                            <div class="trainer-stat">
+                                <span class="trainer-stat-label">Mean</span>
+                                <span class="trainer-stat-value" id="trainer-stat-mean">—</span>
+                            </div>
+                            <div class="trainer-stat">
+                                <span class="trainer-stat-label">Best</span>
+                                <span class="trainer-stat-value" id="trainer-stat-best">—</span>
+                            </div>
+                            <div class="trainer-stat">
+                                <span class="trainer-stat-label">Count</span>
+                                <span class="trainer-stat-value" id="trainer-stat-count">0</span>
+                            </div>
+                        </div>
+                        <div class="trainer-times-list" id="trainer-times-list">
+                            <div class="trainer-times-empty">No solves yet — start practicing!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====== HINT MODAL ====== -->
+            <div id="alg-hint-modal" class="alg-hint-modal" style="display:none;">
+                <div class="alg-hint-content">
+                    <button id="alg-hint-close" class="alg-hint-close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                    <div class="alg-hint-case-name" id="alg-hint-case-name">Case Name</div>
+                    <div class="alg-hint-viz">
+                        <twisty-player id="hint-twisty" puzzle="3x3x3" alg="" visualization="2D" background="none" control-panel="none" viewer-link="none" style="width:200px;height:200px;"></twisty-player>
+                    </div>
+                    <div class="alg-hint-alg-label">Algorithm</div>
+                    <code class="alg-hint-alg" id="alg-hint-alg">—</code>
+                    <div class="alg-hint-footer">Press H or click anywhere outside to close</div>
+                </div>
+            </div>
+
+            <!-- ====== CASE SELECTION MODAL ====== -->
+            <div id="alg-case-select-modal" class="alg-case-select-modal" style="display:none;">
+                <div class="alg-case-select-content">
+                    <div class="alg-case-select-header">
+                        <h3 id="case-select-title">Select Cases to Practice</h3>
+                        <button id="case-select-close" class="alg-hint-close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div class="case-select-toolbar">
+                        <button id="case-select-all-btn" class="btn btn-secondary" style="font-size:0.8rem;padding:0.4rem 0.8rem;">Select All</button>
+                        <button id="case-select-none-btn" class="btn btn-secondary" style="font-size:0.8rem;padding:0.4rem 0.8rem;">Deselect All</button>
+                        <span id="case-select-count-label" style="color:var(--clr-text-muted);font-size:0.85rem;margin-left:auto;">0 selected</span>
+                    </div>
+                    <div class="alg-case-select-grid" id="alg-case-select-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="alg-case-select-footer">
+                        <button id="case-select-cancel-btn" class="btn btn-secondary">Cancel</button>
+                        <button id="case-select-start-btn" class="btn btn-primary">Start Practice</button>
+                    </div>
+                </div>
+            </div>
+
+    </main>
+
+    <footer class="site-footer" id="site-footer">
+        <div class="site-footer-inner">
+            <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>.</span>
+            <span>Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toast-container">    </div>
+    
+    
+    <script src="scramble-engine.js?v=2"></script>
+    <script src="square1-drawer.js?v=2"></script>
+    <script src="algorithms.js?v=4"></script>
+    <script src="algorithms-extra.js?v=5"></script>
+    <link rel="stylesheet" href="timer.css?v=3">
+    <script src="timer.js?v=2"></script>
+    <script src="app.js?v=9"></script>
+</body>
+</html>

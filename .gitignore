@@ -1,0 +1,15 @@
+node_modules/
+.env
+.DS_Store
+
+# Capacitor / native build outputs (regenerate via `npm run build:mobile && npx cap sync`)
+ios/App/Pods/
+ios/App/build/
+ios/App/DerivedData/
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/captures/
+*.keystore
+*.jks

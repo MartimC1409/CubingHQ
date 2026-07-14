@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CubingHQ</string>
+    <string name="title_activity_main">CubingHQ</string>
+    <string name="package_name">com.cubinghq.app</string>
+    <string name="custom_url_scheme">com.cubinghq.app</string>
+</resources>

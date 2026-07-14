@@ -1,0 +1,25 @@
+{
+  "name": "cubinghq",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CubingHQ — WCA Competition Simulator, packaged for iOS and Android with Capacitor.",
+  "scripts": {
+    "build:mobile": "node scripts/build-mobile-www.js",
+    "sync": "npm run build:mobile && npx cap sync",
+    "sync:ios": "npm run build:mobile && npx cap sync ios",
+    "sync:android": "npm run build:mobile && npx cap sync android",
+    "open:ios": "npx cap open ios",
+    "open:android": "npx cap open android",
+    "icons": "node scripts/generate-icons.js"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1"
+  }
+}

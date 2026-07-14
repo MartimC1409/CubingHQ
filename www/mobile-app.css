@@ -1,0 +1,31 @@
+/* Native app shell overrides — only shipped inside the Capacitor build
+   (see scripts/build-mobile-www.js). Not used by the public website. */
+
+html, body {
+    overscroll-behavior-y: none;
+}
+
+button, .nav-btn, a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Keep the fixed top bar clear of the iPhone notch / Dynamic Island. */
+.navbar {
+    padding-top: calc(env(safe-area-inset-top) + 0.5rem);
+    padding-left: calc(env(safe-area-inset-left) + 0.5rem);
+    padding-right: calc(env(safe-area-inset-right) + 0.5rem);
+}
+
+.standalone-nav {
+    padding-top: calc(env(safe-area-inset-top) + 10px) !important;
+}
+
+@media (max-width: 850px) {
+    /* Keep the fixed bottom tab bar clear of the home-indicator gesture area. */
+    .nav-links {
+        height: calc(70px + env(safe-area-inset-bottom));
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: calc(10px + env(safe-area-inset-left));
+        padding-right: calc(10px + env(safe-area-inset-right));
+    }
+}
