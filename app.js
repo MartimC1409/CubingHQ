@@ -168,6 +168,7 @@
         cutoff: 0,
         soundEnabled: true,
         liveMode: false,
+        spacebarTimer: false,
 
         // Runtime
         currentSolve: 0,
@@ -187,6 +188,7 @@
         history: [],
         spaceHeld: false,
         holdTimeout: null,
+        timerRaf: 0,
     };
 
     // ========== DOM REFERENCES ==========
@@ -565,6 +567,12 @@
                 algSubgroupSelect.innerHTML = '';
                 const subgroups = Object.keys(data);
 
+                // "All" first — shows every case in the set at once.
+                const allOpt = document.createElement('option');
+                allOpt.value = ALL_SUBGROUP;
+                allOpt.textContent = `${subset} — All`;
+                algSubgroupSelect.appendChild(allOpt);
+
                 subgroups.forEach(sub => {
                     const opt = document.createElement('option');
                     opt.value = sub;
@@ -577,7 +585,7 @@
                     renderAlgorithms(event, subset, e.target.value);
                 };
 
-                renderAlgorithms(event, subset, subgroups[0]);
+                renderAlgorithms(event, subset, ALL_SUBGROUP);
             }
         }
 
@@ -616,6 +624,28 @@
             else el.removeAttribute('experimental-setup-alg');
         }
 
+        // Draw a case on a live twisty-player, preferring the case's SETUP
+        // (reproduces the exact scrambled case with corners/centres solved).
+        // Falls back to the solving alg with anchor="end" when no setup exists.
+        function applyCasePreviewToPlayer(el, item, event) {
+            const puzzle = getPuzzleName(event);
+            const caseRot = caseOrientationFor(event, trainerState.currentSubset, trainerState.currentSubgroup);
+            if (item.setup) {
+                let s = event === 'Skewb' ? expandSkewbMacros(item.setup) : item.setup;
+                if (window.ScrambleEngine) s = window.ScrambleEngine.normalizeAlgFor(puzzle, s);
+                el.removeAttribute('experimental-setup-anchor');
+                el.setAttribute('alg', '');
+                el.setAttribute('experimental-setup-alg', (caseRot ? caseRot + ' ' : '') + s);
+            } else {
+                let a = event === 'Skewb' ? expandSkewbMacros(item.alg) : item.alg;
+                if (window.ScrambleEngine) a = window.ScrambleEngine.normalizeAlgFor(puzzle, a);
+                el.setAttribute('experimental-setup-anchor', 'end');
+                if (caseRot) el.setAttribute('experimental-setup-alg', caseRot);
+                else el.removeAttribute('experimental-setup-alg');
+                el.setAttribute('alg', a);
+            }
+        }
+
         // Lazily instantiate twisty-player previews as cards scroll into view
         // (critical for big sets like ZBLL — 472 cases).
         let _algObserver = null;
@@ -630,11 +660,16 @@
                     holder.dataset.loaded = '1';
                     const player = document.createElement('twisty-player');
                     player.setAttribute('puzzle', holder.dataset.puzzle);
-                    player.setAttribute('alg', holder.dataset.alg);
-                    // Anchor at the end: the player shows the state the alg
-                    // SOLVES (i.e. the case), for every notation incl. SQ1.
-                    player.setAttribute('experimental-setup-anchor', 'end');
-                    if (holder.dataset.setupRot) player.setAttribute('experimental-setup-alg', holder.dataset.setupRot);
+                    if (holder.dataset.previewSetup) {
+                        // Show the case exactly as its setup produces it.
+                        player.setAttribute('experimental-setup-alg', holder.dataset.previewSetup);
+                    } else {
+                        player.setAttribute('alg', holder.dataset.alg);
+                        // Anchor at the end: the player shows the state the alg
+                        // SOLVES (i.e. the case), for every notation incl. SQ1.
+                        player.setAttribute('experimental-setup-anchor', 'end');
+                        if (holder.dataset.setupRot) player.setAttribute('experimental-setup-alg', holder.dataset.setupRot);
+                    }
                     // Square-1 has no 2D net in the renderer — 3D (with back view).
                     if (window.ScrambleEngine) {
                         window.ScrambleEngine.applyViz(player, holder.dataset.puzzle);
@@ -657,34 +692,8 @@
         // Track current selection so the search box can re-render.
         let _algCurrent = { event: null, subset: null, subgroup: null };
 
-        // Slot-view selector for Pyraminx L4E: rotates the case picture so
-        // the working slot sits at the front / left / right (y rotations
-        // around the top tip). View-only — algorithms are unchanged.
-        let _pyraSlot = '';
-        let _pyraSlotBar = null;
-        function ensurePyraSlotBar() {
-            if (_pyraSlotBar) return _pyraSlotBar;
-            _pyraSlotBar = document.createElement('div');
-            _pyraSlotBar.id = 'pyra-slot-bar';
-            _pyraSlotBar.style.cssText = 'display:none;gap:0.5rem;margin:0.5rem 0;flex-wrap:wrap;align-items:center;';
-            const lbl = document.createElement('span');
-            lbl.textContent = 'Slot:';
-            lbl.style.cssText = 'color:var(--clr-text-muted);font-size:0.85rem;';
-            _pyraSlotBar.appendChild(lbl);
-            [['', 'Front slot'], ["y'", 'Left slot'], ['y', 'Right slot']].forEach(([rot, label], idx) => {
-                const b = document.createElement('button');
-                b.className = 'btn btn-secondary btn-sm pyra-slot-btn' + (idx === 0 ? ' active' : '');
-                b.textContent = label;
-                b.addEventListener('click', () => {
-                    _pyraSlot = rot;
-                    _pyraSlotBar.querySelectorAll('.pyra-slot-btn').forEach(x => x.classList.toggle('active', x === b));
-                    if (_algCurrent.event) renderAlgorithms(_algCurrent.event, _algCurrent.subset, _algCurrent.subgroup);
-                });
-                _pyraSlotBar.appendChild(b);
-            });
-            algSubsetContainer.parentNode.insertBefore(_pyraSlotBar, algSubsetContainer.nextSibling);
-            return _pyraSlotBar;
-        }
+        // Sentinel subgroup value meaning "show every case across all subgroups".
+        const ALL_SUBGROUP = '__ALL__';
 
         // Render logic
         function renderAlgorithms(event, subset, subgroup) {
@@ -692,15 +701,16 @@
             if (!grid || typeof ALGORITHMS === 'undefined') return;
             _algCurrent = { event, subset, subgroup };
 
-            ensurePyraSlotBar().style.display =
-                (event === 'Pyraminx' && subset === 'L4E') ? 'flex' : 'none';
-
             grid.innerHTML = '';
             let algs = [];
-            if (subgroup) {
-                algs = ALGORITHMS[event][subset][subgroup] || [];
+            const subsetData = ALGORITHMS[event][subset];
+            if (subgroup === ALL_SUBGROUP && subsetData && !Array.isArray(subsetData)) {
+                // Flatten every subgroup into one combined list.
+                algs = Object.values(subsetData).flat();
+            } else if (subgroup) {
+                algs = subsetData[subgroup] || [];
             } else {
-                algs = ALGORITHMS[event][subset] || [];
+                algs = subsetData || [];
             }
 
             const searchEl = $('#alg-search');
@@ -732,14 +742,29 @@
 
                 let previewAlg = event === 'Skewb' ? expandSkewbMacros(item.alg) : item.alg;
                 if (window.ScrambleEngine) previewAlg = window.ScrambleEngine.normalizeAlgFor(puzzleName, previewAlg);
-                if (isPreviewable(event, item.alg)) {
+                if (event === 'Square-1' && window.Square1Drawer) {
+                    // Flat square diagram (sarah-style). The pictured case is
+                    // the state the solving alg starts from = inverse of the alg.
+                    const caseState = item.setup ? item.setup : getInverse(item.alg, event);
+                    window.Square1Drawer.render(holder, caseState);
+                    const svg = holder.querySelector('svg');
+                    if (svg) { svg.style.maxWidth = 'none'; svg.style.width = 'auto'; svg.style.height = '140px'; svg.style.margin = '0'; }
+                } else if (isPreviewable(event, item.alg)) {
                     holder.dataset.puzzle = puzzleName;
-                    holder.dataset.alg = previewAlg;
-                    let setupRot = caseOrientationFor(event, subset, subgroup);
-                    if (event === 'Pyraminx' && subset === 'L4E' && _pyraSlot) {
-                        setupRot = (_pyraSlot + ' ' + setupRot).trim();
+                    const caseRot = caseOrientationFor(event, subset, subgroup);
+                    // Prefer the case's own SETUP for the picture: it reproduces
+                    // the exact scrambled case with corners/centres left solved.
+                    // (Deriving it from the solving alg via anchor="end" leaves
+                    // corners scrambled whenever the alg carries an AUF — that was
+                    // the "Super Hedge looks broken" bug.)
+                    if (item.setup) {
+                        let setupAlg = event === 'Skewb' ? expandSkewbMacros(item.setup) : item.setup;
+                        if (window.ScrambleEngine) setupAlg = window.ScrambleEngine.normalizeAlgFor(puzzleName, setupAlg);
+                        holder.dataset.previewSetup = (caseRot ? caseRot + ' ' : '') + setupAlg;
+                    } else {
+                        holder.dataset.alg = previewAlg;
+                        if (caseRot) holder.dataset.setupRot = caseRot;
                     }
-                    if (setupRot) holder.dataset.setupRot = setupRot;
                     holder.innerHTML = '<span style="color:var(--clr-text-muted);font-size:0.75rem;">…</span>';
                     obs.observe(holder);
                 } else {
@@ -812,9 +837,9 @@
             if (!alg || alg === 'skip') return false;
             if (event === 'Square-1') return true;
             if (event === 'Skewb') {
-                // Only WCA moves (R L U B) + rotations render reliably.
+                // WCA skewb moves (R L U B) plus F (used by Sarah's method) and rotations.
                 const expanded = expandSkewbMacros(alg);
-                return expanded.split(/\s+/).every(m => /^[RLUBxyz](2'?|'2?|2|')?$/.test(m) || /^[RLUBxyz]$/.test(m));
+                return expanded.split(/\s+/).every(m => /^[RLUBFxyz](2'?|'2?|2|')?$/.test(m) || /^[RLUBFxyz]$/.test(m));
             }
             return true;
         }
@@ -871,16 +896,19 @@
 
             let algData = ALGORITHMS[event] && ALGORITHMS[event][subset];
             if (!algData) return;
-            if (!Array.isArray(algData) && subgroupVal) algData = algData[subgroupVal];
+            if (!Array.isArray(algData)) {
+                if (subgroupVal === ALL_SUBGROUP) algData = Object.values(algData).flat();
+                else if (subgroupVal) algData = algData[subgroupVal];
+            }
             if (!Array.isArray(algData)) { showToast('Select a subgroup first', 'error'); return; }
 
             const validAlgs = algData.filter(a => a.alg && a.alg !== 'skip');
             trainerState.algList = validAlgs;
             trainerState.currentEvent = event;
             trainerState.currentSubset = subset;
-            trainerState.currentSubgroup = subgroupVal;
+            trainerState.currentSubgroup = (subgroupVal === ALL_SUBGROUP) ? null : subgroupVal;
 
-            const label = subgroupVal ? `${subset} ${subgroupVal}` : subset;
+            const label = (subgroupVal && subgroupVal !== ALL_SUBGROUP) ? `${subset} ${subgroupVal}` : `${subset} — All`;
             trainerState.currentSetName = `${event} ${label}`;
 
             // Select all by default
@@ -979,12 +1007,8 @@
             // algorithm solves — correct for every notation (incl. SQ1).
             const twisty = $('#trainer-twisty');
             if (isPreviewable(event, c.alg)) {
-                let caseAlg = event === 'Skewb' ? expandSkewbMacros(c.alg) : c.alg;
-                if (window.ScrambleEngine) caseAlg = window.ScrambleEngine.normalizeAlgFor(getPuzzleName(event), caseAlg);
                 twisty.style.visibility = 'visible';
-                twisty.setAttribute('experimental-setup-anchor', 'end');
-                applyCaseAppearance(twisty, event);
-                twisty.setAttribute('alg', caseAlg);
+                applyCasePreviewToPlayer(twisty, c, event);
             } else {
                 twisty.setAttribute('alg', '');
                 twisty.style.visibility = 'hidden';
@@ -1081,15 +1105,11 @@
             const hintTwisty = $('#hint-twisty');
             if (isPreviewable(event, c.alg)) {
                 const puzzle = getPuzzleName(event);
-                let caseAlg = event === 'Skewb' ? expandSkewbMacros(c.alg) : c.alg;
-                if (window.ScrambleEngine) caseAlg = window.ScrambleEngine.normalizeAlgFor(puzzle, caseAlg);
                 hintTwisty.style.visibility = 'visible';
                 hintTwisty.setAttribute('puzzle', puzzle);
                 if (window.ScrambleEngine) window.ScrambleEngine.applyViz(hintTwisty, puzzle);
                 tunePlayerForEvent(hintTwisty, puzzle);
-                hintTwisty.setAttribute('experimental-setup-anchor', 'end');
-                applyCaseAppearance(hintTwisty, event);
-                hintTwisty.setAttribute('alg', caseAlg);
+                applyCasePreviewToPlayer(hintTwisty, c, event);
             } else {
                 hintTwisty.setAttribute('alg', '');
                 hintTwisty.style.visibility = 'hidden';
@@ -1378,6 +1398,32 @@
                     $('#submit-solve-btn').click();
                 }
             });
+        }
+
+        // Spacebar timer (simulation dashboard) — only active when the
+        // Spacebar Timer setting is on and the dashboard is showing.
+        document.addEventListener('keydown', (e) => { if (e.code === 'Space') simSpaceDown(e); });
+        document.addEventListener('keyup', (e) => { if (e.code === 'Space') simSpaceUp(e); });
+        // Touch / click on the big timer display acts like the spacebar.
+        const spaceTimerEl = $('#sim-space-timer');
+        if (spaceTimerEl) {
+            const down = (e) => {
+                if (!state.spacebarTimer) return;
+                e.preventDefault();
+                if (state.timerState === 'running') simTimerStop();
+                else if (state.timerState === 'stopped') submitSolve();
+                else if (state.timerState === 'idle' && !state.spaceHeld) { state.spaceHeld = true; simTimerReady(); }
+            };
+            const up = (e) => {
+                if (!state.spacebarTimer) return;
+                e.preventDefault();
+                if (state.timerState === 'ready') simTimerStart();
+                state.spaceHeld = false;
+            };
+            spaceTimerEl.addEventListener('mousedown', down);
+            spaceTimerEl.addEventListener('mouseup', up);
+            spaceTimerEl.addEventListener('touchstart', down, { passive: false });
+            spaceTimerEl.addEventListener('touchend', up, { passive: false });
         }
 
         // Round end
@@ -2358,6 +2404,7 @@
         state.goalTime = $('#goal-time').value ? parseFloat($('#goal-time').value) : null;
         state.soundEnabled = $('#sound-toggle').checked;
         state.liveMode = $('#live-mode-toggle')?.checked || false;
+        state.spacebarTimer = $('#spacebar-timer-toggle')?.checked || false;
 
         // Determine numSolves from event
         state.numSolves = MEAN_OF_3_EVENTS.includes(state.event) ? 3 : 5;
@@ -2388,7 +2435,7 @@
         state.scrambles = await generateScrambleSet(state.event, state.numSolves);
 
         // Generate competitors
-        generateCompetitors();
+        await generateCompetitors();
 
         // Update UI
         updateDashboardHeader();
@@ -2426,7 +2473,64 @@
     }
 
     // ========== COMPETITOR GENERATION ==========
-    function generateCompetitors() {
+    // Is the loaded competition in the past? (Historical-PR mode applies.)
+    function isPastComp() {
+        const d = state.compData && state.compData.start_date;
+        if (!d) return false;
+        // Compare date-only; a comp starting today or earlier counts as past.
+        const today = new Date().toISOString().slice(0, 10);
+        return d < today;
+    }
+
+    // Cache of a WCA ID's full results history (chronological, oldest first).
+    const _resultsCache = new Map();
+    async function fetchPersonResults(wcaId) {
+        if (_resultsCache.has(wcaId)) return _resultsCache.get(wcaId);
+        const p = fetch(`${WCA_API}/persons/${wcaId}/results`)
+            .then(r => r.ok ? r.json() : [])
+            .catch(() => []);
+        _resultsCache.set(wcaId, p);
+        return p;
+    }
+
+    // A competitor's PR (single & average, in seconds) ENTERING a given
+    // competition. Because /persons/{id}/results is ordered oldest→newest,
+    // everything before the target competition's first appearance is
+    // "before the comp". Returns null fields if unknown.
+    async function historicalPRForCompetitor(wcaId, compId, eventId) {
+        const results = await fetchPersonResults(wcaId);
+        if (!Array.isArray(results) || results.length === 0) return { single: null, average: null };
+        const cutIdx = results.findIndex(r => r.competition_id === compId);
+        // If they have no result at this comp (registered DNS, or data gap),
+        // fall back to their full history (best estimate we can make).
+        const priorResults = cutIdx === -1 ? results : results.slice(0, cutIdx);
+        let bestSingle = Infinity, bestAvg = Infinity;
+        for (const r of priorResults) {
+            if (r.event_id !== eventId) continue;
+            if (typeof r.best === 'number' && r.best > 0) bestSingle = Math.min(bestSingle, r.best);
+            if (typeof r.average === 'number' && r.average > 0) bestAvg = Math.min(bestAvg, r.average);
+        }
+        return {
+            single: bestSingle === Infinity ? null : bestSingle / 100,
+            average: bestAvg === Infinity ? null : bestAvg / 100
+        };
+    }
+
+    // Run async tasks with a concurrency limit (be gentle with the WCA API).
+    async function mapWithConcurrency(items, limit, worker) {
+        const out = new Array(items.length);
+        let i = 0;
+        async function run() {
+            while (i < items.length) {
+                const idx = i++;
+                out[idx] = await worker(items[idx], idx);
+            }
+        }
+        await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
+        return out;
+    }
+
+    async function generateCompetitors() {
         state.competitors = [];
 
         let wcifCompetitors = [];
@@ -2441,10 +2545,35 @@
         if (wcifCompetitors.length > 0) {
             const toAdd = wcifCompetitors.slice(0, state.numCompetitors - 1);
 
+            // For PAST competitions, replace current PRs with each
+            // competitor's PR as it stood entering that competition.
+            const historical = new Map();
+            if (isPastComp()) {
+                // Cap the number of live API lookups so a large past comp
+                // doesn't fire 100+ requests / risk rate limits. Competitors
+                // beyond the cap fall back to their current WCIF PRs.
+                const MAX_HISTORICAL_FETCHES = 60;
+                const withId = toAdd.filter(p => p.wcaId).slice(0, MAX_HISTORICAL_FETCHES);
+                if (withId.length) {
+                    showToast(`Fetching historical PRs (${withId.length})…`, 'info');
+                    await mapWithConcurrency(withId, 8, async (p) => {
+                        try {
+                            const pr = await historicalPRForCompetitor(p.wcaId, state.compId, state.event);
+                            historical.set(p.wcaId, pr);
+                        } catch (e) { /* fall back to current PR below */ }
+                    });
+                }
+            }
+
             for (const p of toAdd) {
                 let prAvg = null;
                 let prSingle = null;
-                if (p.personalBests) {
+
+                const hist = p.wcaId ? historical.get(p.wcaId) : null;
+                if (hist && (hist.single !== null || hist.average !== null)) {
+                    prAvg = hist.average;
+                    prSingle = hist.single;
+                } else if (p.personalBests) {
                     const avgObj = p.personalBests.find(pb => pb.eventId === state.event && pb.type === 'average');
                     const singleObj = p.personalBests.find(pb => pb.eventId === state.event && pb.type === 'single');
                     if (avgObj) prAvg = avgObj.best / 100;
@@ -2592,14 +2721,115 @@
 
     // ========== MANUAL TIMER STATE ==========
     function resetTimer() {
-        state.timerState = 'stopped';
+        cancelAnimationFrame(state.timerRaf || 0);
+        state.spaceHeld = false;
         const input = $('#manual-time-input');
-        if (input) {
-            input.value = '';
-            setTimeout(() => input.focus(), 50);
+        const spaceTimer = $('#sim-space-timer');
+        const hint = $('#timer-hint');
+        const title = $('#timer-card-title');
+        const statusEl = $('#timer-status');
+
+        if (state.spacebarTimer) {
+            // Spacebar timing mode: hide the text input, show the live timer.
+            state.timerState = 'idle';
+            state.timerValue = 0;
+            if (input) input.style.display = 'none';
+            if (spaceTimer) {
+                spaceTimer.style.display = 'block';
+                spaceTimer.textContent = '0.00';
+                spaceTimer.className = 'sim-space-timer';
+            }
+            if (hint) hint.textContent = 'Hold Space (or tap) to start · tap again to stop';
+            if (title) title.textContent = '⏱️ Timer';
+            if (statusEl) { statusEl.textContent = 'READY'; statusEl.className = 'timer-status ready'; }
+        } else {
+            // Manual entry mode (original behavior).
+            state.timerState = 'stopped';
+            if (input) {
+                input.style.display = '';
+                input.readOnly = false;
+                input.value = '';
+                setTimeout(() => input.focus(), 50);
+            }
+            if (spaceTimer) spaceTimer.style.display = 'none';
+            if (hint) hint.textContent = 'Type numbers (e.g. 954 for 9.54s) and press Enter';
+            if (title) title.textContent = '⌨️ Enter Time';
+            if (statusEl) { statusEl.textContent = 'INPUT'; statusEl.className = 'timer-status ready'; }
         }
         $('#submit-solve-btn').disabled = false;
         selectPenalty('none');
+    }
+
+    // ========== SPACEBAR TIMER (simulation) ==========
+    function simTimerReady() {
+        if (state.timerState !== 'idle') return;
+        state.timerState = 'ready';
+        const t = $('#sim-space-timer');
+        if (t) { t.textContent = '0.00'; t.className = 'sim-space-timer is-ready'; }
+        const s = $('#timer-status');
+        if (s) { s.textContent = 'RELEASE'; s.className = 'timer-status ready'; }
+    }
+
+    function simTimerStart() {
+        state.timerState = 'running';
+        state.timerStart = performance.now();
+        const t = $('#sim-space-timer');
+        if (t) t.className = 'sim-space-timer is-running';
+        const s = $('#timer-status');
+        if (s) { s.textContent = 'SOLVING'; s.className = 'timer-status running'; }
+        const tick = () => {
+            if (state.timerState !== 'running') return;
+            const elapsed = (performance.now() - state.timerStart) / 1000;
+            if (t) t.textContent = elapsed.toFixed(2);
+            state.timerRaf = requestAnimationFrame(tick);
+        };
+        state.timerRaf = requestAnimationFrame(tick);
+    }
+
+    function simTimerStop() {
+        cancelAnimationFrame(state.timerRaf || 0);
+        const elapsed = (performance.now() - state.timerStart) / 1000;
+        state.timerValue = Math.round(elapsed * 100) / 100;
+        state.timerState = 'stopped';
+        const t = $('#sim-space-timer');
+        if (t) { t.textContent = state.timerValue.toFixed(2); t.className = 'sim-space-timer is-stopped'; }
+        // Mirror into the manual input so submitSolve() reads it unchanged.
+        const input = $('#manual-time-input');
+        if (input) input.value = state.timerValue.toFixed(2);
+        const hint = $('#timer-hint');
+        if (hint) hint.textContent = 'Space to submit · or set +2 / DNF first';
+        const s = $('#timer-status');
+        if (s) { s.textContent = 'STOPPED'; s.className = 'timer-status ready'; }
+        if (state.soundEnabled) playBeep(660, 60);
+    }
+
+    // Space handling for the simulation dashboard timer.
+    function simSpaceDown(e) {
+        if (!state.spacebarTimer) return;
+        if (state.currentView !== 'dashboard') return;
+        if (state.currentSolve >= state.numSolves) return;
+        const tag = (e.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+        e.preventDefault();
+        if (state.timerState === 'running') {
+            simTimerStop();
+        } else if (state.timerState === 'stopped') {
+            // second press submits the recorded solve and advances
+            submitSolve();
+        } else if (state.timerState === 'idle' && !state.spaceHeld) {
+            state.spaceHeld = true;
+            simTimerReady();
+        }
+    }
+
+    function simSpaceUp(e) {
+        if (!state.spacebarTimer) return;
+        if (state.currentView !== 'dashboard') return;
+        e.preventDefault();
+        if (state.timerState === 'ready') {
+            simTimerStart();
+        }
+        state.spaceHeld = false;
     }
 
     // ========== PENALTIES ==========

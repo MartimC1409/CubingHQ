@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -541,10 +541,10 @@
                                                 <thead>
                                                     <tr>
                                                         <th class="rec-th-event">Event</th>
-                                                        <th class="rec-th-time" style="text-align: center;">NR</th>
                                                         <th class="rec-th-time" style="text-align: center;">Single</th>
                                                         <th class="rec-th-time" style="text-align: center;">Average</th>
                                                         <th class="rec-th-time" style="text-align: center;">NR</th>
+                                                        <th class="rec-th-time" style="text-align: center;">WR</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="pr-table-body">
@@ -582,6 +582,15 @@
                                         <span>Competition Noise</span>
                                         <div class="toggle-switch">
                                             <input type="checkbox" id="sound-toggle" checked>
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="toggle-label">
+                                        <span>Spacebar Timer<span class="form-hint" style="display:block;margin-top:2px;">Hold Space to start, tap to stop — instead of typing times</span></span>
+                                        <div class="toggle-switch">
+                                            <input type="checkbox" id="spacebar-timer-toggle">
                                             <span class="toggle-slider"></span>
                                         </div>
                                     </label>
@@ -655,11 +664,12 @@
                     <!-- Manual Entry / Timer Panel -->
                     <div class="dash-card timer-card" id="manual-entry-panel">
                         <div class="card-header-bar">
-                            <h3 class="card-bar-title">⌨️ Enter Time</h3>
+                            <h3 class="card-bar-title" id="timer-card-title">⌨️ Enter Time</h3>
                             <div class="timer-status ready" id="timer-status">INPUT</div>
                         </div>
                         <div class="timer-display-wrap">
                             <input type="text" id="manual-time-input" class="manual-time-input" placeholder="0.00" autocomplete="off" inputmode="numeric">
+                            <div class="sim-space-timer" id="sim-space-timer" style="display:none;">0.00</div>
                             <p class="timer-hint" id="timer-hint">Type numbers (e.g. 954 for 9.54s) and press Enter</p>
                         </div>
                         <div class="penalty-bar">
@@ -1417,7 +1427,7 @@
 
     <footer class="site-footer" id="site-footer">
         <div class="site-footer-inner">
-            <span>CubingHQ — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>.</span>
+            <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>.</span>
             <span>Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
         </div>
     </footer>
@@ -1429,9 +1439,9 @@
     <script src="scramble-engine.js?v=2"></script>
     <script src="square1-drawer.js?v=2"></script>
     <script src="algorithms.js?v=4"></script>
-    <script src="algorithms-extra.js?v=3"></script>
-    <link rel="stylesheet" href="timer.css">
+    <script src="algorithms-extra.js?v=5"></script>
+    <link rel="stylesheet" href="timer.css?v=3">
     <script src="timer.js?v=2"></script>
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=9"></script>
 </body>
 </html>
