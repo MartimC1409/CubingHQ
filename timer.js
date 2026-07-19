@@ -24,6 +24,12 @@
     const ALL_EVENT_IDS = ['333','222','444','555','666','777','333oh','pyram','skewb','sq1','minx','clock'];
     const DEFAULT_EVENT = '333';
 
+    // i18n helper — falls back to the English default when i18n.js
+    // isn't loaded (e.g. embedded uses of this module).
+    function T(key, fallback) {
+        return window.AppI18N ? window.AppI18N.t(key, fallback) : fallback;
+    }
+
     // ========== SCRAMBLE GENERATION ==========
     // All scrambles come from the shared ScrambleEngine (scramble-engine.js):
     // official cubing.js random-state scrambles with local offline fallbacks.
@@ -47,6 +53,10 @@
         TSTATE.currentScramble = scramble;
         renderScramble();
         renderTwisty();
+        // Let listeners (e.g. the smart cube module) react to a new scramble.
+        document.dispatchEvent(new CustomEvent('cs-scramble-changed', {
+            detail: { scramble, event },
+        }));
     }
 
     // ========== UTILITIES ==========
@@ -936,19 +946,19 @@
         const nameEl = $('#cs-event-naming');
         if (nameEl) {
             const info = sess ? EVENT_INFO[sess.event] : null;
-            nameEl.textContent = (info && info.format === 'mo3') ? 'Mean of 3' : 'Average of 5';
+            nameEl.textContent = (info && info.format === 'mo3')
+                ? T('timer.meanOf3', 'Mean of 3')
+                : T('timer.avgOf5', 'Average of 5');
         }
     }
 
     function renderScramble() {
-        const sess = getSession();
         const disp = $('#cs-scramble-text');
         if (!disp) return;
-        if (sess && sess.event === 'sq1') {
-            disp.textContent = 'Square-1 scrambles are under construction — check back soon!';
-            return;
-        }
-        disp.textContent = TSTATE.currentScramble || 'Generating scramble…';
+        disp.textContent = TSTATE.currentScramble || T('timer.generating', 'Generating scramble…');
+        // With a smart cube connected, the module re-renders the scramble
+        // as per-move tokens so progress can be highlighted.
+        if (window.SmartCube && window.SmartCube.decorateScramble) window.SmartCube.decorateScramble();
     }
 
     function renderTwisty() {
@@ -959,15 +969,6 @@
         const info = EVENT_INFO[sess.event];
         const puzzle = info?.puzzle || '3x3x3';
 
-        // Square-1 diagram: under construction — show a placeholder
-        // instead of a diagram we're not yet confident is correct.
-        if (sess.event === 'sq1' && sq1Diagram) {
-            twisty.style.display = 'none';
-            sq1Diagram.style.display = 'flex';
-            sq1Diagram.style.cssText += 'align-items:center;justify-content:center;text-align:center;color:var(--clr-text-muted);font-size:0.85rem;padding:1rem;';
-            sq1Diagram.textContent = 'Square-1 diagram — under construction';
-            return;
-        }
         if (sq1Diagram) sq1Diagram.style.display = 'none';
         twisty.style.display = '';
 
@@ -982,13 +983,13 @@
         const el = $('#cs-status-text');
         if (!el) return;
         const phases = {
-            idle: badgeText || 'Hold Space / Tap',
-            inspecting: 'Inspecting',
-            holding: 'Hold to ready',
-            ready: 'READY',
-            running: 'Solve!',
-            stopped: 'Stopped',
-            inspection_dnf: 'DNF (+2)',
+            idle: badgeText || T('timer.phase.idle', 'Hold Space / Tap'),
+            inspecting: T('timer.phase.inspecting', 'Inspecting'),
+            holding: T('timer.phase.holding', 'Hold to ready'),
+            ready: T('timer.phase.ready', 'READY'),
+            running: T('timer.phase.running', 'Solve!'),
+            stopped: T('timer.phase.stopped', 'Stopped'),
+            inspection_dnf: T('timer.phase.dnf', 'DNF (+2)'),
         };
         el.textContent = phases[TSTATE.phase] || TSTATE.phase;
         el.className = 'cs-status-text cs-phase-' + TSTATE.phase;
@@ -1003,7 +1004,7 @@
             : sess.solves;
 
         if (visible.length === 0) {
-            list.innerHTML = '<div class="cs-empty">No solves yet — press space to start!</div>';
+            list.innerHTML = `<div class="cs-empty">${esc(T('timer.noSolves', 'No solves yet — press space to start!'))}</div>`;
             return;
         }
 
@@ -1126,45 +1127,54 @@
         const avgLabel = info?.format === 'mo3' ? 'Mean-3' : 'Ao5';
         const sessionName = sess.name;
 
+        const L = {
+            count: T('stats.count', 'Solve count'),
+            best: T('stats.best', 'Best single'),
+            mean: T('stats.mean', 'Mean'),
+            std: T('stats.std', 'Std dev'),
+            bestPfx: T('stats.bestPrefix', 'Best'),
+            currPfx: T('stats.currPrefix', 'Curr'),
+            success: T('stats.success', 'Success'),
+        };
         statsEl.innerHTML = `
             <div class="cs-statline">
-                <span class="cs-label">Solve count</span>
+                <span class="cs-label">${L.count}</span>
                 <strong class="cs-val">${count}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Best single</span>
+                <span class="cs-label">${L.best}</span>
                 <strong class="cs-val ${best === null ? 'cs-empty' : ''}">${best === null ? '—' : fmt(best)}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Mean</span>
+                <span class="cs-label">${L.mean}</span>
                 <strong class="cs-val ${mean === null ? 'cs-empty' : ''}">${mean === null ? '—' : fmt(mean)}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Std dev</span>
+                <span class="cs-label">${L.std}</span>
                 <strong class="cs-val ${stdDev === null ? 'cs-empty' : ''}">${stdDev === null ? '—' : fmt(stdDev)}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Best ${avgLabel}</span>
+                <span class="cs-label">${L.bestPfx} ${avgLabel}</span>
                 <strong class="cs-val ${bestAo5 === null ? 'cs-empty' : ''}">${bestAo5 === null ? '—' : fmtMean(bestAo5)}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Curr ${avgLabel}</span>
+                <span class="cs-label">${L.currPfx} ${avgLabel}</span>
                 <strong class="cs-val ${curAo5 === null ? 'cs-empty' : ''}">${curAo5 === null ? '—' : fmtMean(curAo5)}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Best Ao12</span>
+                <span class="cs-label">${L.bestPfx} Ao12</span>
                 <strong class="cs-val ${bestAo12 === null ? 'cs-empty' : ''}">${bestAo12 === null ? '—' : fmtMean(bestAo12)}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Curr Ao12</span>
+                <span class="cs-label">${L.currPfx} Ao12</span>
                 <strong class="cs-val ${curAo12 === null ? 'cs-empty' : ''}">${curAo12 === null ? '—' : fmtMean(curAo12)}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Best Ao100</span>
+                <span class="cs-label">${L.bestPfx} Ao100</span>
                 <strong class="cs-val ${bestAo100 === null ? 'cs-empty' : ''}">${bestAo100 === null ? '—' : fmtMean(bestAo100)}</strong>
             </div>
             <div class="cs-statline">
-                <span class="cs-label">Success</span>
+                <span class="cs-label">${L.success}</span>
                 <strong class="cs-val ${success === null ? 'cs-empty' : ''}">${success === null ? '—' : (success * 100).toFixed(1) + '%'}</strong>
             </div>
         `;
@@ -1405,6 +1415,31 @@
         }
     }
 
+    // Re-render translated UI when the language changes.
+    document.addEventListener('app-language-changed', () => {
+        if (!TSTATE.loaded) return;
+        renderAll();
+        renderPhaseBadge();
+    });
+
+    // ---------- Smart cube hooks (used by smartcube.js) ----------
+    // Start the timer directly (no hold/inspection) — first move of a
+    // physical solve. No-op unless the timer is idle.
+    function smartStart() {
+        if (TSTATE.phase !== 'idle') return false;
+        hideStopOverlay();
+        exitAnyPhase();
+        startRunning();
+        return true;
+    }
+
+    // Stop the timer — the physical cube reached the solved state.
+    function smartStop() {
+        if (TSTATE.phase !== 'running') return false;
+        stopTimer();
+        return true;
+    }
+
     // Expose to global scope
     window.TimerModule = {
         init,
@@ -1419,5 +1454,11 @@
         deleteSession,
         exportJSON,
         exportCSV,
+        // Smart cube integration
+        smartStart,
+        smartStop,
+        getPhase: () => TSTATE.phase,
+        getCurrentScramble: () => TSTATE.currentScramble,
+        getCurrentEvent: () => getSession()?.event || DEFAULT_EVENT,
     };
 })();

@@ -2990,9 +2990,7 @@
         if (state.currentSolve >= state.numSolves) return;
         const scramble = state.scrambles[state.currentSolve];
         const scrambleEl = $('#scramble-text');
-        scrambleEl.textContent = state.event === 'sq1'
-            ? 'Square-1 scrambles are under construction — check back soon!'
-            : scramble;
+        scrambleEl.textContent = scramble;
         renderCubeNet(state.event);
         // Also refresh scorecard to reveal current scramble and hide future
         renderScorecardTemplate();
@@ -3031,16 +3029,6 @@
         }
 
         const scramble = state.scrambles[state.currentSolve];
-
-        // Square-1 diagram: under construction — show a placeholder
-        // instead of a diagram we're not yet confident is correct.
-        if (event === 'sq1') {
-            const placeholder = document.createElement('div');
-            placeholder.style.cssText = 'color: var(--clr-text-muted); font-size: 0.85rem; text-align: center;';
-            placeholder.textContent = 'Square-1 diagram — under construction';
-            container.appendChild(placeholder);
-            return;
-        }
 
         const player = document.createElement('twisty-player');
         player.setAttribute('puzzle', puzzleType);
