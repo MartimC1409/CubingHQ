@@ -12,8 +12,9 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3Crect x='12' y='2' width='8' height='8' rx='1.5' fill='%23F7C948'/%3E%3Crect x='22' y='2' width='8' height='8' rx='1.5' fill='%232ECC71'/%3E%3Crect x='2' y='12' width='8' height='8' rx='1.5' fill='%23E74C3C'/%3E%3Crect x='12' y='12' width='8' height='8' rx='1.5' fill='%236366F1'/%3E%3Crect x='22' y='12' width='8' height='8' rx='1.5' fill='%233498DB'/%3E%3Crect x='2' y='22' width='8' height='8' rx='1.5' fill='%239B59B6'/%3E%3Crect x='12' y='22' width='8' height='8' rx='1.5' fill='%231ABC9C'/%3E%3Crect x='22' y='22' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="polish.css?v=1">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -326,34 +327,133 @@
 
         <!-- ========== HOME VIEW ========== -->
         <section id="home-view" class="view active">
-            <div class="setup-container" style="text-align: center; margin-top: var(--space-xl);">
-                <div class="setup-hero">
-                    <div class="hero-badge" data-i18n="home.badge">WELCOME TO</div>
-                    <h1 class="hero-title"><span class="gradient-text">Cubing</span>HQ</h1>
-                    <p class="hero-subtitle" data-i18n="home.subtitle">The ultimate platform for speedcubers. Simulate real WCA competitions, learn new algorithms, and track your records.</p>
+            <div class="home-shell">
+                <!-- HERO -->
+                <header class="home-hero">
+                    <p class="home-kicker" data-i18n="hero.kicker">// solve · compete · repeat</p>
+                    <h1 class="home-headline">
+                        <span class="home-headline-line" data-i18n="hero.title.a">Train like it's</span>
+                        <span class="home-headline-line"><em class="home-headline-accent" data-i18n="hero.title.b">finals day.</em></span>
+                    </h1>
+                    <p class="home-sub" data-i18n="hero.sub">Real WCA scrambles, a full competition simulator, live battles and smart-cube support — everything a speedcuber needs, in one place.</p>
+                    <div class="home-cta-row">
+                        <button class="home-cta home-cta-primary" onclick="document.getElementById('nav-simulation-btn').click()">
+                            <span data-i18n="hero.cta.sim">Start a simulation</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </button>
+                        <button class="home-cta home-cta-ghost" onclick="document.getElementById('nav-timer-btn').click()">
+                            <span data-i18n="hero.cta.timer">Open the timer</span>
+                        </button>
+                    </div>
+                    <p class="home-fineprint" data-i18n="hero.note">Free · no install · works with GAN, GiiKER &amp; GoCube smart cubes</p>
+                </header>
+            </div>
+
+            <!-- WORLD RECORD TICKER -->
+            <div class="wr-marquee" aria-hidden="true">
+                <div class="wr-track">
+                    <div class="wr-group">
+                        <span class="wr-item"><b>3×3</b> 2.76 <i>Teodor Zajder</i></span>
+                        <span class="wr-item"><b>2×2</b> 0.39 <i>Ziyu Ye</i></span>
+                        <span class="wr-item"><b>4×4</b> 15.18 <i>Tymon Kolasiński</i></span>
+                        <span class="wr-item"><b>5×5</b> 29.49 <i>Tymon Kolasiński</i></span>
+                        <span class="wr-item"><b>OH</b> 5.66 <i>Dhruva Sai Meruva</i></span>
+                        <span class="wr-item"><b>3BLD</b> 11.67 <i>Charlie Eggins</i></span>
+                        <span class="wr-item"><b>Pyraminx</b> 0.73 <i>Simon Kellum</i></span>
+                        <span class="wr-item"><b>Skewb</b> 0.73 <i>Vojtěch Grohmann</i></span>
+                        <span class="wr-item"><b>Square-1</b> 2.85 <i>Brian Johnson</i></span>
+                        <span class="wr-item"><b>Megaminx</b> 21.85 <i>Timofei Tarasenko</i></span>
+                        <span class="wr-item"><b>Clock</b> 1.53 <i>Lachlan Gibson</i></span>
+                    </div>
+                    <div class="wr-group">
+                        <span class="wr-item"><b>3×3</b> 2.76 <i>Teodor Zajder</i></span>
+                        <span class="wr-item"><b>2×2</b> 0.39 <i>Ziyu Ye</i></span>
+                        <span class="wr-item"><b>4×4</b> 15.18 <i>Tymon Kolasiński</i></span>
+                        <span class="wr-item"><b>5×5</b> 29.49 <i>Tymon Kolasiński</i></span>
+                        <span class="wr-item"><b>OH</b> 5.66 <i>Dhruva Sai Meruva</i></span>
+                        <span class="wr-item"><b>3BLD</b> 11.67 <i>Charlie Eggins</i></span>
+                        <span class="wr-item"><b>Pyraminx</b> 0.73 <i>Simon Kellum</i></span>
+                        <span class="wr-item"><b>Skewb</b> 0.73 <i>Vojtěch Grohmann</i></span>
+                        <span class="wr-item"><b>Square-1</b> 2.85 <i>Brian Johnson</i></span>
+                        <span class="wr-item"><b>Megaminx</b> 21.85 <i>Timofei Tarasenko</i></span>
+                        <span class="wr-item"><b>Clock</b> 1.53 <i>Lachlan Gibson</i></span>
+                    </div>
                 </div>
-                
-                <div class="setup-grid" style="margin-top: 3rem;">
-                    <div class="home-feature-card" onclick="document.getElementById('nav-simulation-btn').click()" style="cursor: pointer;">
-                        <h2 class="card-title" data-i18n="home.card.sim"><span class="icon">🏁</span> Comp Simulation</h2>
-                        <p class="card-desc" data-i18n="home.card.sim.desc">Experience the pressure of an official WCA competition with full simulation.</p>
-                    </div>
-                    <div class="home-feature-card" onclick="document.getElementById('nav-algorithms-btn').click()" style="cursor: pointer;">
-                        <h2 class="card-title" data-i18n="home.card.algs"><span class="icon">🧩</span> Algorithm Database</h2>
-                        <p class="card-desc" data-i18n="home.card.algs.desc">Browse thousands of native 2D algorithms across all WCA events.</p>
-                    </div>
-                    <div class="home-feature-card" onclick="document.getElementById('nav-records-btn').click()" style="cursor: pointer;">
-                        <h2 class="card-title" data-i18n="home.card.records"><span class="icon">👑</span> WCA Records</h2>
-                        <p class="card-desc" data-i18n="home.card.records.desc">Keep track of the latest global, continental, and national records.</p>
-                    </div>
-                    <div class="home-feature-card" onclick="window.location.href='index.html#competitions'" style="cursor: pointer;">
-                        <h2 class="card-title" data-i18n="home.card.comps"><span class="icon">📊</span> Competitions</h2>
-                        <p class="card-desc" data-i18n="home.card.comps.desc">Track your progress and analyze your personal speedcubing stats.</p>
-                    </div>
-                    <div class="home-feature-card" onclick="document.getElementById('nav-battle-btn') && document.getElementById('nav-battle-btn').click()" style="cursor: pointer;">
-                        <h2 class="card-title" data-i18n="home.card.battle"><span class="icon">⚔️</span> Battle</h2>
-                        <p class="card-desc" data-i18n="home.card.battle.desc">Real-time head-to-head speedcubing against other cubers around the world.</p>
-                    </div>
+            </div>
+
+            <div class="home-shell">
+                <!-- BENTO GRID -->
+                <div class="bento-grid">
+                    <article class="bento-card bento-sim" data-accent="orange" onclick="document.getElementById('nav-simulation-btn').click()">
+                        <div class="bento-head">
+                            <span class="bento-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span>
+                            <span class="bento-arrow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+                        </div>
+                        <h2 class="bento-title" data-i18n="home.card.sim">Comp Simulation</h2>
+                        <p class="bento-desc" data-i18n="home.card.sim.desc">Full WCA rounds with real scrambles, scorecards and a live leaderboard — feel the pressure of comp day at home.</p>
+                        <div class="bento-visual sim-visual" aria-hidden="true">
+                            <div class="sim-solvebar"><span class="sim-solvebar-label" data-i18n="home.sim.round">Final · 3×3 · solve 4/5</span><span class="sim-solvebar-scramble">D2 F' L2 U R' F2 D' B2 R</span></div>
+                            <div class="sim-row"><span class="sim-rank">1</span><span class="sim-name">Yiheng W.</span><span class="sim-time">4.32</span></div>
+                            <div class="sim-row sim-row-you"><span class="sim-rank">2</span><span class="sim-name" data-i18n="home.sim.you">You</span><span class="sim-time">8.71</span></div>
+                            <div class="sim-row"><span class="sim-rank">3</span><span class="sim-name">Tymon K.</span><span class="sim-time">9.04</span></div>
+                            <div class="sim-row"><span class="sim-rank">4</span><span class="sim-name">Luke G.</span><span class="sim-time">9.36</span></div>
+                            <div class="sim-row"><span class="sim-rank">5</span><span class="sim-name">Matty I.</span><span class="sim-time">9.79</span></div>
+                        </div>
+                    </article>
+
+                    <article class="bento-card bento-battle" data-accent="red" onclick="document.getElementById('nav-battle-btn') && document.getElementById('nav-battle-btn').click()">
+                        <div class="bento-head">
+                            <span class="bento-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/></svg></span>
+                            <span class="bento-live"><span class="bento-live-dot"></span>LIVE</span>
+                        </div>
+                        <h2 class="bento-title" data-i18n="home.card.battle">Battle</h2>
+                        <p class="bento-desc" data-i18n="home.card.battle.desc">Head-to-head races against cubers around the world, in real time.</p>
+                        <div class="bento-visual battle-visual" aria-hidden="true">
+                            <div class="battle-bar"><span class="battle-tag">P1</span><span class="battle-fill" style="width:72%"></span></div>
+                            <div class="battle-bar"><span class="battle-tag">P2</span><span class="battle-fill battle-fill-b" style="width:54%"></span></div>
+                        </div>
+                    </article>
+
+                    <article class="bento-card bento-timer" data-accent="cyan" onclick="document.getElementById('nav-timer-btn').click()">
+                        <div class="bento-head">
+                            <span class="bento-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                            <span class="bento-arrow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+                        </div>
+                        <h2 class="bento-title" data-i18n="home.card.timer">Timer</h2>
+                        <p class="bento-desc" data-i18n="home.card.timer.desc">csTimer-style sessions and stats, with smart-cube auto start &amp; stop.</p>
+                        <div class="bento-visual timer-visual" aria-hidden="true">9.87</div>
+                    </article>
+
+                    <article class="bento-card bento-algs" data-accent="indigo" onclick="document.getElementById('nav-algorithms-btn').click()">
+                        <div class="bento-head">
+                            <span class="bento-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span>
+                            <span class="bento-arrow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+                        </div>
+                        <h2 class="bento-title" data-i18n="home.card.algs">Algorithm Database</h2>
+                        <p class="bento-desc" data-i18n="home.card.algs.desc">From PLL to ZBLL — thousands of cases with native previews.</p>
+                        <div class="bento-visual algs-visual" aria-hidden="true">R U R' U' <span>R' F R2</span> U' R'</div>
+                    </article>
+
+                    <article class="bento-card bento-records" data-accent="gold" onclick="document.getElementById('nav-records-btn').click()">
+                        <div class="bento-head">
+                            <span class="bento-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></span>
+                            <span class="bento-arrow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+                        </div>
+                        <h2 class="bento-title" data-i18n="home.card.records">WCA Records</h2>
+                        <p class="bento-desc" data-i18n="home.card.records.desc">World, continental and national records, always current.</p>
+                        <div class="bento-visual records-visual" aria-hidden="true"><span class="wr-chip">WR</span> 3×3 · 2.76s</div>
+                    </article>
+
+                    <article class="bento-card bento-comps" data-accent="green" onclick="document.getElementById('nav-competitions-btn').click()">
+                        <div class="bento-comps-inner">
+                            <span class="bento-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                            <div class="bento-comps-text">
+                                <h2 class="bento-title" data-i18n="home.card.comps">Competitions</h2>
+                                <p class="bento-desc" data-i18n="home.card.comps.desc">Browse upcoming WCA competitions and see who's going.</p>
+                            </div>
+                            <span class="bento-arrow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+                        </div>
+                    </article>
                 </div>
             </div>
         </section>
@@ -1444,6 +1544,7 @@
     <link rel="stylesheet" href="timer.css?v=3">
     <script src="timer.js?v=2"></script>
     <script src="smartcube.js?v=1"></script>
+    <script src="motion.js?v=1"></script>
     <script src="app.js?v=9"></script>
 </body>
 </html>
