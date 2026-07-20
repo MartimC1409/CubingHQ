@@ -3030,6 +3030,15 @@
 
         const scramble = state.scrambles[state.currentSolve];
 
+        // Square-1: csTimer-style flat diagram instead of the 3D player.
+        if (event === 'sq1' && window.Square1Drawer) {
+            const holder = document.createElement('div');
+            holder.style.cssText = 'width:100%;max-width:300px;height:150px;margin:0 auto;';
+            window.Square1Drawer.render(holder, scramble || '');
+            container.appendChild(holder);
+            return;
+        }
+
         const player = document.createElement('twisty-player');
         player.setAttribute('puzzle', puzzleType);
         player.setAttribute('experimental-setup-alg',

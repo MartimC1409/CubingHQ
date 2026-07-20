@@ -79,11 +79,25 @@
     }
 
     // Normalize an alg string for twisty-player parsing.
-    // Square-1: ensure canonical "(a, b)" tuple spacing.
+    // Square-1: ensure canonical "(a, b)" tuple spacing and detach
+    // slashes from tuples (we display csTimer's compact "(a,b)/ ..."
+    // notation, which twisty's parser does not accept as-is).
     function normalizeAlgFor(twistyPuzzleId, alg) {
         if (!alg) return '';
         if (twistyPuzzleId === 'square1') {
-            return alg.replace(/\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/g, '($1, $2)');
+            return alg
+                .replace(/\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/g, '($1, $2)')
+                .replace(/\)\s*\//g, ') /')
+                .replace(/\/\s*\(/g, '/ (');
+        }
+        return alg;
+    }
+
+    // Reformat a Square-1 alg into csTimer's notation:
+    // "(0, 5) / (3, 0) / ... (6, 0)" -> "(0,5)/ (3,0)/ ... (6,0)"
+    function toCsTimerSq1(alg) {
+        if (window.Square1Drawer && window.Square1Drawer.formatCsTimer) {
+            return window.Square1Drawer.formatCsTimer(alg);
         }
         return alg;
     }
@@ -135,6 +149,8 @@
             try {
                 const { randomScrambleForEvent } = await loadScrambler();
                 const alg = await randomScrambleForEvent(wcaId);
+                // Square-1 is displayed in csTimer's compact notation.
+                if (wcaId === 'sq1') return toCsTimerSq1(alg.toString());
                 return alg.toString();
             } catch (e) {
                 console.warn(`[ScrambleEngine] random-state scramble attempt ${attempt} failed for ${wcaId}`, e);
@@ -219,80 +235,32 @@
 
     function sq1Scramble() {
         // Random-move approximation (real random-state comes from the WCA
-        // scramble program). Tracks the actual piece layout of both layers so
-        // every twist keeps the slice plane clear — no illegal moves.
-        // Layers are arrays of piece widths in 30° units (corner=2, edge=1),
-        // clockwise from the slice plane; widths always sum to 12. Solved
-        // layers start with a corner at the slice plane (matches the WCA
-        // solved state and Square1Drawer's model).
-        let top = [2, 1, 2, 1, 2, 1, 2, 1];
-        let bottom = [2, 1, 2, 1, 2, 1, 2, 1];
-
-        function boundaries(layer) {
-            const b = new Set();
-            let acc = 0;
-            for (const w of layer) { b.add(acc); acc += w; }
-            return b;
-        }
-
-        // Rotations (in units) that leave piece boundaries at both slice
-        // positions (0 and 6) so the following "/" is a legal move.
-        function legalTurns(layer) {
-            const b = boundaries(layer);
-            const legal = [];
-            for (let a = -5; a <= 6; a++) {
-                if (b.has(((-a % 12) + 12) % 12) && b.has(((6 - a) % 12 + 12) % 12)) legal.push(a);
-            }
-            return legal;
-        }
-
-        function rotate(layer, a) {
-            // Shift the layer so the piece boundary at position (-a mod 12)
-            // becomes the new start (position 0 after turning by `a`).
-            const start = ((-a % 12) + 12) % 12;
-            let acc = 0, idx = 0;
-            for (let i = 0; i < layer.length; i++) {
-                if (acc === start) { idx = i; break; }
-                acc += layer[i];
-            }
-            return layer.slice(idx).concat(layer.slice(0, idx));
-        }
-
-        function half(layer, fromStart) {
-            // Split a layer (with boundaries at 0 and 6) into [0,6) / [6,12).
-            const first = [];
-            const second = [];
-            let acc = 0;
-            for (const w of layer) {
-                (acc < 6 ? first : second).push(w);
-                acc += w;
-            }
-            return fromStart ? first : second;
-        }
-
-        const moves = [];
+        // scramble program). Uses the Square1Drawer state machine — the
+        // same wedge model as the kpuzzle behind real scrambles — so every
+        // "/" is legal and the diagram can always be drawn.
+        const D = window.Square1Drawer;
+        if (!D || !D.stateFromScramble) return '(0,-1)/ (0,3)/ (0,-3)/ (0,3)/ (0,-3)/ (0,3)/';
+        const AMOUNTS = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6];
+        let scr = '';
         for (let i = 0; i < 12; i++) {
-            const tOptions = legalTurns(top);
-            const bOptions = legalTurns(bottom);
-            let a = pick(tOptions);
-            let b = pick(bOptions);
-            if (a === 0 && b === 0) {
-                const nzTop = tOptions.filter(v => v !== 0);
-                const nzBot = bOptions.filter(v => v !== 0);
-                if (Math.random() < 0.5 && nzTop.length) a = pick(nzTop);
-                else if (nzBot.length) b = pick(nzBot);
-                else if (nzTop.length) a = pick(nzTop);
+            const xs = AMOUNTS.slice().sort(() => Math.random() - 0.5);
+            const ys = AMOUNTS.slice().sort(() => Math.random() - 0.5);
+            let done = false;
+            for (const x of xs) {
+                if (done) break;
+                for (const y of ys) {
+                    if (i > 0 && x === 0 && y === 0) continue; // avoid null twists mid-scramble
+                    const cand = `${scr} (${x},${y})/`;
+                    if (D.stateFromScramble(cand).legal) {
+                        scr = cand;
+                        done = true;
+                        break;
+                    }
+                }
             }
-            moves.push(`(${a},${b})/`);
-            top = rotate(top, a);
-            bottom = rotate(bottom, b);
-            // "/" swaps the right halves (each flipped 180°, reversing order).
-            const newTop = half(top, true).concat(half(bottom, false).reverse());
-            const newBottom = half(bottom, true).concat(half(top, false).reverse());
-            top = newTop;
-            bottom = newBottom;
+            if (!done) scr += ' (0,0)/'; // unreachable: (0,0) is always legal
         }
-        return moves.join(' ');
+        return scr.trim();
     }
 
     function clockScramble() {

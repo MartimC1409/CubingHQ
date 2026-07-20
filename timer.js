@@ -969,6 +969,13 @@
         const info = EVENT_INFO[sess.event];
         const puzzle = info?.puzzle || '3x3x3';
 
+        // Square-1: csTimer-style flat diagram instead of the 3D player.
+        if (sess.event === 'sq1' && sq1Diagram && window.Square1Drawer) {
+            twisty.style.display = 'none';
+            sq1Diagram.style.display = '';
+            window.Square1Drawer.render(sq1Diagram, TSTATE.currentScramble || '');
+            return;
+        }
         if (sq1Diagram) sq1Diagram.style.display = 'none';
         twisty.style.display = '';
 
