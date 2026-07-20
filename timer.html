@@ -8,9 +8,10 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3Crect x='12' y='2' width='8' height='8' rx='1.5' fill='%23F7C948'/%3E%3Crect x='22' y='2' width='8' height='8' rx='1.5' fill='%232ECC71'/%3E%3Crect x='2' y='12' width='8' height='8' rx='1.5' fill='%23E74C3C'/%3E%3Crect x='12' y='12' width='8' height='8' rx='1.5' fill='%236366F1'/%3E%3Crect x='22' y='12' width='8' height='8' rx='1.5' fill='%233498DB'/%3E%3Crect x='2' y='22' width='8' height='8' rx='1.5' fill='%239B59B6'/%3E%3Crect x='12' y='22' width='8' height='8' rx='1.5' fill='%231ABC9C'/%3E%3Crect x='22' y='22' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
     <link rel="stylesheet" href="timer.css?v=3">
+    <link rel="stylesheet" href="polish.css?v=1">
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <style>
         body { overflow: auto; min-height: 100vh; }
@@ -95,41 +96,41 @@
     </header>
 
     <div class="nav-links" id="nav-links" role="navigation" aria-label="Primary navigation">
-        <button class="nav-btn" id="nav-home-btn" title="Home">
+        <button class="nav-btn" id="nav-home-btn" title="Home" data-i18n="nav.home">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Home
         </button>
-        <button class="nav-btn" id="nav-timer-btn" title="Timer">
+        <button class="nav-btn" id="nav-timer-btn" title="Timer" data-i18n="nav.timer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Timer
         </button>
-        <button class="nav-btn" id="nav-simulation-btn" title="Comp Simulation">
+        <button class="nav-btn" id="nav-simulation-btn" title="Comp Simulation" data-i18n="nav.compsim">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
             Comp Sim
         </button>
-        <button class="nav-btn" id="nav-records-btn" title="Records & Rankings">
+        <button class="nav-btn" id="nav-records-btn" title="Records & Rankings" data-i18n="nav.records">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
             Records
         </button>
-        <button class="nav-btn" id="nav-competitions-btn" title="Competitions">
+        <button class="nav-btn" id="nav-competitions-btn" title="Competitions" data-i18n="nav.competitions">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Competitions
         </button>
-        <button class="nav-btn" id="nav-algorithms-btn" title="Algorithms & Drills">
+        <button class="nav-btn" id="nav-algorithms-btn" title="Algorithms & Drills" data-i18n="nav.algorithms">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             Algorithms
         </button>
-        <button class="nav-btn" id="nav-history-btn" title="History">
+        <button class="nav-btn" id="nav-history-btn" title="History" data-i18n="nav.history">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 14"/></svg>
             History
         </button>
         <!-- Battle Button -->
-        <button class="nav-btn nav-btn--battle" id="nav-battle-btn" title="Battle">
+        <button class="nav-btn nav-btn--battle" id="nav-battle-btn" title="Battle" data-i18n="nav.battle">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
             Battle
         </button>
         <!-- Login Button -->
-        <button class="nav-btn" id="nav-login-btn" title="Login">
+        <button class="nav-btn" id="nav-login-btn" title="Login" data-i18n="nav.login">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             Login
         </button>
@@ -174,7 +175,7 @@
                     <div class="cs-scramble-bar">
                         <div class="cs-scramble-text" id="cs-scramble-text">—</div>
                         <div class="cs-scramble-actions">
-                            <button id="cs-btn-new-scramble" class="cs-btn-secondary" title="New scramble (press space when idle)">
+                            <button id="cs-btn-new-scramble" class="cs-btn-secondary" title="New scramble (press space when idle)" data-i18n="timer.newScramble">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                                 New Scramble
                             </button>
@@ -187,27 +188,27 @@
                     <div class="cs-timer-display-area" id="cs-timer-display-area">
                         <div class="cs-status-text" id="cs-status-text">Hold Space / Tap</div>
                         <div class="cs-timer-display" id="timer-display-text">0.00</div>
-                        <div class="cs-timer-hint">Space = start/stop · 1=OK · 2=+2 · 3=DNF · Ctrl+Z=delete last</div>
+                        <div class="cs-timer-hint" data-i18n="timer.hint">Space = start/stop · 1=OK · 2=+2 · 3=DNF · Ctrl+Z=delete last</div>
                     </div>
 
                     <div class="cs-manual-entry" id="cs-manual-entry" style="display:none;">
-                        <div class="cs-manual-hint">Type time and press Enter<br><small>e.g. <code>1234</code> = 12.34s &nbsp;·&nbsp; <code>1:05.30</code> = 1m 5.30s</small></div>
+                        <div class="cs-manual-hint" data-i18n-html="timer.manualHint">Type time and press Enter<br><small>e.g. <code>1234</code> = 12.34s &nbsp;·&nbsp; <code>1:05.30</code> = 1m 5.30s</small></div>
                         <div class="cs-manual-input-row">
-                            <input type="text" id="cs-manual-input" class="cs-manual-input" placeholder="Type time..." autocomplete="off" inputmode="numeric">
-                            <button id="cs-manual-submit" class="cs-btn-primary">Submit</button>
+                            <input type="text" id="cs-manual-input" class="cs-manual-input" placeholder="Type time..." data-i18n-placeholder="timer.manualPlaceholder" autocomplete="off" inputmode="numeric">
+                            <button id="cs-manual-submit" class="cs-btn-primary" data-i18n="timer.submit">Submit</button>
                         </div>
                     </div>
 
                     <div class="cs-bottom-bar">
-                        <button id="cs-btn-clear-session" class="cs-btn-ghost" title="Clear all solves in current session">
+                        <button id="cs-btn-clear-session" class="cs-btn-ghost" title="Clear all solves in current session" data-i18n="timer.clearSession">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                             Clear Session
                         </button>
-                        <button id="cs-btn-export" class="cs-btn-ghost" title="Export JSON backup">
+                        <button id="cs-btn-export" class="cs-btn-ghost" title="Export JSON backup" data-i18n="timer.export">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             Export
                         </button>
-                        <button id="cs-btn-import" class="cs-btn-ghost" title="Import JSON backup">
+                        <button id="cs-btn-import" class="cs-btn-ghost" title="Import JSON backup" data-i18n="timer.import">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             Import
                         </button>
@@ -222,7 +223,7 @@
                 <aside class="cstimer-right">
                     <div class="cs-panel cs-solve-list-panel">
                         <div class="cs-panel-header">
-                            <h3 class="cs-panel-title">Time List</h3>
+                            <h3 class="cs-panel-title" data-i18n="timer.timeList">Time List</h3>
                             <div class="cs-panel-actions">
                                 <button class="cs-icon-btn" id="cs-btn-delete-last" title="Delete last solve (Ctrl+Z)">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
@@ -235,12 +236,12 @@
                     </div>
 
                     <div class="cs-panel cs-settings-panel">
-                        <div class="cs-panel-header"><h3 class="cs-panel-title">Settings</h3></div>
+                        <div class="cs-panel-header"><h3 class="cs-panel-title" data-i18n="timer.settings">Settings</h3></div>
 
                         <details class="cs-settings-group" open>
-                            <summary>Timer</summary>
+                            <summary data-i18n="timer.group.timer">Timer</summary>
                             <div class="cs-setting-row">
-                                <label for="cs-setting-event">Event</label>
+                                <label for="cs-setting-event" data-i18n="timer.set.event">Event</label>
                                 <select id="cs-setting-event" class="cs-input">
                                     <option value="333">3x3x3</option>
                                     <option value="222">2x2x2</option>
@@ -257,25 +258,25 @@
                                 </select>
                             </div>
                             <div class="cs-setting-row">
-                                <label for="cs-setting-hold-delay">Hold (ms)</label>
+                                <label for="cs-setting-hold-delay" data-i18n="timer.set.hold">Hold (ms)</label>
                                 <input type="number" id="cs-setting-hold-delay" value="300" min="0" max="1000" step="50" class="cs-input cs-input-num">
                             </div>
                             <div class="cs-setting-row">
-                                <label for="cs-setting-inspection">Inspection</label>
+                                <label for="cs-setting-inspection" data-i18n="timer.set.inspection">Inspection</label>
                                 <select id="cs-setting-inspection" class="cs-input">
-                                    <option value="off">Off</option>
-                                    <option value="on">On (15s)</option>
+                                    <option value="off" data-i18n="timer.opt.off">Off</option>
+                                    <option value="on" data-i18n="timer.opt.on15">On (15s)</option>
                                 </select>
                             </div>
                             <div class="cs-setting-row">
-                                <label for="cs-setting-voice">Voice cues</label>
+                                <label for="cs-setting-voice" data-i18n="timer.set.voice">Voice cues</label>
                                 <select id="cs-setting-voice" class="cs-input">
-                                    <option value="off">Off</option>
-                                    <option value="on">On (8s, 12s)</option>
+                                    <option value="off" data-i18n="timer.opt.off">Off</option>
+                                    <option value="on" data-i18n="timer.opt.on812">On (8s, 12s)</option>
                                 </select>
                             </div>
                             <div class="cs-setting-row">
-                                <label for="cs-setting-manual-mode">Manual entry</label>
+                                <label for="cs-setting-manual-mode" data-i18n="timer.set.manual">Manual entry</label>
                                 <label class="cs-toggle">
                                     <input type="checkbox" id="cs-setting-manual-mode">
                                     <span class="cs-toggle-slider"></span>
@@ -284,26 +285,26 @@
                         </details>
 
                         <details class="cs-settings-group">
-                            <summary>Display</summary>
+                            <summary data-i18n="timer.group.display">Display</summary>
                             <div class="cs-setting-row">
-                                <label for="cs-setting-show-last">Show solves</label>
+                                <label for="cs-setting-show-last" data-i18n="timer.set.showSolves">Show solves</label>
                                 <select id="cs-setting-show-last" class="cs-input">
-                                    <option value="0">All</option>
-                                    <option value="5">Last 5</option>
-                                    <option value="10">Last 10</option>
-                                    <option value="20">Last 20</option>
-                                    <option value="50">Last 50</option>
+                                    <option value="0" data-i18n="timer.opt.all">All</option>
+                                    <option value="5" data-i18n="timer.opt.last5">Last 5</option>
+                                    <option value="10" data-i18n="timer.opt.last10">Last 10</option>
+                                    <option value="20" data-i18n="timer.opt.last20">Last 20</option>
+                                    <option value="50" data-i18n="timer.opt.last50">Last 50</option>
                                 </select>
                             </div>
                             <div class="cs-setting-row">
-                                <label>Hide time while solving</label>
+                                <label data-i18n="timer.set.hideTime">Hide time while solving</label>
                                 <label class="cs-toggle">
                                     <input type="checkbox" id="cs-setting-hide-time">
                                     <span class="cs-toggle-slider"></span>
                                 </label>
                             </div>
                             <div class="cs-setting-row">
-                                <label>Hide scramble while solving</label>
+                                <label data-i18n="timer.set.hideScramble">Hide scramble while solving</label>
                                 <label class="cs-toggle">
                                     <input type="checkbox" id="cs-setting-hide-scramble">
                                     <span class="cs-toggle-slider"></span>
@@ -312,17 +313,17 @@
                         </details>
 
                         <details class="cs-settings-group">
-                            <summary>Data</summary>
-                            <div class="cs-setting-desc">Auto-saves locally and syncs to cloud when signed in.</div>
-                            <button class="cs-btn-block cs-btn-secondary" onclick="window.TimerModule && TimerModule.exportCSV && TimerModule.exportCSV()">Export current session as CSV</button>
-                            <button class="cs-btn-block cs-btn-warn" id="cs-btn-clear-session-2">Clear current session data</button>
+                            <summary data-i18n="timer.group.data">Data</summary>
+                            <div class="cs-setting-desc" data-i18n="timer.data.desc">Auto-saves locally and syncs to cloud when signed in.</div>
+                            <button class="cs-btn-block cs-btn-secondary" onclick="window.TimerModule && TimerModule.exportCSV && TimerModule.exportCSV()" data-i18n="timer.data.exportCsv">Export current session as CSV</button>
+                            <button class="cs-btn-block cs-btn-warn" id="cs-btn-clear-session-2" data-i18n="timer.data.clear">Clear current session data</button>
                         </details>
 
                         <details class="cs-settings-group">
-                            <summary>About</summary>
+                            <summary data-i18n="timer.group.about">About</summary>
                             <div class="cs-about">
-                                <p><strong>SimTimer</strong> — a csTimer-inspired speedcubing practice tool.</p>
-                                <p>Features:</p>
+                                <p data-i18n-html="timer.about.intro"><strong>SimTimer</strong> — a csTimer-inspired speedcubing practice tool.</p>
+                                <p data-i18n="timer.about.features">Features:</p>
                                 <ul class="cs-about-list">
                                     <li>Hold spacebar → tap to start (configurable hold)</li>
                                     <li>WCA-style 15s inspection with optional voice</li>
@@ -353,12 +354,12 @@
                     <button class="cs-stop-btn cs-stop-btn-dnf" id="cs-stop-dnf" data-penalty="DNF">
                         DNF
                     </button>
-                    <button class="cs-stop-btn cs-stop-btn-delete" id="cs-stop-delete" title="Delete this solve (Shift+Backspace)">
+                    <button class="cs-stop-btn cs-stop-btn-delete" id="cs-stop-delete" title="Delete this solve (Shift+Backspace)" data-i18n="timer.delete">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
                         Delete
                     </button>
                 </div>
-                <div class="cs-stop-hint">Click a penalty or press 1 / 2 / 3 / Esc &nbsp;·&nbsp; Shift+Backspace to delete</div>
+                <div class="cs-stop-hint" data-i18n-html="timer.stopHint">Click a penalty or press 1 / 2 / 3 / Esc &nbsp;·&nbsp; Shift+Backspace to delete</div>
             </div>
         </div>
     </main>
@@ -375,9 +376,11 @@
             return id;
         }
     </script>
+    <script src="i18n.js?v=1"></script>
     <script src="scramble-engine.js?v=2"></script>
     <script src="square1-drawer.js?v=2"></script>
     <script src="timer.js?v=2"></script>
+    <script src="smartcube.js?v=1"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.TimerModule && typeof window.TimerModule.init === 'function') {
