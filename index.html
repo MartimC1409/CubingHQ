@@ -687,16 +687,6 @@
                                         </div>
                                     </label>
                                 </div>
-                                <div class="form-group">
-                                    <label class="toggle-label">
-                                        <span>Spacebar Timer<span class="form-hint" style="display:block;margin-top:2px;">Hold Space to start, tap to stop — instead of typing times</span></span>
-                                        <div class="toggle-switch">
-                                            <input type="checkbox" id="spacebar-timer-toggle">
-                                            <span class="toggle-slider"></span>
-                                        </div>
-                                    </label>
-                                </div>
-
                             </div>
                         </div>
                     </div>
@@ -766,7 +756,18 @@
                     <div class="dash-card timer-card" id="manual-entry-panel">
                         <div class="card-header-bar">
                             <h3 class="card-bar-title" id="timer-card-title">⌨️ Enter Time</h3>
-                            <div class="timer-status ready" id="timer-status">INPUT</div>
+                            <div class="dash-timer-controls">
+                                <label class="dash-spacebar-toggle" title="Hold Space to start, tap to stop — instead of typing times">
+                                    <span class="dash-spacebar-toggle-icon" aria-hidden="true">⌨️</span>
+                                    <div class="toggle-switch toggle-switch-sm">
+                                        <input type="checkbox" id="dash-spacebar-toggle">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                    <span class="dash-spacebar-toggle-icon" aria-hidden="true">⏱️</span>
+                                    <span class="dash-spacebar-toggle-label" data-i18n="sim.spacebarTimer">Spacebar</span>
+                                </label>
+                                <div class="timer-status ready" id="timer-status">INPUT</div>
+                            </div>
                         </div>
                         <div class="timer-display-wrap">
                             <input type="text" id="manual-time-input" class="manual-time-input" placeholder="0.00" autocomplete="off" inputmode="numeric">
