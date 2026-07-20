@@ -142,55 +142,61 @@
     const SQB = SQA * Math.sqrt(2);        // half-size of a layer cell
     const FACE_SCALE = 0.66;               // inner face wedge scale (side band look)
 
-    // Point on the axis-aligned square boundary at screen angle deg
-    // (0° = up, clockwise), for a square of half-side s.
-    function sqPoint(cx, cy, s, deg) {
-        const a = deg * Math.PI / 180;
-        const dx = Math.sin(a), dy = -Math.cos(a);
-        const k = s / Math.max(Math.abs(dx), Math.abs(dy));
-        return [cx + dx * k, cy + dy * k];
-    }
-
     function poly(pts, fill) {
         const d = pts.map(p => `${p[0].toFixed(3)},${p[1].toFixed(3)}`).join(' ');
         return `<polygon points="${d}" fill="${fill}" stroke="#000" stroke-width="0.06"/>`;
     }
 
-    // Boundary walk from a1 to a2 (clockwise, degrees) inserting the
-    // square corners (45+90k) crossed along the way.
-    function boundary(cx, cy, s, a1, a2) {
-        const pts = [sqPoint(cx, cy, s, a1)];
-        for (let c = Math.ceil((a1 - 45) / 90) * 90 + 45; c < a2; c += 90) {
-            if (c > a1) pts.push(sqPoint(cx, cy, s, c));
-        }
-        pts.push(sqPoint(cx, cy, s, a2));
-        return pts;
+    // ---- Intrinsic piece shapes (local coords, pointing up) ----
+    // Pieces keep their own shape wherever they sit — an edge is a flat
+    // 30° wedge of height SQA, a corner is a 60° wedge reaching out to
+    // the square diagonal (radius SQB). Drawing them rotated (instead of
+    // clipping to a fixed square outline) is what makes the actual
+    // cubeshape visible: only cube-shaped layers look like squares.
+    // Local angular spans: EDGE [-15°,15°]; CORNER [-75°,-15°], split
+    // into its two 30° halves for the per-wedge side stickers.
+    const EDGE_SHAPE = [[0, 0], [-0.5, -SQA], [0.5, -SQA]];
+    const CORNER_SHAPE = [[0, 0], [-0.5, -SQA], [-SQA, -SQA], [-SQA, -0.5]];
+    const CORNER_HALF_R = [[0, 0], [-0.5, -SQA], [-SQA, -SQA]];   // local [-45°,-15°]
+    const CORNER_HALF_L = [[0, 0], [-SQA, -SQA], [-SQA, -0.5]];   // local [-75°,-45°]
+
+    // Rotate (clockwise on screen for positive deg), scale about the
+    // origin, then translate to (cx, cy).
+    function place(shape, deg, scale, cx, cy) {
+        const a = deg * Math.PI / 180;
+        const cos = Math.cos(a), sin = Math.sin(a);
+        return shape.map(([x, y]) => [
+            cx + (x * cos - y * sin) * scale,
+            cy + (x * sin + y * cos) * scale,
+        ]);
     }
 
     function drawLayer(parts, state, isTop, cx, cy) {
         const base = isTop ? 0 : 12;
-        const angle = s => isTop ? 30 + s * 30 : 180 + s * 30;
-        // Side sticker bands: one triangle per slot, full size.
-        for (let s = 0; s < 12; s++) {
-            const w = state.wedges[base + s];
-            const a1 = angle(s) - 15, a2 = angle(s) + 15;
-            const pts = [[cx, cy]].concat(boundary(cx, cy, SQA, a1, a2));
-            parts.push(poly(pts, sideColor(w)));
-        }
-        // Face wedges (scaled): merge corner twins into one polygon.
+        const angle = s => (isTop ? 30 : 180) + s * 30;
+        // Start so a corner pair wrapping the 11->0 slot boundary is
+        // drawn as one piece.
         let s = 0;
-        // If a corner pair wraps the 11->0 boundary start at slot 1..
-        const wrapPair = TWIN[state.wedges[base + 11]] === state.wedges[base + 0];
-        if (wrapPair) s = 1;
+        if (TWIN[state.wedges[base + 11]] === state.wedges[base + 0]) s = 1;
         let drawn = 0;
         while (drawn < 12) {
-            const w = state.wedges[base + (s % 12)];
-            const isCorner = TWIN[w] !== -1 && state.wedges[base + ((s + 1) % 12)] === TWIN[w];
-            const span = isCorner ? 60 : 30;
-            const a1 = angle(s % 12) - 15;
-            const pts = [[cx, cy]].concat(
-                boundary(cx, cy, SQA * FACE_SCALE, a1, a1 + span));
-            parts.push(poly(pts, faceColor(w)));
+            const slot = s % 12;
+            const w = state.wedges[base + slot];
+            const isCorner = TWIN[w] !== -1
+                && state.wedges[base + ((s + 1) % 12)] === TWIN[w];
+            if (isCorner) {
+                const w2 = state.wedges[base + ((s + 1) % 12)];
+                // Corner spanning [angle-15°, angle+45°]: rotate the base
+                // shape (local [-75°,-15°]) by angle+60°.
+                const rot = angle(slot) + 60;
+                parts.push(poly(place(CORNER_HALF_L, rot, 1, cx, cy), sideColor(w)));
+                parts.push(poly(place(CORNER_HALF_R, rot, 1, cx, cy), sideColor(w2)));
+                parts.push(poly(place(CORNER_SHAPE, rot, FACE_SCALE, cx, cy), faceColor(w)));
+            } else {
+                const rot = angle(slot);
+                parts.push(poly(place(EDGE_SHAPE, rot, 1, cx, cy), sideColor(w)));
+                parts.push(poly(place(EDGE_SHAPE, rot, FACE_SCALE, cx, cy), faceColor(w)));
+            }
             s += isCorner ? 2 : 1;
             drawn += isCorner ? 2 : 1;
         }
@@ -218,11 +224,13 @@
         const parts = [];
         parts.push(`<svg viewBox="0 0 ${W.toFixed(2)} ${H.toFixed(2)}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;margin:0 auto;">`);
         const cyMid = SQB;
-        drawLayer(parts, state, true, SQB, cyMid);          // top layer, left
-        drawLayer(parts, state, false, 3 * SQB, cyMid);     // bottom layer, right
+        // Middle-layer indicators first so out-of-cubeshape pieces can
+        // overlap them (same layering as csTimer).
         const aligned = state.slashParity === 0;
         drawMiddle(parts, aligned, SQB, cyMid + SQA + 0.25);        // under left square
         drawMiddle(parts, aligned, 3 * SQB, cyMid - SQA - 0.95);    // over right square
+        drawLayer(parts, state, true, SQB, cyMid);          // top layer, left
+        drawLayer(parts, state, false, 3 * SQB, cyMid);     // bottom layer, right
         parts.push('</svg>');
         container.innerHTML = parts.join('');
     }
