@@ -61,6 +61,7 @@
             // ----- Setup (comp sim) hero -----
             'setup.badge': 'WCA COMPETITION SIMULATOR',
             'setup.subtitle': "Enter your WCA ID and competition ID below. We'll pull real competition data, your PRs, and simulate the experience.",
+            'sim.spacebarTimer': 'Spacebar',
 
             // ----- Timer view -----
             'timer.newScramble': ' New Scramble',
@@ -183,6 +184,7 @@
             // ----- Herói da simulação -----
             'setup.badge': 'SIMULADOR DE COMPETIÇÕES WCA',
             'setup.subtitle': 'Introduz o teu WCA ID e o ID da competição. Vamos buscar dados reais da competição e os teus PRs, e simular a experiência.',
+            'sim.spacebarTimer': 'Espaço',
 
             // ----- Cronómetro -----
             'timer.newScramble': ' Novo Scramble',

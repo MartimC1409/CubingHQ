@@ -22,6 +22,30 @@
 
     const ROUND_NAMES = { 1: 'Round 1', 2: 'Round 2', 3: 'Semi-Final', 4: 'Final' };
 
+    // WCA round-naming convention, given the TOTAL number of rounds an
+    // event has: the last round is always the Final, the one before it a
+    // Semi-Final (only when there are 3+ rounds), and earlier rounds are
+    // numbered.  1→Final · 2→Round 1, Final · 3→Round 1, Semi-Final, Final
+    // · 4→Round 1, Round 2, Semi-Final, Final.
+    function roundNamesFor(total) {
+        const t = Math.max(1, total || 1);
+        if (t === 1) return { 1: 'Final' };
+        const names = {};
+        for (let i = 1; i <= t; i++) {
+            if (i === t) names[i] = 'Final';
+            else if (i === t - 1 && t >= 3) names[i] = 'Semi-Final';
+            else names[i] = `Round ${i}`;
+        }
+        return names;
+    }
+
+    // Name of `round` within an event that has `total` rounds (defaults to
+    // the active simulation's round count).
+    function getRoundName(round, total) {
+        const t = total || state.numRounds || 4;
+        return roundNamesFor(t)[round] || `Round ${round}`;
+    }
+
     // Events that use Mean of 3 (instead of Average of 5)
     const MEAN_OF_3_EVENTS = ['666', '777', '333bf', '444bf', '555bf', '333fm', '333mbf'];
 
@@ -158,6 +182,7 @@
         event: '333',
         numSolves: 5,
         round: 1,
+        numRounds: 4,       // rounds this event has (from WCIF; 4 for custom sims)
         numCompetitors: 30,
         playerName: '',
         playerWcaId: '',
@@ -1307,6 +1332,16 @@
         $('#back-to-setup-btn').addEventListener('click', () => { clearSimState(); switchView('setup'); });
         $('#fullscreen-btn').addEventListener('click', toggleFullscreen);
 
+        // In-simulation Spacebar Timer toggle (moved here from the setup card).
+        const dashSpaceToggle = $('#dash-spacebar-toggle');
+        if (dashSpaceToggle) {
+            dashSpaceToggle.addEventListener('change', () => {
+                state.spacebarTimer = dashSpaceToggle.checked;
+                resetTimer();
+                saveSimState();
+            });
+        }
+
         // Volume control
         const volSlider = $('#comp-volume-slider');
         const muteBtn = $('#mute-noise-btn');
@@ -1541,26 +1576,47 @@
         }
     }
 
+    // Rebuild the "Starting Round" dropdown so it only offers rounds that
+    // actually exist for the current event (state.numRounds), with the
+    // correct WCA names. Keeps the current pick if still valid, otherwise
+    // clamps it to the last existing round.
+    function updateRoundOptions() {
+        const sel = $('#round-select');
+        if (!sel) return;
+        const total = Math.max(1, state.numRounds || 4);
+        const names = roundNamesFor(total);
+        const prev = parseInt(sel.value, 10) || 1;
+        sel.innerHTML = '';
+        for (let i = 1; i <= total; i++) {
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = names[i];
+            sel.appendChild(opt);
+        }
+        sel.value = String(Math.min(prev, total));
+    }
+
     function updateEventCompInfo() {
         const infoPanel = $('#event-comp-info');
 
         if (!state.wcifData) {
+            // No competition loaded — allow a generic multi-round custom sim.
+            state.numRounds = 4;
+            updateRoundOptions();
             infoPanel.style.display = 'none';
             return;
         }
 
         // Find the selected event in WCIF
         const eventData = (state.wcifData.events || []).find(e => e.id === state.event);
-        if (!eventData) {
+        if (!eventData || !eventData.rounds || eventData.rounds.length === 0) {
+            state.numRounds = 4;
+            updateRoundOptions();
             infoPanel.style.display = 'none';
             return;
         }
 
-        const round1 = eventData.rounds && eventData.rounds[0];
-        if (!round1) {
-            infoPanel.style.display = 'none';
-            return;
-        }
+        const round1 = eventData.rounds[0];
 
         // Time limit
         const timeLimit = round1.timeLimit;
@@ -1584,8 +1640,11 @@
             $('#event-cutoff').textContent = 'None';
         }
 
-        // Number of rounds for this event
+        // Number of rounds for this event — drives the round dropdown so
+        // the user can't pick a round the competition doesn't have.
+        state.numRounds = eventData.rounds.length;
         $('#event-rounds-count').textContent = `${eventData.rounds.length} round${eventData.rounds.length > 1 ? 's' : ''}`;
+        updateRoundOptions();
 
         // Count competitors registered for this event
         const registeredForEvent = (state.wcifData.persons || []).filter(p =>
@@ -2400,11 +2459,14 @@
                 return;
             }
         }
-        state.round = parseInt($('#round-select').value);
+        // Clamp to a round that actually exists (the dropdown is already
+        // limited, but guard against stale values).
+        state.round = Math.min(parseInt($('#round-select').value, 10) || 1, state.numRounds || 4);
         state.goalTime = $('#goal-time').value ? parseFloat($('#goal-time').value) : null;
         state.soundEnabled = $('#sound-toggle').checked;
         state.liveMode = $('#live-mode-toggle')?.checked || false;
-        state.spacebarTimer = $('#spacebar-timer-toggle')?.checked || false;
+        // Spacebar Timer is now toggled inside the simulation, not here —
+        // keep whatever the in-dashboard toggle last set (default off).
 
         // Determine numSolves from event
         state.numSolves = MEAN_OF_3_EVENTS.includes(state.event) ? 3 : 5;
@@ -2446,7 +2508,7 @@
         resetTimer();
 
         switchView('dashboard');
-        showToast(`🏁 Simulation started! ${EVENT_NAMES[state.event]} - ${ROUND_NAMES[state.round]}`, 'info');
+        showToast(`🏁 Simulation started! ${EVENT_NAMES[state.event]} - ${getRoundName(state.round)}`, 'info');
         
         if (state.rtInterval) clearInterval(state.rtInterval);
         state.rtInterval = setInterval(updateRealTimeSimulation, 500);
@@ -2728,6 +2790,9 @@
         const hint = $('#timer-hint');
         const title = $('#timer-card-title');
         const statusEl = $('#timer-status');
+        // Keep the in-dashboard toggle in sync with the active mode.
+        const spaceToggle = $('#dash-spacebar-toggle');
+        if (spaceToggle) spaceToggle.checked = !!state.spacebarTimer;
 
         if (state.spacebarTimer) {
             // Spacebar timing mode: hide the text input, show the live timer.
@@ -2897,7 +2962,7 @@
     function updateDashboardHeader() {
         $('#dash-comp-name').textContent = state.compName;
         $('#dash-event-badge').textContent = EVENT_NAMES[state.event];
-        $('#dash-round-badge').textContent = ROUND_NAMES[state.round];
+        $('#dash-round-badge').textContent = getRoundName(state.round);
         updateDashboardBadges();
     }
 
@@ -2908,7 +2973,7 @@
         const scName = $('#scorecard-name');
         if (scName) scName.textContent = state.playerName;
         const scEvent = $('#scorecard-event');
-        if (scEvent) scEvent.textContent = `${EVENT_NAMES[state.event]} — ${ROUND_NAMES[state.round]}`;
+        if (scEvent) scEvent.textContent = `${EVENT_NAMES[state.event]} — ${getRoundName(state.round)}`;
     }
 
     function renderScorecardTemplate() {
@@ -3252,23 +3317,26 @@
         $('#end-placement').textContent = `${placement}/${total}`;
         $('#end-best').textContent = best === Infinity ? 'DNF' : formatTime(best);
 
+        // Is there another round after this one for this event?
+        const hasNextRound = state.round < (state.numRounds || 4);
+
         let message = '';
         if (placement === 1) {
             message = '🏆 INCREDIBLE! You won the round!';
-            $('#next-round-btn').style.display = state.round < 4 ? 'inline-flex' : 'none';
+            $('#next-round-btn').style.display = hasNextRound ? 'inline-flex' : 'none';
         } else if (placement <= 3) {
             message = '🏅 Amazing! Podium finish!';
-            $('#next-round-btn').style.display = state.round < 4 ? 'inline-flex' : 'none';
+            $('#next-round-btn').style.display = hasNextRound ? 'inline-flex' : 'none';
         } else {
             // Check if would advance (top 75% for R1, top 50% for R2, etc)
-            const advancementRates = { 1: 0.75, 2: 0.5, 3: 0.33, 4: 0 };
-            const advRate = advancementRates[state.round] || 0;
+            const advancementRates = { 1: 0.75, 2: 0.5, 3: 0.33 };
+            const advRate = hasNextRound ? (advancementRates[state.round] || 0.5) : 0;
             const advCount = Math.ceil(total * advRate);
             const advanced = advCount > 0 && placement <= advCount;
 
             message = `You placed ${placement}${getOrdinal(placement)} out of ${total} competitors.`;
-            if (advanced && state.round < 4) {
-                message = `🎉 Congratulations! You advanced to ${ROUND_NAMES[state.round + 1]}!\n` + message;
+            if (advanced && hasNextRound) {
+                message = `🎉 Congratulations! You advanced to ${getRoundName(state.round + 1)}!\n` + message;
                 $('#next-round-btn').style.display = 'inline-flex';
             } else {
                 $('#next-round-btn').style.display = 'none';
@@ -3304,7 +3372,7 @@
     }
 
     async function startNextRound() {
-        state.round = Math.min(state.round + 1, 4);
+        state.round = Math.min(state.round + 1, state.numRounds || 4);
 
         state.competitors.sort((a, b) => {
             if (a.average === Infinity && b.average === Infinity) return 0;
@@ -3335,7 +3403,7 @@
         renderLeaderboard();
         resetTimer();
 
-        showToast(`🏁 ${ROUND_NAMES[state.round]} started! ${state.numCompetitors} competitors remaining.`, 'info');
+        showToast(`🏁 ${getRoundName(state.round)} started! ${state.numCompetitors} competitors remaining.`, 'info');
         saveSimState();
     }
 
@@ -3348,7 +3416,7 @@
             event: state.event,
             eventName: EVENT_NAMES[state.event],
             round: state.round,
-            roundName: ROUND_NAMES[state.round],
+            roundName: getRoundName(state.round),
             average: avg,
             best: best,
             placement, total,
@@ -3686,7 +3754,7 @@
         const best = validSolves.length > 0 ? Math.min(...validSolves.map(s => s.result)) : Infinity;
 
         let text = `CubingHQ Results\n━━━━━━━━━━━━━━━━━━━━━\n`;
-        text += `Competition: ${state.compName}\nEvent: ${EVENT_NAMES[state.event]} | ${ROUND_NAMES[state.round]}\n`;
+        text += `Competition: ${state.compName}\nEvent: ${EVENT_NAMES[state.event]} | ${getRoundName(state.round)}\n`;
         text += `Player: ${state.playerName} (${state.playerWcaId})\n━━━━━━━━━━━━━━━━━━━━━\n`;
 
         state.solves.forEach((solve, i) => {
@@ -3718,6 +3786,7 @@
             event: state.event,
             numSolves: state.numSolves,
             round: state.round,
+            numRounds: state.numRounds,
             numCompetitors: state.numCompetitors,
             playerName: state.playerName,
             playerWcaId: state.playerWcaId,
@@ -3727,6 +3796,7 @@
             cutoff: state.cutoff,
             soundEnabled: state.soundEnabled,
             liveMode: state.liveMode,
+            spacebarTimer: state.spacebarTimer,
             currentSolve: state.currentSolve,
             scrambles: state.scrambles,
             solves: state.solves,
@@ -3769,6 +3839,7 @@
                 event: restored.event || '333',
                 numSolves: restored.numSolves || 5,
                 round: restored.round || 1,
+                numRounds: restored.numRounds || 4,
                 numCompetitors: restored.numCompetitors || 30,
                 playerName: restored.playerName || 'Player',
                 playerWcaId: restored.playerWcaId || '',
@@ -3784,6 +3855,7 @@
                 competitors: restored.competitors || [],
                 selectedPenalty: restored.selectedPenalty || 'none',
                 playerData: restored.playerData || null,
+                spacebarTimer: restored.spacebarTimer || false,
             });
 
             // Rebuild dashboard UI

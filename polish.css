@@ -451,3 +451,33 @@ body::after {
 
 /* Never break a scramble token (e.g. "D2") across lines */
 .cs-scramble-text { word-break: normal; overflow-wrap: break-word; }
+
+/* ---------- In-simulation Spacebar Timer toggle ---------- */
+.dash-timer-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.dash-spacebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.72rem;
+    color: var(--clr-text-secondary);
+}
+.dash-spacebar-toggle-icon { font-size: 0.85rem; line-height: 1; opacity: 0.75; }
+.dash-spacebar-toggle-label {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+/* Small variant of the shared toggle switch */
+.toggle-switch.toggle-switch-sm { width: 34px; height: 18px; }
+.toggle-switch-sm .toggle-slider::before { width: 12px; height: 12px; top: 2px; left: 2px; }
+.toggle-switch-sm input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+@media (max-width: 560px) {
+    .dash-spacebar-toggle-label { display: none; }
+}
