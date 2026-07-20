@@ -31,8 +31,17 @@
         'https://esm.sh/cubing@0/bluetooth',
     ];
 
-    // Events the scramble tracker understands (smart cubes are 3x3x3).
+    // Bluetooth smart cubes are 3x3x3 — connecting is only allowed (and
+    // the button only shown) while the timer is on a 3x3 event.
     const TRACKABLE_EVENTS = ['333', '333oh'];
+
+    function currentEvent() {
+        return window.TimerModule ? window.TimerModule.getCurrentEvent() : '333';
+    }
+
+    function isBtEvent(event) {
+        return TRACKABLE_EVENTS.includes(event);
+    }
 
     const S = {
         module: null,          // cubing/bluetooth module
@@ -76,6 +85,10 @@
     // ---------- Connection ----------
     async function connect() {
         if (S.puzzle || S.connecting) return;
+        if (!isBtEvent(currentEvent())) {
+            alert(T('bt.only333Connect', 'The smart cube can only be connected in 3x3x3 events.'));
+            return;
+        }
         if (!navigator.bluetooth) {
             alert(T('bt.notSupported', 'Web Bluetooth is not supported in this browser. Use Chrome or Edge over HTTPS.'));
             return;
@@ -272,6 +285,7 @@
         btn.className = 'cs-btn-secondary';
         btn.addEventListener('click', () => (S.puzzle ? disconnect() : connect()));
         actions.appendChild(btn);
+        updateButtonVisibility();
 
         const panel = document.createElement('div');
         panel.id = 'bt-panel';
@@ -285,6 +299,13 @@
     }
 
     const BT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>';
+
+    // The connect button only exists for 3x3 events.
+    function updateButtonVisibility() {
+        const btn = document.getElementById('bt-connect-btn');
+        if (!btn) return;
+        btn.style.display = isBtEvent(currentEvent()) ? '' : 'none';
+    }
 
     function renderButton() {
         const btn = document.getElementById('bt-connect-btn');
@@ -375,8 +396,16 @@
     }
 
     // ---------- Wiring ----------
-    document.addEventListener('cs-scramble-changed', () => {
+    document.addEventListener('cs-scramble-changed', (e) => {
+        updateButtonVisibility();
         if (!S.puzzle) return;
+        // Switching away from 3x3 while connected drops the connection —
+        // smart cubes only make sense on 3x3 events.
+        const event = e.detail?.event || currentEvent();
+        if (!isBtEvent(event)) {
+            disconnect();
+            return;
+        }
         resetTracking();
         renderPanel();
         decorateScramble();

@@ -137,6 +137,7 @@
             'bt.solving': 'Solving…',
             'bt.offScramble': 'Off scramble — undo the wrong move or click "Mark as solved" to restart.',
             'bt.only333': 'Smart cube tracking works with 3x3x3 events only.',
+            'bt.only333Connect': 'The smart cube can only be connected in 3x3x3 events.',
         },
 
         pt: {
@@ -258,6 +259,7 @@
             'bt.solving': 'A resolver…',
             'bt.offScramble': 'Fora do scramble — desfaz o movimento errado ou clica em "Marcar como resolvido" para recomeçar.',
             'bt.only333': 'O acompanhamento do cubo Bluetooth só funciona em eventos 3x3x3.',
+            'bt.only333Connect': 'O cubo Bluetooth só pode ser ligado em eventos 3x3x3.',
         },
     };
 
