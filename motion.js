@@ -27,8 +27,9 @@
     }
 
     // ---------- Reveal targets ----------
-    const HERO_SEL = '.home-kicker, .home-headline-line, .home-sub, .home-cta-row, .home-fineprint';
-    const SCROLL_SEL = '.bento-card';
+    // The hero animates itself through the Launch UI `lu-appear` CSS
+    // animations; GSAP only drives the scroll-linked reveals.
+    const SCROLL_SEL = '.bento-card, .lu-section-head';
 
     function loadScript(src) {
         return new Promise((resolve, reject) => {
@@ -46,51 +47,31 @@
         window.gsap.registerPlugin(window.ScrollTrigger);
         const gsap = window.gsap;
 
-        // Hero entrance — staggered rise.
-        const heroEls = document.querySelectorAll(HERO_SEL);
-        if (heroEls.length) {
-            gsap.from(heroEls, {
-                y: 30,
-                opacity: 0,
-                duration: 0.9,
-                ease: 'power3.out',
-                stagger: 0.09,
-                clearProps: 'all',
-            });
-        }
-
-        // Ticker slides in with the hero.
+        // Ticker fades in behind the hero.
         const marquee = document.querySelector('.wr-marquee');
         if (marquee) {
             gsap.from(marquee, { opacity: 0, duration: 1.1, delay: 0.5, clearProps: 'opacity' });
         }
 
-        // Bento cards rise as they enter the viewport.
-        document.querySelectorAll(SCROLL_SEL).forEach((card, i) => {
-            gsap.from(card, {
-                y: 34,
+        // Cards and section headings rise as they enter the viewport,
+        // matching the Launch UI `appear` curve.
+        document.querySelectorAll(SCROLL_SEL).forEach((el, i) => {
+            gsap.from(el, {
+                y: 30,
                 opacity: 0,
-                duration: 0.8,
+                filter: 'blur(0.5rem)',
+                duration: 0.7,
                 ease: 'power3.out',
                 delay: (i % 3) * 0.07,
                 clearProps: 'all',
-                scrollTrigger: { trigger: card, start: 'top 88%', once: true },
-            });
-        });
-
-        // Slow parallax drift on the background glows.
-        document.querySelectorAll('.bg-glow').forEach((glow, i) => {
-            gsap.to(glow, {
-                y: (i + 1) * -40,
-                ease: 'none',
-                scrollTrigger: { trigger: document.body, start: 'top top', end: 'max', scrub: 1.2 },
+                scrollTrigger: { trigger: el, start: 'top 88%', once: true },
             });
         });
     }
 
     // Fallback: simple IntersectionObserver reveal (no dependency).
     function initFallback() {
-        const els = document.querySelectorAll(`${HERO_SEL}, ${SCROLL_SEL}`);
+        const els = document.querySelectorAll(SCROLL_SEL);
         if (!els.length || !('IntersectionObserver' in window)) return;
         const io = new IntersectionObserver((entries) => {
             for (const entry of entries) {

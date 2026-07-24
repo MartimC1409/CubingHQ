@@ -37,6 +37,13 @@
 
             // ----- Home view -----
             'hero.kicker': '// solve · compete · repeat',
+            'hero.badge': 'Bluetooth smart cube support is live',
+            'hero.badge.cta': 'Try it',
+            'hero.mock.title': 'cubinghq — Final · 3×3 · solve 4 of 5',
+            'hero.mock.scramble': 'Scramble',
+            'hero.mock.live': 'Live results',
+            'home.section.title': 'Everything a speedcuber needs',
+            'home.section.desc': 'Official WCA scrambles, competition pressure, live opponents and a database of algorithms — all in one place.',
             'hero.title.a': "Train like it's",
             'hero.title.b': 'finals day.',
             'hero.sub': 'Real WCA scrambles, a full competition simulator, live battles and smart-cube support — everything a speedcuber needs, in one place.',
@@ -160,6 +167,13 @@
 
             // ----- Página inicial -----
             'hero.kicker': '// resolve · compete · repete',
+            'hero.badge': 'Suporte para cubo bluetooth já disponível',
+            'hero.badge.cta': 'Experimenta',
+            'hero.mock.title': 'cubinghq — Final · 3×3 · solve 4 de 5',
+            'hero.mock.scramble': 'Scramble',
+            'hero.mock.live': 'Resultados ao vivo',
+            'home.section.title': 'Tudo o que um speedcuber precisa',
+            'home.section.desc': 'Scrambles oficiais da WCA, pressão de competição, adversários ao vivo e uma base de algoritmos — tudo num só sítio.',
             'hero.title.a': 'Treina como se fosse',
             'hero.title.b': 'dia de final.',
             'hero.sub': 'Scrambles WCA reais, um simulador de competição completo, batalhas ao vivo e suporte para cubos inteligentes — tudo o que um speedcuber precisa, num só sítio.',

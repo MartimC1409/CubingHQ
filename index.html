@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
-    <link rel="stylesheet" href="polish.css?v=1">
+    <link rel="stylesheet" href="launch-ui.css?v=1">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -328,26 +328,74 @@
 
         <!-- ========== HOME VIEW ========== -->
         <section id="home-view" class="view active">
-            <div class="home-shell">
-                <!-- HERO -->
-                <header class="home-hero">
-                    <p class="home-kicker" data-i18n="hero.kicker">// solve · compete · repeat</p>
-                    <h1 class="home-headline">
-                        <span class="home-headline-line" data-i18n="hero.title.a">Train like it's</span>
-                        <span class="home-headline-line"><em class="home-headline-accent" data-i18n="hero.title.b">finals day.</em></span>
+            <!-- HERO -->
+            <div class="lu-section lu-hero fade-bottom">
+                <div class="cube-decor cube-decor--a"></div>
+                <div class="cube-decor cube-decor--b"></div>
+                <div class="cube-decor cube-decor--c"></div>
+                <div class="cube-decor cube-decor--d"></div>
+
+                <div class="lu-container lu-hero-inner">
+                    <button type="button" class="lu-badge lu-appear" onclick="document.getElementById('nav-timer-btn').click()">
+                        <span class="lu-badge-muted" data-i18n="hero.badge">Bluetooth smart cube support is live</span>
+                        <span class="lu-badge-link">
+                            <span data-i18n="hero.badge.cta">Try it</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </span>
+                    </button>
+
+                    <h1 class="lu-hero-title lu-appear">
+                        <span data-i18n="hero.title.a">Train like it's</span>
+                        <em data-i18n="hero.title.b">finals day.</em>
                     </h1>
-                    <p class="home-sub" data-i18n="hero.sub">Real WCA scrambles, a full competition simulator, live battles and smart-cube support — everything a speedcuber needs, in one place.</p>
-                    <div class="home-cta-row">
-                        <button class="home-cta home-cta-primary" onclick="document.getElementById('nav-simulation-btn').click()">
+
+                    <p class="lu-hero-desc lu-appear lu-delay-100" data-i18n="hero.sub">Real WCA scrambles, a full competition simulator, live battles and smart-cube support — everything a speedcuber needs, in one place.</p>
+
+                    <div class="lu-hero-actions lu-appear lu-delay-300">
+                        <button class="lu-btn lu-btn-default lu-btn-lg" onclick="document.getElementById('nav-simulation-btn').click()">
                             <span data-i18n="hero.cta.sim">Start a simulation</span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                         </button>
-                        <button class="home-cta home-cta-ghost" onclick="document.getElementById('nav-timer-btn').click()">
+                        <button class="lu-btn lu-btn-glow lu-btn-lg" onclick="document.getElementById('nav-timer-btn').click()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             <span data-i18n="hero.cta.timer">Open the timer</span>
                         </button>
                     </div>
-                    <p class="home-fineprint" data-i18n="hero.note">Free · no install · works with GAN, GiiKER &amp; GoCube smart cubes</p>
-                </header>
+
+                    <p class="lu-hero-note lu-appear lu-delay-500" data-i18n="hero.note">Free · no install · works with GAN, GiiKER &amp; GoCube smart cubes</p>
+
+                    <!-- App preview mockup -->
+                    <div class="lu-mockup-wrap">
+                        <div class="lu-mockup-frame lu-appear lu-delay-700">
+                            <div class="lu-mockup">
+                                <div class="lu-mockup-bar">
+                                    <span class="lu-mockup-dot"></span>
+                                    <span class="lu-mockup-dot"></span>
+                                    <span class="lu-mockup-dot"></span>
+                                    <span class="lu-mockup-title" data-i18n="hero.mock.title">cubinghq — Final · 3×3 · solve 4 of 5</span>
+                                </div>
+                                <div class="lu-mockup-body">
+                                    <div class="lu-mockup-col">
+                                        <span class="lu-mock-label" data-i18n="hero.mock.scramble">Scramble</span>
+                                        <div class="lu-mock-scramble">D2 F' L2 U R' F2 D' B2 R U2 F' R2 U' B D F2 L' U2 B'</div>
+                                        <div class="lu-mock-timer">8.71</div>
+                                    </div>
+                                    <div class="lu-mockup-col">
+                                        <span class="lu-mock-label" data-i18n="hero.mock.live">Live results</span>
+                                        <div class="lu-mock-rows">
+                                            <div class="lu-mock-row"><span>1</span><span>Yiheng W.</span><span>4.32</span></div>
+                                            <div class="lu-mock-row lu-mock-row--you"><span>2</span><span data-i18n="home.sim.you">You</span><span>8.71</span></div>
+                                            <div class="lu-mock-row"><span>3</span><span>Tymon K.</span><span>9.04</span></div>
+                                            <div class="lu-mock-row"><span>4</span><span>Luke G.</span><span>9.36</span></div>
+                                            <div class="lu-mock-row"><span>5</span><span>Matty I.</span><span>9.79</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lu-glow lu-glow--top lu-appear-zoom lu-delay-1000"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- WORLD RECORD TICKER -->
@@ -382,8 +430,13 @@
                 </div>
             </div>
 
-            <div class="home-shell">
-                <!-- BENTO GRID -->
+            <!-- FEATURES -->
+            <div class="lu-section lu-section--tight">
+                <div class="lu-container">
+                    <div class="lu-section-head">
+                        <h2 class="lu-section-title" data-i18n="home.section.title">Everything a speedcuber needs</h2>
+                        <p class="lu-section-desc" data-i18n="home.section.desc">Official WCA scrambles, competition pressure, live opponents and a database of algorithms — all in one place.</p>
+                    </div>
                 <div class="bento-grid">
                     <article class="bento-card bento-sim" data-accent="orange" onclick="document.getElementById('nav-simulation-btn').click()">
                         <div class="bento-head">
@@ -455,6 +508,7 @@
                             <span class="bento-arrow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
                         </div>
                     </article>
+                </div>
                 </div>
             </div>
         </section>
@@ -1546,7 +1600,8 @@
     <link rel="stylesheet" href="timer.css?v=3">
     <script src="timer.js?v=2"></script>
     <script src="smartcube.js?v=1"></script>
-    <script src="motion.js?v=1"></script>
+    <script src="cube-decor.js?v=1"></script>
+    <script src="motion.js?v=2"></script>
     <script src="app.js?v=9"></script>
 </body>
 </html>

@@ -1,0 +1,1148 @@
+/* ============================================================
+   CubingHQ — Launch UI design layer
+   ------------------------------------------------------------
+   Re-skins the whole site in the Launch UI visual language
+   (launchuicomponents.com / github.com/launch-ui/launch-ui):
+
+     · zinc neutrals + a single warm brand accent
+     · soft "glass" surfaces built from layered gradients with a
+       bright top border and a dark bottom edge
+     · radial brand glows behind hero content
+     · hairline section separators and edge fade masks
+     · staggered `appear` / `appear-zoom` entrance animations
+     · 10px radius scale, container widths of 1280 / 1536
+
+   Loaded last, so it overrides style.css and timer.css by
+   re-pointing the app's design tokens and restyling the shared
+   component classes — every view inherits the new look.
+   ============================================================ */
+
+/* ============================================================
+   1. TOKENS
+   ============================================================ */
+:root {
+    /* Launch UI brand + neutral ramp (dark is the app default) */
+    --brand: oklch(83.6% 0.1177 66.87);
+    --brand-foreground: oklch(75.77% 0.159 55.91);
+    --lu-bg: oklch(0.141 0.005 285.823);
+    --lu-fg: oklch(0.985 0 0);
+    --lu-muted: oklch(0.274 0.006 286.033);
+    --lu-muted-fg: oklch(0.705 0.015 286.067);
+    --lu-subtle-fg: oklch(0.552 0.016 285.938);
+    --lu-border: rgba(255, 255, 255, 0.10);
+    --lu-border-top: rgba(255, 255, 255, 0.22);
+    --lu-border-bottom: rgba(255, 255, 255, 0.05);
+    --lu-shadow: rgba(0, 0, 0, 0.20);
+    --lu-shadow-strong: rgba(0, 0, 0, 0.53);
+
+    /* Solid button colour. Launch UI keeps the brand for glows and
+       accents and drives the primary CTA from --primary, which is
+       near-white in dark mode and brand orange in light mode. */
+    --lu-primary: oklch(0.985 0 0);
+    --lu-primary-fg: oklch(0.21 0.006 285.885);
+
+    /* Re-point the app's tokens at the Launch UI palette */
+    --clr-bg: var(--lu-bg);
+    --clr-bg-elevated: oklch(0.178 0.005 285.9);
+    --clr-bg-card: oklch(0.167 0.005 285.9);
+    --clr-bg-card-hover: oklch(0.205 0.006 285.9);
+    --clr-surface: oklch(0.225 0.006 286.0);
+    --clr-border: var(--lu-border);
+    --clr-border-active: color-mix(in oklab, var(--brand) 45%, transparent);
+
+    --clr-text: var(--lu-fg);
+    --clr-text-secondary: var(--lu-muted-fg);
+    --clr-text-muted: var(--lu-subtle-fg);
+
+    /* One accent hue, two roles:
+         --brand        luminous amber for glows, accent text and icons
+                        (Launch UI's dark-mode brand — never behind
+                        white text, it is far too light for that)
+         --clr-primary  the deeper fill the app paints behind white
+                        text (chips, sliders, action buttons), so every
+                        existing `color: #fff` pairing stays legible. */
+    --clr-primary: oklch(0.60 0.19 44);
+    --clr-primary-hover: oklch(0.67 0.18 48);
+    --clr-primary-glow: color-mix(in oklab, var(--brand) 25%, transparent);
+    --clr-accent: oklch(0.60 0.19 44);
+    --clr-accent-hover: oklch(0.67 0.18 48);
+    --clr-accent-glow: color-mix(in oklab, var(--brand) 25%, transparent);
+
+    /* Semantic colours, retuned to sit on zinc */
+    --clr-success: oklch(0.72 0.17 162);
+    --clr-success-glow: oklch(0.72 0.17 162 / 0.18);
+    --clr-danger: oklch(0.66 0.21 25);
+    --clr-danger-glow: oklch(0.66 0.21 25 / 0.18);
+    --clr-warning: oklch(0.80 0.16 78);
+    --clr-info: oklch(0.70 0.13 233);
+    --clr-gold: oklch(0.83 0.16 84);
+    --clr-silver: oklch(0.80 0.01 286);
+    --clr-bronze: oklch(0.66 0.12 55);
+
+    --clr-timer: var(--brand);
+    --clr-timer-running: oklch(0.72 0.17 162);
+    --clr-timer-inspection: oklch(0.80 0.16 78);
+    --clr-timer-stopped: oklch(0.66 0.21 25);
+
+    /* Launch UI radius scale (base 0.625rem) */
+    --radius: 0.625rem;
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --radius-2xl: calc(var(--radius) + 8px);
+
+    --shadow-sm: 0 1px 2px var(--lu-shadow);
+    --shadow-md: 0 4px 6px -1px var(--lu-shadow), 0 2px 4px -2px var(--lu-shadow);
+    --shadow-lg: 0 20px 25px -5px var(--lu-shadow), 0 8px 10px -6px var(--lu-shadow);
+    --shadow-2xl: 0 25px 50px -12px var(--lu-shadow-strong);
+    --shadow-mockup: -12px 16px 48px var(--lu-shadow-strong);
+
+    --lu-container: 1280px;
+    --lu-container-lg: 1536px;
+    --line-width: 1px;
+    --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-theme="light"] {
+    --brand: oklch(66.5% 0.1804 47.04);
+    --brand-foreground: oklch(75.77% 0.159 55.91);
+    --lu-bg: oklch(97.65% 0.001 17.18);
+    --lu-fg: oklch(0.141 0.005 285.823);
+    --lu-muted: oklch(0.967 0.001 286.375);
+    --lu-muted-fg: oklch(0.552 0.016 285.938);
+    --lu-subtle-fg: oklch(0.62 0.014 286.0);
+    --lu-border: oklch(0.92 0.004 286.32);
+    --lu-border-top: oklch(0.94 0.004 286.32);
+    --lu-border-bottom: oklch(0.90 0.004 286.32);
+    --lu-shadow: rgba(0, 0, 0, 0.05);
+    --lu-shadow-strong: rgba(0, 0, 0, 0.10);
+    --lu-primary: oklch(66.5% 0.1804 47.04);
+    --lu-primary-fg: oklch(0.985 0 0);
+
+    --clr-bg-elevated: #ffffff;
+    --clr-bg-card: #ffffff;
+    --clr-bg-card-hover: oklch(0.985 0.001 286.4);
+    --clr-surface: oklch(0.967 0.001 286.375);
+
+    --clr-gold: oklch(0.72 0.16 84);
+    --clr-silver: oklch(0.62 0.01 286);
+    --clr-bronze: oklch(0.58 0.12 55);
+}
+
+/* ============================================================
+   2. BASE
+   ============================================================ */
+body {
+    background: var(--clr-bg);
+    color: var(--clr-text);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Launch UI backgrounds are calm — drop the coloured blobs and
+   soften the grid to a faint neutral mesh. */
+.bg-glow { display: none !important; }
+
+.bg-grid,
+[data-theme="light"] .bg-grid {
+    background-image:
+        linear-gradient(var(--lu-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--lu-border) 1px, transparent 1px);
+    background-size: 64px 64px;
+    opacity: 0.5;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%);
+}
+
+::selection { background: var(--brand); color: oklch(0.21 0.006 285.885); }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+* { scrollbar-width: thin; scrollbar-color: var(--clr-surface) transparent; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: var(--clr-surface);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--clr-text-muted); }
+
+/* ============================================================
+   3. LAYOUT PRIMITIVES
+   ============================================================ */
+.lu-container {
+    width: 100%;
+    max-width: var(--lu-container);
+    margin: 0 auto;
+    padding-inline: clamp(16px, 4vw, 32px);
+}
+
+.lu-section {
+    position: relative;
+    padding-block: clamp(48px, 9vw, 128px);
+}
+.lu-section--tight { padding-block: clamp(32px, 5vw, 64px); }
+
+/* Hairline separators */
+.line-b { border-bottom: var(--line-width) solid var(--lu-border); }
+.line-t { border-top: var(--line-width) solid var(--lu-border); }
+.line-y { border-block: var(--line-width) solid var(--lu-border); }
+
+/* Edge fade masks */
+.fade-bottom { -webkit-mask-image: linear-gradient(to top, transparent 0%, #000 35%); mask-image: linear-gradient(to top, transparent 0%, #000 35%); }
+.fade-top    { -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 35%); mask-image: linear-gradient(to bottom, transparent 0%, #000 35%); }
+.fade-x      { -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%); mask-image: linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%); }
+
+/* ============================================================
+   4. GLASS SURFACES
+   Layered gradient + bright top edge; the signature Launch UI card.
+   ============================================================ */
+.glass-1, .glass-2, .glass-3, .glass-4, .glass-5 {
+    border: 1px solid var(--lu-border);
+    border-top-color: var(--lu-border-top);
+    border-bottom-color: var(--lu-border-bottom);
+}
+.glass-1 { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--clr-bg-card) 60%, transparent), transparent); }
+.glass-2 { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--clr-bg-card) 85%, transparent), color-mix(in oklab, var(--clr-bg-card) 55%, transparent)); }
+.glass-3 { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--brand) 5%, transparent), color-mix(in oklab, var(--brand) 2%, transparent)); }
+.glass-4 { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--brand) 10%, transparent), color-mix(in oklab, var(--brand) 5%, transparent)); }
+.glass-5 { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--brand) 16%, transparent), color-mix(in oklab, var(--brand) 6%, transparent)); }
+
+/* ============================================================
+   5. GLOW
+   Two stacked radial ellipses in the brand colour.
+   ============================================================ */
+.lu-glow {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+.lu-glow--top { top: 0; }
+.lu-glow--bottom { bottom: 0; }
+.lu-glow--center { top: 50%; }
+.lu-glow::before,
+.lu-glow::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    border-radius: 50%;
+    transform: translateX(-50%) scale(2.5);
+}
+.lu-glow::before {
+    width: 60%;
+    height: clamp(200px, 34vw, 512px);
+    background: radial-gradient(ellipse, color-mix(in oklab, var(--brand-foreground) 50%, transparent) 10%, transparent 60%);
+}
+.lu-glow::after {
+    width: 40%;
+    height: clamp(120px, 18vw, 256px);
+    background: radial-gradient(ellipse, color-mix(in oklab, var(--brand) 30%, transparent) 10%, transparent 60%);
+    transform: translateX(-50%) scale(2);
+}
+.lu-glow--center::before,
+.lu-glow--center::after { transform: translate(-50%, -50%) scale(2.5); }
+[data-theme="light"] .lu-glow { opacity: 0.35; }
+
+/* ============================================================
+   6. ENTRANCE ANIMATIONS
+   ============================================================ */
+@keyframes lu-appear {
+    0%   { opacity: 0; transform: translateY(1rem); filter: blur(0.5rem); }
+    50%  { filter: blur(0); }
+    100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes lu-appear-zoom {
+    0%   { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+}
+.lu-appear { opacity: 0; animation: lu-appear 0.6s ease-out forwards; }
+.lu-appear-zoom { opacity: 0; animation: lu-appear-zoom 0.6s ease-out forwards; }
+.lu-delay-100 { animation-delay: 0.1s; }
+.lu-delay-300 { animation-delay: 0.3s; }
+.lu-delay-500 { animation-delay: 0.5s; }
+.lu-delay-700 { animation-delay: 0.7s; }
+.lu-delay-1000 { animation-delay: 1s; }
+
+/* ============================================================
+   7. BUTTONS
+   ============================================================ */
+.lu-btn,
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
+    padding: 9px 16px;
+    min-height: 36px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast),
+                color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+/* <button> defaults to the UA's ButtonFace grey; translucent variant
+   gradients would otherwise sit on top of it. Scoped to our own
+   buttons so the app's existing .btn variants keep their fills. */
+.lu-btn { background-color: transparent; }
+
+.lu-btn-lg, .btn-lg { min-height: 44px; padding: 12px 22px; font-size: 0.95rem; border-radius: var(--radius-lg); }
+.lu-btn-sm, .btn-sm { min-height: 32px; padding: 7px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); }
+
+/* Primary: vertical gradient with a lit top edge. Near-white in
+   dark mode, brand orange in light mode — as in Launch UI. */
+.lu-btn-default,
+.btn-primary,
+.btn-accent {
+    color: var(--lu-primary-fg);
+    background-color: var(--lu-primary);
+    background-image: linear-gradient(to bottom, var(--lu-primary), color-mix(in oklab, var(--lu-primary) 72%, black));
+    border-top-color: color-mix(in oklab, var(--lu-primary) 55%, white);
+    box-shadow: var(--shadow-sm);
+}
+.lu-btn-default:hover,
+.btn-primary:hover,
+.btn-accent:hover {
+    background-image: linear-gradient(to bottom, var(--lu-primary), color-mix(in oklab, var(--lu-primary) 85%, black));
+    transform: translateY(-1px);
+}
+
+/* Glow: the translucent glass button */
+.lu-btn-glow {
+    color: var(--clr-text);
+    border: 1px solid var(--lu-border);
+    border-top-color: var(--lu-border-top);
+    background-color: color-mix(in oklab, var(--clr-bg-card) 75%, transparent);
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--brand) 10%, transparent), color-mix(in oklab, var(--brand) 5%, transparent));
+    box-shadow: var(--shadow-md);
+}
+.lu-btn-glow:hover {
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--brand) 16%, transparent), color-mix(in oklab, var(--brand) 6%, transparent));
+    transform: translateY(-1px);
+}
+
+.btn-outline, .lu-btn-outline {
+    background: var(--clr-bg-card);
+    border-color: var(--lu-border);
+    color: var(--clr-text);
+    box-shadow: var(--shadow-sm);
+}
+.btn-outline:hover, .lu-btn-outline:hover { background: var(--clr-surface); }
+
+.btn-ghost, .lu-btn-ghost {
+    background: transparent;
+    color: var(--clr-text-secondary);
+    border-color: transparent;
+}
+.btn-ghost:hover, .lu-btn-ghost:hover { background: var(--clr-surface); color: var(--clr-text); }
+
+/* ============================================================
+   8. BADGES
+   ============================================================ */
+.lu-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    border: 1px solid var(--lu-border);
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--clr-text);
+    text-decoration: none;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+.lu-badge:hover { border-color: color-mix(in oklab, var(--brand) 40%, var(--lu-border)); }
+.lu-badge-muted { color: var(--clr-text-secondary); font-weight: 500; }
+.lu-badge-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--brand);
+}
+.lu-badge-brand {
+    border-color: transparent;
+    background: color-mix(in oklab, var(--brand) 20%, transparent);
+    color: var(--brand);
+}
+
+/* The app's own hero badge, re-skinned as a Launch UI pill */
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    border-radius: 999px;
+    border: 1px solid var(--lu-border);
+    background: transparent;
+    padding: 5px 14px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--clr-text-secondary);
+    text-transform: uppercase;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+/* ============================================================
+   9. HERO (Launch UI structure)
+   ============================================================ */
+.lu-hero {
+    position: relative;
+    overflow: hidden;
+    padding-bottom: 0;
+}
+.lu-hero-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: clamp(20px, 3vw, 34px);
+    padding-top: clamp(32px, 6vw, 64px);
+}
+
+.lu-hero-title {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-family: var(--font-display, var(--font-body));
+    font-weight: 600;
+    font-size: clamp(2.4rem, 7.2vw, 5.6rem);
+    line-height: 1.06;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+    background-image: linear-gradient(to right, var(--clr-text), color-mix(in oklab, var(--clr-text) 55%, var(--lu-muted-fg)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.25));
+}
+.lu-hero-title em {
+    font-style: normal;
+    background-image: linear-gradient(to right, var(--brand), var(--brand-foreground));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+.lu-hero-desc {
+    position: relative;
+    z-index: 1;
+    max-width: 740px;
+    margin: 0;
+    font-size: clamp(1rem, 1.5vw, 1.25rem);
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--clr-text-secondary);
+    text-wrap: balance;
+}
+
+.lu-hero-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+}
+
+.lu-hero-note {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.02em;
+    color: var(--clr-text-muted);
+}
+
+/* ---- Mockup frame ---- */
+.lu-mockup-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: clamp(24px, 4vw, 48px);
+}
+.lu-mockup-frame {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    padding: 8px;
+    border-radius: var(--radius-2xl);
+    background: color-mix(in oklab, var(--lu-border) 60%, transparent);
+}
+.lu-mockup {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--lu-border);
+    border-top-color: var(--lu-border-top);
+    background: color-mix(in oklab, var(--clr-bg) 90%, transparent);
+    box-shadow: var(--shadow-2xl);
+    text-align: left;
+}
+
+/* Window chrome */
+.lu-mockup-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--lu-border);
+    background: color-mix(in oklab, var(--clr-bg-card) 70%, transparent);
+}
+.lu-mockup-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--clr-surface); }
+.lu-mockup-title {
+    flex: 1;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--clr-text-muted);
+}
+
+.lu-mockup-body {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 18px;
+    padding: clamp(14px, 2vw, 22px);
+}
+.lu-mockup-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+.lu-mock-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+}
+.lu-mock-scramble {
+    font-family: var(--font-mono);
+    font-size: clamp(0.72rem, 1.1vw, 0.92rem);
+    line-height: 1.7;
+    color: var(--clr-text);
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--lu-border);
+    background: color-mix(in oklab, var(--clr-bg-card) 60%, transparent);
+    overflow-wrap: anywhere;
+}
+.lu-mock-timer {
+    font-family: var(--font-mono);
+    font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--brand);
+    text-align: center;
+    padding: 6px 0 2px;
+    text-shadow: 0 0 40px color-mix(in oklab, var(--brand) 45%, transparent);
+}
+.lu-mock-rows { display: flex; flex-direction: column; gap: 6px; }
+.lu-mock-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--lu-border);
+    background: color-mix(in oklab, var(--clr-bg-card) 45%, transparent);
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--clr-text-secondary);
+}
+.lu-mock-row span:nth-child(1) { width: 14px; color: var(--clr-text-muted); }
+.lu-mock-row span:nth-child(2) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lu-mock-row span:nth-child(3) { color: var(--clr-text); font-weight: 600; }
+.lu-mock-row--you {
+    border-color: color-mix(in oklab, var(--brand) 42%, transparent);
+    background: color-mix(in oklab, var(--brand) 10%, transparent);
+}
+.lu-mock-row--you span:nth-child(2) { color: var(--brand); font-weight: 700; }
+
+@media (max-width: 720px) {
+    .lu-mockup-body { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   10. WORLD-RECORD TICKER
+   ============================================================ */
+.wr-marquee {
+    overflow: hidden;
+    border-block: var(--line-width) solid var(--lu-border);
+    padding: 14px 0;
+    margin: 0;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.wr-track { display: flex; width: max-content; animation: wr-scroll 52s linear infinite; }
+.wr-marquee:hover .wr-track { animation-play-state: paused; }
+.wr-group { display: flex; flex-shrink: 0; }
+.wr-item {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--clr-text-muted);
+    white-space: nowrap;
+    padding-right: 48px;
+}
+.wr-item b { color: var(--clr-text); font-weight: 600; margin-right: 7px; }
+.wr-item i { font-style: normal; color: var(--clr-text-secondary); margin-left: 7px; }
+.wr-item i::before { content: '— '; color: var(--clr-text-muted); }
+@keyframes wr-scroll { to { transform: translateX(-50%); } }
+
+/* ============================================================
+   11. BENTO GRID (Launch UI "items" cards)
+   ============================================================ */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+}
+
+.bento-card {
+    position: relative;
+    grid-column: span 4;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    padding: 24px;
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--lu-border);
+    border-top-color: var(--lu-border-top);
+    border-bottom-color: var(--lu-border-bottom);
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--clr-bg-card) 85%, transparent), color-mix(in oklab, var(--clr-bg-card) 45%, transparent));
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.35s var(--ease-out-expo), border-color 0.25s ease, box-shadow 0.35s var(--ease-out-expo);
+    --card-accent: var(--brand);
+}
+/* Launch UI is monochrome + a single brand accent — every card
+   shares it, so the grid reads as one system. */
+.bento-card[data-accent] { --card-accent: var(--brand); }
+
+.bento-sim    { grid-column: span 7; grid-row: span 2; }
+.bento-battle { grid-column: span 5; }
+.bento-timer  { grid-column: span 5; }
+.bento-algs   { grid-column: span 6; }
+.bento-records{ grid-column: span 6; }
+.bento-comps  { grid-column: span 12; }
+
+.bento-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%),
+        color-mix(in oklab, var(--card-accent) 12%, transparent), transparent 66%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+.bento-card:hover::before { opacity: 1; }
+.bento-card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklab, var(--card-accent) 30%, var(--lu-border));
+    box-shadow: var(--shadow-lg);
+}
+
+.bento-head { display: flex; width: 100%; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.bento-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-lg);
+    color: var(--card-accent);
+    background: color-mix(in oklab, var(--card-accent) 12%, transparent);
+    border: 1px solid color-mix(in oklab, var(--card-accent) 22%, transparent);
+}
+.bento-arrow {
+    display: inline-flex;
+    color: var(--clr-text-muted);
+    opacity: 0;
+    transform: translate(-5px, 5px);
+    transition: opacity 0.3s ease, transform 0.35s var(--ease-out-expo), color 0.2s ease;
+}
+.bento-card:hover .bento-arrow { opacity: 1; transform: none; color: var(--card-accent); }
+
+.bento-title {
+    font-family: var(--font-display, var(--font-body));
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--clr-text);
+    margin: 0 0 7px;
+}
+.bento-desc { font-size: 0.88rem; line-height: 1.6; color: var(--clr-text-secondary); margin: 0; }
+
+.bento-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: oklch(0.66 0.21 25);
+    background: oklch(0.66 0.21 25 / 0.12);
+    border: 1px solid oklch(0.66 0.21 25 / 0.28);
+    padding: 4px 9px;
+    border-radius: 999px;
+}
+.bento-live-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: bt-pulse 1.6s ease-in-out infinite; }
+
+.bento-visual { margin-top: auto; padding-top: 18px; width: 100%; }
+
+.sim-visual { display: flex; flex-direction: column; gap: 7px; }
+.sim-solvebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    color: var(--clr-text-muted);
+    border: 1px dashed var(--lu-border);
+    border-radius: var(--radius-md);
+    padding: 7px 12px;
+    margin-bottom: 4px;
+}
+.sim-solvebar-label { color: var(--card-accent); white-space: nowrap; }
+.sim-solvebar-scramble { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sim-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--clr-text-secondary);
+    background: color-mix(in oklab, var(--clr-bg-card) 55%, transparent);
+    border: 1px solid var(--lu-border);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+}
+.sim-rank { color: var(--clr-text-muted); width: 12px; }
+.sim-name { flex: 1; }
+.sim-time { color: var(--clr-text); font-weight: 600; }
+.sim-row-you {
+    border-color: color-mix(in oklab, var(--card-accent) 40%, transparent);
+    background: color-mix(in oklab, var(--card-accent) 9%, transparent);
+}
+.sim-row-you .sim-name { color: var(--card-accent); font-weight: 700; }
+
+.battle-visual { display: flex; flex-direction: column; gap: 8px; }
+.battle-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 22px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in oklab, var(--clr-bg-card) 55%, transparent);
+    border: 1px solid var(--lu-border);
+    overflow: hidden;
+}
+.battle-tag { position: relative; z-index: 1; font-family: var(--font-mono); font-size: 0.64rem; color: var(--clr-text-secondary); padding-left: 8px; }
+.battle-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--card-accent) 32%, transparent)); }
+.battle-fill-b { background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--brand) 30%, transparent)); }
+
+.timer-visual {
+    font-family: var(--font-mono);
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--card-accent);
+    text-shadow: 0 0 28px color-mix(in oklab, var(--card-accent) 40%, transparent);
+}
+
+.algs-visual { font-family: var(--font-mono); font-size: 0.92rem; color: var(--clr-text-secondary); letter-spacing: 0.04em; }
+.algs-visual span { color: var(--card-accent); }
+
+.records-visual { display: flex; align-items: center; gap: 9px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--clr-text-secondary); }
+.wr-chip {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: oklch(0.21 0.006 285.885);
+    background: var(--card-accent);
+    border-radius: var(--radius-sm);
+    padding: 3px 7px;
+}
+
+.bento-comps { padding: 20px 24px; }
+.bento-comps-inner { display: flex; align-items: center; gap: 18px; width: 100%; }
+.bento-comps-text { flex: 1; }
+.bento-comps .bento-title { margin-bottom: 3px; }
+
+/* Section heading above the bento grid */
+.lu-section-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    margin-bottom: clamp(28px, 4vw, 48px);
+}
+.lu-section-title {
+    margin: 0;
+    font-family: var(--font-display, var(--font-body));
+    font-size: clamp(1.8rem, 3.6vw, 2.9rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: var(--clr-text);
+    text-wrap: balance;
+}
+.lu-section-desc {
+    margin: 0;
+    max-width: 620px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--clr-text-secondary);
+    text-wrap: balance;
+}
+
+/* ============================================================
+   12. GLOBAL COMPONENT RE-SKIN
+   Everything below re-points existing app components at the
+   Launch UI surface + radius language.
+   ============================================================ */
+
+/* ---- Navbar ---- */
+.navbar,
+[data-theme="light"] .navbar {
+    background: color-mix(in oklab, var(--clr-bg) 72%, transparent);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border-bottom: 1px solid var(--lu-border);
+}
+.cs-fixed-navbar {
+    background: color-mix(in oklab, var(--clr-bg) 80%, transparent) !important;
+    border-bottom: 1px solid var(--lu-border);
+    box-shadow: none;
+}
+.nav-btn {
+    border-radius: var(--radius-md);
+    color: var(--clr-text-secondary);
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+.nav-btn:hover { color: var(--clr-text); background: var(--clr-surface); border-color: transparent; }
+.nav-btn.active {
+    color: var(--clr-text);
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--brand) 14%, transparent), color-mix(in oklab, var(--brand) 6%, transparent));
+    border-color: var(--lu-border);
+    border-top-color: var(--lu-border-top);
+}
+.theme-toggle { border-radius: var(--radius-md); color: var(--clr-text-secondary); }
+.theme-toggle:hover { background: var(--clr-surface); color: var(--clr-text); border-color: transparent; }
+.brand-name { letter-spacing: -0.02em; }
+
+/* ---- Cards & panels ---- */
+.setup-card,
+.dash-card,
+.glass-panel,
+.modal-content,
+.records-stat-card,
+.records-table-card,
+.leaderboard-card,
+.alg-card,
+.cs-panel,
+.battle-gate-card {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--lu-border);
+    border-top-color: var(--lu-border-top);
+    border-bottom-color: var(--lu-border-bottom);
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--clr-bg-card) 85%, transparent), color-mix(in oklab, var(--clr-bg-card) 50%, transparent));
+    box-shadow: var(--shadow-md);
+}
+.card-header,
+.card-header-bar,
+.cs-panel-header {
+    border-bottom: 1px solid var(--lu-border);
+    background: transparent;
+}
+.card-title,
+.card-bar-title,
+.cs-panel-title {
+    font-family: var(--font-display, var(--font-body));
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--clr-text);
+}
+.card-icon {
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklab, var(--brand) 12%, transparent);
+    border: 1px solid color-mix(in oklab, var(--brand) 22%, transparent);
+}
+
+/* ---- Form controls ---- */
+.form-input,
+.form-select,
+.cs-input,
+.manual-time-input,
+input[type="text"].form-input,
+input[type="number"].form-input,
+select.form-select {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--lu-border);
+    background: color-mix(in oklab, var(--clr-bg-card) 70%, transparent);
+    color: var(--clr-text);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.form-input:focus,
+.form-select:focus,
+.cs-input:focus,
+.manual-time-input:focus {
+    outline: none;
+    border-color: color-mix(in oklab, var(--brand) 55%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 14%, transparent);
+}
+.form-label,
+.cs-setting-row label {
+    color: var(--clr-text-secondary);
+    font-weight: 500;
+}
+.form-hint, .cs-setting-desc { color: var(--clr-text-muted); }
+
+/* ---- Event chips ---- */
+.event-chip, .battle-event-chip {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--lu-border);
+    background: color-mix(in oklab, var(--clr-bg-card) 60%, transparent);
+    color: var(--clr-text-secondary);
+    transition: all var(--transition-fast);
+}
+.event-chip:hover:not(.disabled), .battle-event-chip:hover {
+    border-color: color-mix(in oklab, var(--brand) 35%, transparent);
+    color: var(--clr-text);
+}
+.event-chip.selected, .battle-event-chip.active {
+    color: #fff;
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--clr-primary) 92%, white), var(--clr-primary));
+    border-color: transparent;
+    border-top-color: color-mix(in oklab, var(--clr-primary) 55%, white);
+}
+
+/* ---- Tables ---- */
+.records-table-enhanced th,
+.leaderboard-table th,
+.scorecard-table th {
+    color: var(--clr-text-muted);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    border-bottom: 1px solid var(--lu-border);
+    background: transparent;
+}
+.records-table-enhanced td,
+.leaderboard-table td,
+.scorecard-table td { border-bottom: 1px solid var(--lu-border); }
+.records-row:hover, .leaderboard-table tbody tr:hover { background: var(--clr-surface); }
+
+/* ---- Toggles ---- */
+.toggle-slider, .cs-toggle-slider {
+    background: var(--clr-surface);
+    border: 1px solid var(--lu-border);
+}
+.toggle-switch input:checked + .toggle-slider,
+.cs-toggle input:checked + .cs-toggle-slider {
+    background: var(--clr-primary);
+    border-color: var(--clr-primary);
+}
+.toggle-switch input:checked + .toggle-slider::before,
+.cs-toggle input:checked + .cs-toggle-slider::before { background: #fff; }
+
+/* ---- Toasts & modals ---- */
+.toast {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--lu-border);
+    border-top-color: var(--lu-border-top);
+    background: color-mix(in oklab, var(--clr-bg-elevated) 92%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-lg);
+}
+.modal-content { box-shadow: var(--shadow-2xl); }
+
+/* ---- Timer view ---- */
+.cs-scramble-bar {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--lu-border);
+    border-top-color: var(--lu-border-top);
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--clr-bg-card) 80%, transparent), color-mix(in oklab, var(--clr-bg-card) 45%, transparent));
+}
+.cs-scramble-text { word-break: normal; overflow-wrap: break-word; color: var(--clr-text); }
+.cs-timer-display { letter-spacing: -0.03em; }
+.cs-session-tab {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--lu-border);
+    background: color-mix(in oklab, var(--clr-bg-card) 60%, transparent);
+}
+.cs-session-tab.active {
+    color: #fff;
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--clr-primary) 92%, white), var(--clr-primary));
+    border-color: transparent;
+}
+
+/* ---- Bluetooth panel ---- */
+.bt-panel {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--lu-border);
+    border-top-color: var(--lu-border-top);
+    background-image: linear-gradient(to bottom, color-mix(in oklab, var(--clr-bg-card) 80%, transparent), color-mix(in oklab, var(--clr-bg-card) 45%, transparent));
+}
+#bt-connect-btn.bt-connected { border-color: var(--clr-success); color: var(--clr-success); }
+
+/* ---- In-simulation spacebar toggle (carried over) ---- */
+.dash-timer-controls { display: flex; align-items: center; gap: 12px; }
+.dash-spacebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.72rem;
+    color: var(--clr-text-secondary);
+}
+.dash-spacebar-toggle-icon { font-size: 0.85rem; line-height: 1; opacity: 0.75; }
+.dash-spacebar-toggle-label { font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+.toggle-switch.toggle-switch-sm { width: 34px; height: 18px; }
+.toggle-switch-sm .toggle-slider::before { width: 12px; height: 12px; top: 2px; left: 2px; }
+.toggle-switch-sm input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+/* ---- Legacy hero blocks (setup / stats / competitions views) ---- */
+.hero-title {
+    font-family: var(--font-display, var(--font-body));
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+}
+.gradient-text {
+    background-image: linear-gradient(to right, var(--brand), var(--brand-foreground));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+.hero-subtitle { color: var(--clr-text-secondary); text-wrap: balance; }
+
+/* ============================================================
+   13. 3D CUBE DECORATIONS
+   Pure CSS transforms — no WebGL context, works offline.
+   ============================================================ */
+.cube-decor {
+    position: absolute;
+    pointer-events: none;
+    perspective: 800px;
+    z-index: 0;
+    opacity: 0.55;
+    filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.45));
+}
+[data-theme="light"] .cube-decor { opacity: 0.72; filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.16)); }
+
+.cube3d {
+    position: relative;
+    width: var(--cube-size, 96px);
+    height: var(--cube-size, 96px);
+    transform-style: preserve-3d;
+    animation: cube-spin var(--cube-spin, 26s) linear infinite;
+}
+.cube3d-face {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 5%;
+    padding: 5%;
+    border-radius: 11%;
+    background: #0a0a0c;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.cube3d-sticker { border-radius: 18%; background: var(--c, #444); }
+
+.cube3d-face--f { transform: translateZ(calc(var(--cube-size, 96px) / 2)); }
+.cube3d-face--b { transform: rotateY(180deg) translateZ(calc(var(--cube-size, 96px) / 2)); }
+.cube3d-face--r { transform: rotateY(90deg)  translateZ(calc(var(--cube-size, 96px) / 2)); }
+.cube3d-face--l { transform: rotateY(-90deg) translateZ(calc(var(--cube-size, 96px) / 2)); }
+.cube3d-face--u { transform: rotateX(90deg)  translateZ(calc(var(--cube-size, 96px) / 2)); }
+.cube3d-face--d { transform: rotateX(-90deg) translateZ(calc(var(--cube-size, 96px) / 2)); }
+
+@keyframes cube-spin {
+    from { transform: rotateX(-24deg) rotateY(0deg); }
+    to   { transform: rotateX(-24deg) rotateY(360deg); }
+}
+@keyframes cube-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-16px); }
+}
+.cube-decor { animation: cube-float var(--cube-float, 9s) ease-in-out infinite; }
+
+/* Hero placements — fully inside the frame, clear of the text column.
+   Smaller cubes sit "further away": dimmer and slightly blurred. */
+.cube-decor--a { top: 9%;  left: 3.5%;  --cube-size: 96px; --cube-spin: 30s; --cube-float: 11s; }
+.cube-decor--b { top: 30%; right: 4%;   --cube-size: 74px; --cube-spin: 24s; --cube-float: 8s;  animation-delay: -3s; }
+.cube-decor--c { top: 60%; left: 8%;    --cube-size: 54px; --cube-spin: 34s; --cube-float: 13s; animation-delay: -6s; opacity: 0.34; }
+.cube-decor--d { top: 6%;  right: 15%;  --cube-size: 46px; --cube-spin: 21s; --cube-float: 10s; animation-delay: -1.5s; opacity: 0.3; }
+.cube-decor--c .cube3d, .cube-decor--d .cube3d { filter: blur(0.6px); }
+
+@media (max-width: 1240px) {
+    .cube-decor--d { display: none; }
+}
+@media (max-width: 1100px) {
+    .cube-decor--c { display: none; }
+    .cube-decor--a { --cube-size: 70px; left: 1.5%; }
+    .cube-decor--b { --cube-size: 56px; right: 1.5%; }
+}
+@media (max-width: 720px) {
+    .cube-decor { display: none; }
+}
+
+/* ============================================================
+   14. RESPONSIVE
+   ============================================================ */
+@media (min-width: 851px) {
+    .nav-links { gap: 3px; }
+    .nav-btn { font-size: 0.84rem; padding: 8px 11px; }
+}
+@media (min-width: 851px) and (max-width: 1180px) {
+    .nav-btn { font-size: 0; gap: 0; padding: 9px; }
+    #lang-toggle { font-size: 0.8rem; }
+}
+
+@media (max-width: 900px) {
+    .bento-sim, .bento-battle, .bento-timer, .bento-algs, .bento-records { grid-column: span 6; }
+    .bento-sim { grid-row: auto; }
+}
+@media (max-width: 640px) {
+    .bento-sim, .bento-battle, .bento-timer, .bento-algs, .bento-records, .bento-comps { grid-column: span 12; }
+    .bento-comps-inner { flex-wrap: wrap; }
+}
+
+/* ============================================================
+   15. REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    .wr-track,
+    .cube3d,
+    .cube-decor,
+    .bento-live-dot { animation: none; }
+    .lu-appear, .lu-appear-zoom { opacity: 1; animation: none; }
+    .bento-card, .lu-btn, .btn, .bento-arrow { transition: none; }
+}
