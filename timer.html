@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
     <link rel="stylesheet" href="timer.css?v=3">
-    <link rel="stylesheet" href="polish.css?v=1">
+    <link rel="stylesheet" href="launch-ui.css?v=1">
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <style>
         body { overflow: auto; min-height: 100vh; }
@@ -55,21 +55,13 @@
             position: fixed;
             top: 0; left: 0; right: 0;
             z-index: 9999;
-            background: rgba(10, 12, 18, 0.85);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border-bottom: 1px solid var(--clr-border);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(16px) saturate(1.4);
+            -webkit-backdrop-filter: blur(16px) saturate(1.4);
         }
         .cs-fixed-navbar #site-header { padding: 8px 18px; }
         .cs-fixed-navbar .nav-links { padding: 4px 12px 8px; gap: 4px; }
         .cs-navbar-spacer { height: 110px; } /* approx header + nav-links height */
-        /* Mark Timer as active */
-        .cs-fixed-navbar #nav-timer-btn.active {
-            background: var(--clr-primary);
-            color: #fff;
-            border-color: var(--clr-primary);
-        }
+        /* Mark Timer as active (styled by launch-ui.css) */
     </style>
 </head>
 <body>
