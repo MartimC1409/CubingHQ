@@ -86,6 +86,17 @@
         return `<img src="https://flagcdn.com/${code}.svg" alt="${iso2}" class="country-flag" style="width: ${size}px; height: auto" loading="lazy" onerror="this.outerHTML='&#127757;'">`;
     }
 
+    // Escape a string for safe interpolation into innerHTML.
+    function esc(s) {
+        if (s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     // Keep text-only version for non-HTML contexts
     function countryFlag(iso2) {
         if (!iso2 || iso2.length !== 2) return '🌍';
@@ -1699,7 +1710,20 @@
     // ========== WCA API: RECORDS ==========
     let activeRecordEvent = null;
     let fetchedWorldRecords = null;
-    let liveWcaRecords = null; // { eventId: { single: <raw>, average: <raw> } }
+    // Whole /records payload: world + continental + national buckets, each
+    // { eventId: { single: <raw>, average: <raw> } }.
+    let liveWcaRecords = null;
+
+    // Records view filter state. `region` is 'world', a continent id
+    // ('_Europe') or a WCA country id ('Portugal').
+    const recordsFilter = { event: 'all', region: 'world', type: 'both' };
+
+    // Fixed WCA display order for the events we cover.
+    const RECORDS_EVENT_ORDER = [
+        '333', '222', '444', '555', '666', '777',
+        '333bf', '333fm', '333oh', 'clock', 'minx',
+        'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'
+    ];
 
     // Convert a raw WCA record value into the format used by our record store.
     function wcaRawToDisplay(eventId, raw, isAverage) {
@@ -1722,11 +1746,66 @@
             const res = await fetch('https://www.worldcubeassociation.org/api/v0/records');
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
-            if (data && data.world_records) liveWcaRecords = data.world_records;
+            if (data && data.world_records) {
+                liveWcaRecords = {
+                    world: data.world_records,
+                    continental: data.continental_records || {},
+                    national: data.national_records || {},
+                };
+            }
         } catch (err) {
             console.warn('Live WCA records unavailable, using stored records:', err);
         }
         return liveWcaRecords;
+    }
+
+    // Live records for the selected region, as { eventId: { single, average } }.
+    // Returns null when we have no live data at all (offline / API down), which
+    // makes the table fall back to the curated world records.
+    function recordsForRegion(region) {
+        if (!liveWcaRecords) return null;
+        if (!region || region === 'world') return liveWcaRecords.world || null;
+        if (region.startsWith('_')) return (liveWcaRecords.continental || {})[region] || {};
+        return (liveWcaRecords.national || {})[region] || {};
+    }
+
+    // WR / CR / NR, matching the region being shown.
+    function recordLevelLabel(region) {
+        if (!region || region === 'world') return 'WR';
+        return region.startsWith('_') ? 'CR' : 'NR';
+    }
+
+    // Build the record for one event in the active region: live times from the
+    // WCA overlaid on our curated holder/competition metadata. Holder metadata
+    // only applies worldwide — the API gives no names for regional records.
+    function buildRecordFor(eventId, regionRecords, isWorld) {
+        const stored = (fetchedWorldRecords && fetchedWorldRecords[eventId])
+            ? fetchedWorldRecords[eventId]
+            : WORLD_RECORDS[eventId];
+
+        const live = regionRecords && regionRecords[eventId];
+        if (!live) {
+            // No live data for this region/event. Worldwide we can still show
+            // the curated record; regionally we have nothing to show.
+            return isWorld ? stored : null;
+        }
+
+        const meta = isWorld ? stored : null;
+        const rec = { single: null, average: null };
+        const liveSingle = wcaRawToDisplay(eventId, live.single, false);
+        const liveAvg = wcaRawToDisplay(eventId, live.average, true);
+
+        if (liveSingle) {
+            rec.single = Object.assign({ holder: '—', country: '' }, (meta && meta.single) || {}, liveSingle);
+        } else if (isWorld) {
+            rec.single = meta && meta.single;
+        }
+        if (liveAvg) {
+            rec.average = Object.assign({ holder: '—', country: '' }, (meta && meta.average) || {}, liveAvg);
+        } else if (isWorld) {
+            rec.average = meta && meta.average;
+        }
+        return (rec.single || rec.average) ? rec : null;
     }
 
     async function loadWorldRecords() {
@@ -1741,95 +1820,226 @@
                 fetchedWorldRecords = customRes.value;
             }
         }
+        buildRecordsFilters();
         renderRecordsTable();
         fetchUpcomingCompetitions();
     }
 
+    // Populate the event/region selects once, then keep them in sync with
+    // the active language.
+    let _recordsFiltersBuilt = false;
+    function buildRecordsFilters() {
+        const eventSel = $('#records-event-filter');
+        const regionSel = $('#records-region-filter');
+        if (!eventSel || !regionSel) return;
+        const T = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
+
+        // Events
+        eventSel.innerHTML = '';
+        const allOpt = document.createElement('option');
+        allOpt.value = 'all';
+        allOpt.textContent = T('records.allEvents', 'All events');
+        eventSel.appendChild(allOpt);
+        RECORDS_EVENT_ORDER.forEach(id => {
+            if (!EVENT_NAMES[id]) return;
+            const o = document.createElement('option');
+            o.value = id;
+            o.textContent = EVENT_NAMES[id];
+            eventSel.appendChild(o);
+        });
+        eventSel.value = recordsFilter.event;
+
+        // Regions: World, then continents, then countries
+        const W = window.WcaCountries;
+        regionSel.innerHTML = '';
+        const world = document.createElement('option');
+        world.value = 'world';
+        world.textContent = T('records.world', 'World');
+        regionSel.appendChild(world);
+        if (W) {
+            const contGroup = document.createElement('optgroup');
+            contGroup.label = T('records.continents', 'Continents');
+            W.continents.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c.id;
+                o.textContent = c.name;
+                contGroup.appendChild(o);
+            });
+            regionSel.appendChild(contGroup);
+
+            const countryGroup = document.createElement('optgroup');
+            countryGroup.label = T('records.countries', 'Countries');
+            W.countries.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c.id;
+                o.textContent = c.name;
+                countryGroup.appendChild(o);
+            });
+            regionSel.appendChild(countryGroup);
+        }
+        regionSel.value = recordsFilter.region;
+
+        if (_recordsFiltersBuilt) return;
+        _recordsFiltersBuilt = true;
+
+        eventSel.addEventListener('change', () => {
+            recordsFilter.event = eventSel.value;
+            renderRecordsTable();
+        });
+        regionSel.addEventListener('change', () => {
+            recordsFilter.region = regionSel.value;
+            renderRecordsTable();
+        });
+        $$('.records-filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                $$('.records-filter-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                recordsFilter.type = chip.dataset.type;
+                renderRecordsTable();
+            });
+        });
+    }
+
+    // Option labels and the summary strip are built in JS, so they need
+    // rebuilding when the language changes (data-i18n covers the rest).
+    document.addEventListener('app-language-changed', () => {
+        if (!_recordsFiltersBuilt) return;
+        buildRecordsFilters();
+        renderRecordsTable();
+    });
+
+    // Format one side of a record for the table. FMC counts moves: a single is
+    // a whole number, a mean always carries two decimals (WCA convention).
+    function formatRecordValue(rec, isAverage) {
+        if (!rec) return '—';
+        if (rec.isMulti) return rec.time;
+        if (rec.isMoves) {
+            if (typeof rec.time !== 'number') return String(rec.time);
+            return isAverage ? rec.time.toFixed(2) : String(rec.time);
+        }
+        return formatTime(rec.time);
+    }
+
+    function formatRecordHolder(rec) {
+        if (!rec || !rec.holder || rec.holder === '—') return '—';
+        return `${countryFlagImg(rec.country)} ${rec.holder}`;
+    }
+
     function renderRecordsTable() {
-        // Render the table
         const tbody = $('#records-table-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
+        activeRecordEvent = null;
 
-        const wcaOrder = [
-            '333', '222', '444', '555', '666', '777',
-            '333bf', '333fm', '333oh', 'clock', 'minx',
-            'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf'
-        ];
+        const region = recordsFilter.region;
+        const isWorld = !region || region === 'world';
+        const regionRecords = recordsForRegion(region);
+        const showSingle = recordsFilter.type !== 'average';
+        const showAverage = recordsFilter.type !== 'single';
 
-        wcaOrder.forEach(eventId => {
-            const stored = (fetchedWorldRecords && fetchedWorldRecords[eventId]) ? fetchedWorldRecords[eventId] : WORLD_RECORDS[eventId];
-            let rec = stored;
+        // Column visibility follows the type filter, and holder columns only
+        // carry names worldwide.
+        const table = $('#records-table');
+        if (table) {
+            table.classList.toggle('hide-single', !showSingle);
+            table.classList.toggle('hide-average', !showAverage);
+            table.classList.toggle('hide-holders', !isWorld);
+        }
 
-            // Overlay live official times from the WCA API when available.
-            const live = liveWcaRecords && liveWcaRecords[eventId];
-            if (live) {
-                rec = { single: null, average: null };
-                const liveSingle = wcaRawToDisplay(eventId, live.single, false);
-                const liveAvg = wcaRawToDisplay(eventId, live.average, true);
-                if (liveSingle) {
-                    rec.single = Object.assign({ holder: '—', country: '' }, (stored && stored.single) || {}, liveSingle);
-                } else {
-                    rec.single = stored && stored.single;
-                }
-                if (liveAvg) {
-                    rec.average = Object.assign({ holder: '—', country: '' }, (stored && stored.average) || {}, liveAvg);
-                } else {
-                    rec.average = stored && stored.average;
-                }
-            }
-            if (!rec || !EVENT_NAMES[eventId]) return;
+        // Column headings follow the region: WR / CR / NR.
+        const T = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
+        const level = recordLevelLabel(region);
+        const thSingle = $('#records-th-single');
+        const thAverage = $('#records-th-average');
+        if (thSingle) thSingle.textContent = `${level} ${T('records.col.single', 'Single')}`;
+        if (thAverage) thAverage.textContent = `${level} ${T('records.col.average', 'Average')}`;
+
+        const events = recordsFilter.event === 'all'
+            ? RECORDS_EVENT_ORDER
+            : RECORDS_EVENT_ORDER.filter(id => id === recordsFilter.event);
+
+        const rendered = [];
+        events.forEach(eventId => {
+            if (!EVENT_NAMES[eventId]) return;
+            const rec = buildRecordFor(eventId, regionRecords, isWorld);
+            if (!rec) return;
+            // Respect the type filter: a row with nothing to show is dropped.
+            if (!showSingle && !rec.average) return;
+            if (!showAverage && !rec.single) return;
 
             const tr = document.createElement('tr');
             tr.className = 'records-row';
             tr.dataset.event = eventId;
-
-            let singleStr, singleHolder, avgStr, avgHolder;
-
-            // Format single
-            if (rec.single) {
-                if (rec.single.isMulti) {
-                    singleStr = rec.single.time;
-                } else if (rec.single.isMoves) {
-                    singleStr = String(rec.single.time);
-                } else {
-                    singleStr = formatTime(rec.single.time);
-                }
-                singleHolder = `${countryFlagImg(rec.single.country)} ${rec.single.holder}`;
-            } else {
-                singleStr = '—';
-                singleHolder = '—';
-            }
-
-            // Format average
-            if (rec.average) {
-                if (rec.average.isMoves) {
-                    avgStr = rec.average.time.toFixed(2);
-                } else {
-                    avgStr = formatTime(rec.average.time);
-                }
-                avgHolder = `${countryFlagImg(rec.average.country)} ${rec.average.holder}`;
-            } else {
-                avgStr = '—';
-                avgHolder = '—';
-            }
-
             tr.innerHTML = `
                 <td class="rec-event">
                     <span class="rec-event-name">${EVENT_NAMES[eventId]}</span>
                 </td>
-                <td class="rec-time rec-single">${singleStr}</td>
-                <td class="rec-holder">${singleHolder}</td>
-                <td class="rec-time rec-average">${avgStr}</td>
-                <td class="rec-holder">${avgHolder}</td>
+                <td class="rec-time rec-single">${formatRecordValue(rec.single, false)}</td>
+                <td class="rec-holder rec-holder-single">${formatRecordHolder(rec.single)}</td>
+                <td class="rec-time rec-average">${formatRecordValue(rec.average, true)}</td>
+                <td class="rec-holder rec-holder-average">${formatRecordHolder(rec.average)}</td>
                 <td class="rec-expand-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></td>
             `;
-
-            tr.addEventListener('click', () => toggleRecordDetail(eventId, tr));
+            tr.addEventListener('click', () => toggleRecordDetail(eventId, tr, rec));
             tbody.appendChild(tr);
+            rendered.push({ eventId, rec });
         });
 
+        renderRecordsSummary(rendered, isWorld);
+
+        const empty = $('#records-empty');
+        if (empty) empty.style.display = rendered.length ? 'none' : 'flex';
+        const note = $('#records-holder-note');
+        if (note) note.style.display = (!isWorld && rendered.length) ? 'flex' : 'none';
+
         $('#records-loading').style.display = 'none';
-        $('#records-table').style.display = 'table';
+        if (table) table.style.display = rendered.length ? 'table' : 'none';
+    }
+
+    // Summary cards above the table, reflecting the current selection.
+    function renderRecordsSummary(rendered, isWorld) {
+        const strip = $('#records-stats-strip');
+        if (!strip) return;
+
+        const regionId = recordsFilter.region;
+        const W = window.WcaCountries;
+        const regionName = W ? W.name(regionId) : 'World';
+        const iso2 = W ? W.iso2(regionId) : '';
+        const regionIcon = iso2
+            ? countryFlagImg(iso2, 26)
+            : (isWorld ? '🌍' : '🌐');
+
+        // Fastest single / average among the rendered rows (timed events only —
+        // FMC counts moves and MBLD is a composite string).
+        const timed = rendered.filter(r => r.rec && !(r.rec.single || {}).isMulti && !(r.rec.single || {}).isMoves);
+        const best = (key) => {
+            const vals = timed.map(r => r.rec[key]).filter(r => r && typeof r.time === 'number');
+            if (!vals.length) return null;
+            return vals.reduce((a, b) => (a.time <= b.time ? a : b));
+        };
+        const bestSingle = best('single');
+        const bestAverage = best('average');
+        const bestSingleEvent = bestSingle ? timed.find(r => r.rec.single === bestSingle) : null;
+        const bestAvgEvent = bestAverage ? timed.find(r => r.rec.average === bestAverage) : null;
+
+        const T = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
+        const card = (icon, value, label) => `
+            <div class="records-stat-card">
+                <div class="records-stat-icon">${icon}</div>
+                <div class="records-stat-info">
+                    <span class="records-stat-value">${value}</span>
+                    <span class="records-stat-label">${label}</span>
+                </div>
+            </div>`;
+
+        strip.innerHTML = [
+            card(regionIcon, esc(regionName), T('records.stat.region', 'Region')),
+            card('🧩', String(rendered.length), T('records.stat.events', 'Events with records')),
+            card('⚡', bestSingle ? `${formatRecordValue(bestSingle, false)} <small>${esc(EVENT_NAMES[bestSingleEvent.eventId])}</small>` : '—',
+                 T('records.stat.fastestSingle', 'Fastest single')),
+            card('📊', bestAverage ? `${formatRecordValue(bestAverage, true)} <small>${esc(EVENT_NAMES[bestAvgEvent.eventId])}</small>` : '—',
+                 T('records.stat.fastestAverage', 'Fastest average')),
+        ].join('');
     }
 
 
@@ -1884,7 +2094,9 @@
         }
     }
 
-    function toggleRecordDetail(eventId, rowEl) {
+    // `record` is the merged record the table row was built from, so the
+    // expanded detail can never contradict the row above it.
+    function toggleRecordDetail(eventId, rowEl, record) {
         // Close any existing detail row
         const existing = document.querySelector('.record-detail-row');
         const wasActive = existing && existing.dataset.event === eventId;
@@ -1903,12 +2115,38 @@
         activeRecordEvent = eventId;
         rowEl.classList.add('active');
 
-        const rec = (fetchedWorldRecords && fetchedWorldRecords[eventId]) ? fetchedWorldRecords[eventId] : WORLD_RECORDS[eventId];
+        const rec = record
+            || (fetchedWorldRecords && fetchedWorldRecords[eventId])
+            || WORLD_RECORDS[eventId];
         if (!rec) return;
 
         const detailRow = document.createElement('tr');
         detailRow.className = 'record-detail-row';
         detailRow.dataset.event = eventId;
+
+        // WR / CR / NR, matching the region the table is showing.
+        const level = recordLevelLabel(recordsFilter.region);
+
+        // Holder and competition only exist for world records; regional rows
+        // carry the time alone.
+        const detailMeta = (side) => {
+            let html = '';
+            if (side.holder && side.holder !== '—') {
+                html += `
+                    <div class="record-detail-holder">
+                        <span class="record-detail-flag">${countryFlagImg(side.country, 28)}</span>
+                        <span class="record-detail-name">${esc(side.holder)}</span>
+                    </div>`;
+            }
+            if (side.competition) {
+                html += `
+                    <div class="record-detail-comp">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        ${esc(side.competition)}
+                    </div>`;
+            }
+            return html;
+        };
 
         let singleCard = '';
         if (rec.single) {
@@ -1919,16 +2157,9 @@
 
             singleCard = `
                 <div class="record-detail-card record-detail-single">
-                    <div class="record-detail-badge">WR SINGLE</div>
+                    <div class="record-detail-badge">${level} SINGLE</div>
                     <div class="record-detail-time">${timeDisplay}</div>
-                    <div class="record-detail-holder">
-                        <span class="record-detail-flag">${countryFlagImg(rec.single.country, 28)}</span>
-                        <span class="record-detail-name">${rec.single.holder}</span>
-                    </div>
-                    <div class="record-detail-comp">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        ${rec.single.competition}
-                    </div>
+                    ${detailMeta(rec.single)}
                 </div>
             `;
         }
@@ -1941,16 +2172,9 @@
 
             avgCard = `
                 <div class="record-detail-card record-detail-average">
-                    <div class="record-detail-badge avg-badge">WR AVERAGE</div>
+                    <div class="record-detail-badge avg-badge">${level} AVERAGE</div>
                     <div class="record-detail-time">${timeDisplay}</div>
-                    <div class="record-detail-holder">
-                        <span class="record-detail-flag">${countryFlagImg(rec.average.country, 28)}</span>
-                        <span class="record-detail-name">${rec.average.holder}</span>
-                    </div>
-                    <div class="record-detail-comp">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        ${rec.average.competition}
-                    </div>
+                    ${detailMeta(rec.average)}
                 </div>
             `;
         }

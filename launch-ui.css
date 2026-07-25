@@ -1301,3 +1301,148 @@ select.form-select {
     .lu-dialog { padding: 26px 18px 20px; }
     .lu-dialog-perks li { font-size: 0.83rem; }
 }
+
+/* ============================================================
+   17. RECORDS VIEW — filters, column visibility, empty state
+   ------------------------------------------------------------
+   The records view mirrors the WCA results page: filter by event
+   and by region (world / continent / country), and choose which
+   result types to show. Everything sits on the existing tokens —
+   no new colours.
+   ============================================================ */
+
+.records-filters {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.records-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.records-filter-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+}
+
+.records-filters .form-input {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.88rem;
+    min-width: 150px;
+    max-width: 210px;
+}
+
+/* Segmented chip group — same shape as .battle-filter-chip, but on the
+   palette tokens instead of that component's hardcoded oranges. */
+.records-chip-group {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border: 1px solid var(--clr-border);
+    border-radius: 999px;
+    background: var(--clr-surface-alt, var(--clr-surface));
+}
+
+.records-filter-chip {
+    padding: 0.35rem 0.85rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--clr-text-muted);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.3;
+    cursor: pointer;
+    transition: color 0.18s ease, background-color 0.18s ease;
+}
+
+.records-filter-chip:hover { color: var(--clr-text); }
+
+.records-filter-chip.active {
+    background: var(--clr-primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+.records-filter-chip:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+
+/* Column visibility, driven by the type chips and the active region. */
+.records-table-enhanced.hide-single .rec-th-single,
+.records-table-enhanced.hide-single .rec-single,
+.records-table-enhanced.hide-single .rec-th-holder-single,
+.records-table-enhanced.hide-single .rec-holder-single,
+.records-table-enhanced.hide-average .rec-th-average,
+.records-table-enhanced.hide-average .rec-average,
+.records-table-enhanced.hide-average .rec-th-holder-average,
+.records-table-enhanced.hide-average .rec-holder-average,
+.records-table-enhanced.hide-holders .rec-th-holder,
+.records-table-enhanced.hide-holders .rec-holder {
+    display: none;
+}
+
+/* Why regional rows carry no names. */
+.records-holder-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.7rem var(--space-lg);
+    border-bottom: 1px solid var(--clr-border);
+    background: color-mix(in oklab, var(--brand) 7%, transparent);
+    color: var(--clr-text-muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.records-holder-note svg { flex: 0 0 auto; color: var(--brand); }
+
+.records-empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 3.25rem var(--space-lg);
+    text-align: center;
+}
+
+.records-empty-icon { font-size: 2rem; line-height: 1; }
+
+.records-empty-title {
+    margin: 6px 0 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--clr-text);
+}
+
+.records-empty-desc {
+    margin: 0;
+    max-width: 36ch;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--clr-text-muted);
+}
+
+/* The stat cards show "2.76 <small>3x3</small>" — keep the event
+   subtitle from competing with the value. */
+.records-stat-value small {
+    margin-left: 5px;
+    font-size: 0.72em;
+    font-weight: 500;
+    color: var(--clr-text-muted);
+}
+
+@media (max-width: 720px) {
+    .records-filters { width: 100%; }
+    .records-filters .form-input { min-width: 0; max-width: none; width: 100%; }
+    .records-filter-field { flex: 1 1 150px; }
+}

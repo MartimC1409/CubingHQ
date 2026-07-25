@@ -1100,25 +1100,59 @@
             <div class="records-container" style="display: flex; flex-direction: column; height: 100vh; padding-top: 60px;">
                 <div class="dash-header" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-xl); margin-bottom: 0; background: var(--clr-surface); border-bottom: 1px solid var(--clr-border); flex-wrap: wrap; gap: var(--space-md);">
                     <div>
-                        <h2 style="font-size: 1.5rem; margin-bottom: 4px;">World Records</h2>
-                        <p style="color: var(--clr-text-muted); font-size: 0.9rem;">Official WCA Rankings and Records</p>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 4px;" data-i18n="records.title">Records</h2>
+                        <p style="color: var(--clr-text-muted); font-size: 0.9rem;" data-i18n="records.subtitle">Official WCA records, worldwide and by region</p>
+                    </div>
+                    <div class="records-filters">
+                        <label class="records-filter-field">
+                            <span class="records-filter-label" data-i18n="records.filter.event">Event</span>
+                            <select id="records-event-filter" class="form-input" aria-label="Filter records by event">
+                                <!-- Populated by JS -->
+                            </select>
+                        </label>
+                        <label class="records-filter-field">
+                            <span class="records-filter-label" data-i18n="records.filter.region">Region</span>
+                            <select id="records-region-filter" class="form-input" aria-label="Filter records by region">
+                                <!-- Populated by JS -->
+                            </select>
+                        </label>
+                        <div class="records-filter-field">
+                            <span class="records-filter-label" data-i18n="records.filter.type">Show</span>
+                            <div class="records-chip-group" role="group" aria-label="Filter records by result type">
+                                <button type="button" class="records-filter-chip active" data-type="both" data-i18n="records.type.both">Both</button>
+                                <button type="button" class="records-filter-chip" data-type="single" data-i18n="records.type.single">Single</button>
+                                <button type="button" class="records-filter-chip" data-type="average" data-i18n="records.type.average">Average</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div style="flex-grow: 1; overflow-y: auto; padding: var(--space-xl); background: var(--clr-bg);">
+                    <div id="records-stats-strip" class="records-stats-strip" style="max-width: 1200px; margin: 0 auto var(--space-lg);">
+                        <!-- Populated by JS -->
+                    </div>
                     <div class="setup-card records-table-card" style="padding: 0; overflow: hidden; max-width: 1200px; margin: 0 auto;">
                         <div id="records-loading" class="records-loading-state" style="display: none;">
                             <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>
-                            <span>Loading records...</span>
+                            <span data-i18n="records.loading">Loading records...</span>
+                        </div>
+                        <div id="records-holder-note" class="records-holder-note" style="display: none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <span data-i18n="records.holderNote">The WCA records API publishes regional times without names, so holders are only shown for world records.</span>
+                        </div>
+                        <div id="records-empty" class="records-empty-state" style="display: none;">
+                            <div class="records-empty-icon">🏳️</div>
+                            <p class="records-empty-title" data-i18n="records.empty.title">No records for this selection</p>
+                            <p class="records-empty-desc" data-i18n="records.empty.desc">This region has no official record in the selected event yet. Try another region or event.</p>
                         </div>
                         <div class="records-table-wrap">
                             <table class="records-table-enhanced" id="records-table" style="display: none;">
                                 <thead>
                                     <tr>
-                                        <th class="rec-th-event">Event</th>
-                                        <th class="rec-th-time">WR Single</th>
-                                        <th class="rec-th-holder">Holder</th>
-                                        <th class="rec-th-time">WR Average</th>
-                                        <th class="rec-th-holder">Holder</th>
+                                        <th class="rec-th-event" data-i18n="records.col.event">Event</th>
+                                        <th class="rec-th-time rec-th-single" id="records-th-single">WR Single</th>
+                                        <th class="rec-th-holder rec-th-holder-single" data-i18n="records.col.holder">Holder</th>
+                                        <th class="rec-th-time rec-th-average" id="records-th-average">WR Average</th>
+                                        <th class="rec-th-holder rec-th-holder-average" data-i18n="records.col.holder">Holder</th>
                                         <th class="rec-th-expand"></th>
                                     </tr>
                                 </thead>
@@ -1129,7 +1163,7 @@
                         </div>
                         <div class="records-footer-hint">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                            Click any event row to view detailed record information
+                            <span data-i18n="records.hint">Click any event row to view detailed record information</span>
                         </div>
                     </div>
                 </div>
@@ -1623,7 +1657,8 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=1"></script>
+    <script src="i18n.js?v=2"></script>
+    <script src="wca-countries.js?v=1"></script>
     <script src="scramble-engine.js?v=2"></script>
     <script src="square1-drawer.js?v=2"></script>
     <script src="algorithms.js?v=4"></script>
@@ -1633,6 +1668,6 @@
     <script src="smartcube.js?v=1"></script>
     <script src="cube-decor.js?v=1"></script>
     <script src="motion.js?v=2"></script>
-    <script src="app.js?v=9"></script>
+    <script src="app.js?v=10"></script>
 </body>
 </html>
