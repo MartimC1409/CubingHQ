@@ -19,13 +19,18 @@
        (0,1),(3,4),(6,7),(9,10); bottom corners (13,14),(16,17),
        (19,20),(22,23); the rest are edges.
 
-   Screen mapping (calibrated against cubing.js's own renderer):
-     - Top slot i center angle  30° + i*30°   (0° = 12 o'clock,
+   Screen mapping (see BASE_ANGLE_U / BASE_ANGLE_D below):
+     - Top slot i center angle  120° + i*30°  (0° = 12 o'clock,
        angles grow clockwise).
-     - Bottom slot j center angle 180° + (j-12)*30°.
-   Solved picture: left square yellow face with orange top /
-   green right / red bottom / blue left; right square white face
-   with red top / green right / orange bottom / blue left.
+     - Bottom slot j center angle 270° + (j-12)*30°.
+   Solved picture — the left (U) square seen from above with yellow
+   up and green front: green at the bottom (front), blue at the top
+   (back), orange right, red left. The right (D) square is the view
+   from underneath, so green stays at the front but left/right
+   mirror: orange left, red right.
+   Verified from first principles: (3,0) turns the left square 90°
+   clockwise, (-3,0) counter-clockwise, (0,3) turns the right square
+   90° clockwise and leaves the left one alone.
 
    Exposed as window.Square1Drawer:
      .render(container, scrambleStr)
@@ -142,6 +147,19 @@
     const SQB = SQA * Math.sqrt(2);        // half-size of a layer cell
     const FACE_SCALE = 0.66;               // inner face wedge scale (side band look)
 
+    // Screen orientation of the two squares. Slot s of a layer is drawn
+    // at `base + s * WEDGE_STEP` degrees (0° = 12 o'clock, growing
+    // clockwise). The bases are fixed by the solved picture: with yellow
+    // on top and green in front, the U square must read green at the
+    // bottom (front), blue at the top (back), orange right and red left;
+    // the D square is the view from underneath, so it keeps green at the
+    // front but mirrors left/right (orange left, red right).
+    // The two bases stay 150° apart — that alignment is what keeps the
+    // halves a "/" exchanges sitting on the same side of both squares.
+    const WEDGE_STEP = 30;
+    const BASE_ANGLE_U = 120;
+    const BASE_ANGLE_D = 270;
+
     function poly(pts, fill) {
         const d = pts.map(p => `${p[0].toFixed(3)},${p[1].toFixed(3)}`).join(' ');
         return `<polygon points="${d}" fill="${fill}" stroke="#000" stroke-width="0.06"/>`;
@@ -173,7 +191,7 @@
 
     function drawLayer(parts, state, isTop, cx, cy) {
         const base = isTop ? 0 : 12;
-        const angle = s => (isTop ? 30 : 180) + s * 30;
+        const angle = s => (isTop ? BASE_ANGLE_U : BASE_ANGLE_D) + s * WEDGE_STEP;
         // Start so a corner pair wrapping the 11->0 slot boundary is
         // drawn as one piece.
         let s = 0;

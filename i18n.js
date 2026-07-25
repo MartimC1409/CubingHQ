@@ -31,9 +31,14 @@
             'nav.login': 'Login',
 
             // ----- Login modal -----
-            'login.welcome': 'Welcome!',
-            'login.subtitle': 'Login to access your personalized simulation data.',
-            'login.wca': 'Login with WCA',
+            'login.welcome': 'Sign in to CubingHQ',
+            'login.subtitle': 'Connect your WCA account to make the simulator yours — it takes one click.',
+            'login.wca': 'Continue with WCA',
+            'login.perk.prs': 'Your personal records fill in the simulator automatically',
+            'login.perk.sync': 'Solves and sessions sync across your devices',
+            'login.perk.stats': 'See your official WCA profile, medals and records',
+            'login.skip': 'Keep browsing without an account',
+            'login.note': 'CubingHQ is an unofficial fan project. Signing in only reads your public WCA data — we never post anything.',
 
             // ----- Home view -----
             'hero.kicker': '// solve · compete · repeat',
@@ -161,9 +166,14 @@
             'nav.login': 'Entrar',
 
             // ----- Modal de login -----
-            'login.welcome': 'Bem-vindo!',
-            'login.subtitle': 'Inicia sessão para acederes aos teus dados personalizados de simulação.',
-            'login.wca': 'Entrar com a WCA',
+            'login.welcome': 'Entrar no CubingHQ',
+            'login.subtitle': 'Liga a tua conta WCA para o simulador ser mesmo teu — basta um clique.',
+            'login.wca': 'Continuar com a WCA',
+            'login.perk.prs': 'Os teus recordes pessoais entram no simulador automaticamente',
+            'login.perk.sync': 'Os teus tempos e sessões sincronizam entre dispositivos',
+            'login.perk.stats': 'Vê o teu perfil oficial da WCA, medalhas e recordes',
+            'login.skip': 'Continuar sem conta',
+            'login.note': 'O CubingHQ é um projeto de fãs, não oficial. Ao entrares, apenas lemos os teus dados públicos da WCA — nunca publicamos nada.',
 
             // ----- Página inicial -----
             'hero.kicker': '// resolve · compete · repete',
