@@ -250,8 +250,7 @@
                 state.userProfile = data.me;
                 updateUIAfterLogin();
                 showToast(`Welcome back, ${data.me.name.split(' ')[0]}!`, 'success');
-                if ($('#login-modal')) $('#login-modal').style.display = 'none';
-                if ($('#signup-modal')) $('#signup-modal').style.display = 'none';
+                closeLoginModal();
 
                 // Automatically load their WCA stats if they have a WCA ID
                 if (state.userProfile.wca_id) {
@@ -299,6 +298,55 @@
         if (e) e.preventDefault();
         const url = `${WCA_OAUTH_URL}?client_id=${WCA_CLIENT_ID}&redirect_uri=${encodeURIComponent(OAUTH_REDIRECT_URI)}&response_type=token&scope=public`;
         window.location.href = url;
+    }
+
+    // ========== LOGIN MODAL ==========
+    // Focus is moved into the dialog on open and handed back to whatever
+    // opened it on close, and the page behind is locked from scrolling.
+    let _loginOpener = null;
+
+    function isLoginModalOpen() {
+        const m = $('#login-modal');
+        return !!m && m.style.display !== 'none';
+    }
+
+    function openLoginModal() {
+        const modal = $('#login-modal');
+        if (!modal) return;
+        _loginOpener = document.activeElement;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.lu-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closeLoginModal() {
+        const modal = $('#login-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (_loginOpener && document.contains(_loginOpener)) {
+            _loginOpener.focus();
+        }
+        _loginOpener = null;
+    }
+
+    // Turn the profile button in the nav back into the Login button,
+    // restoring the original markup (the person icon and the .nav-btn
+    // class) so it matches the rest of the navigation.
+    function restoreLoginNavButton() {
+        const profileBtn = $('#nav-profile-btn');
+        if (!profileBtn) return;
+        const loginBtn = document.createElement('button');
+        loginBtn.className = 'nav-btn';
+        loginBtn.id = 'nav-login-btn';
+        loginBtn.title = 'Login';
+        loginBtn.setAttribute('data-i18n', 'nav.login');
+        loginBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Login';
+        profileBtn.parentNode.replaceChild(loginBtn, profileBtn);
+        loginBtn.addEventListener('click', openLoginModal);
+        // Re-apply the active language to the freshly built button.
+        if (window.AppI18N) window.AppI18N.apply();
     }
 
     function init() {
@@ -442,22 +490,28 @@
     }
     function bindEvents() {
         // Login Modal
-        const loginModal = $('#login-modal');
-
         if ($('#nav-login-btn')) {
-            $('#nav-login-btn').addEventListener('click', () => {
-                if (loginModal) loginModal.style.display = 'flex';
-            });
+            $('#nav-login-btn').addEventListener('click', openLoginModal);
         }
 
         if ($('#login-close-btn')) {
-            $('#login-close-btn').addEventListener('click', () => {
-                if (loginModal) loginModal.style.display = 'none';
-            });
+            $('#login-close-btn').addEventListener('click', closeLoginModal);
+        }
+        if ($('#login-skip-btn')) {
+            $('#login-skip-btn').addEventListener('click', closeLoginModal);
         }
 
+        // Click on the backdrop (not the dialog) closes it.
         window.addEventListener('click', (e) => {
-            if (e.target === loginModal) loginModal.style.display = 'none';
+            if (e.target === $('#login-modal')) closeLoginModal();
+        });
+
+        // Escape closes the dialog.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isLoginModalOpen()) {
+                e.preventDefault();
+                closeLoginModal();
+            }
         });
 
         if ($('#wca-login-btn')) {
@@ -468,22 +522,7 @@
             $('#logout-btn').addEventListener('click', () => {
                 localStorage.removeItem('wca_access_token');
                 state.userProfile = null;
-                
-                // Reset Profile button back to Login button
-                const profileBtn = $('#nav-profile-btn');
-                if (profileBtn) {
-                    const loginBtn = profileBtn.cloneNode(true);
-                    loginBtn.id = 'nav-login-btn';
-                    loginBtn.innerHTML = `Login`;
-                    loginBtn.title = "Login";
-                    loginBtn.className = "btn btn-primary btn-sm";
-                    profileBtn.parentNode.replaceChild(loginBtn, profileBtn);
-                    
-                    loginBtn.addEventListener('click', () => {
-                        if (loginModal) loginModal.style.display = 'flex';
-                    });
-                }
-                
+                restoreLoginNavButton();
                 switchView('home');
                 showToast('Logged out successfully', 'success');
             });
