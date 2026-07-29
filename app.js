@@ -379,12 +379,17 @@
     }
 
     // ========== THEME ==========
+    // theme.js owns appearance + accent and wires the picker to
+    // #theme-toggle; these remain as thin fallbacks for the case where it
+    // failed to load, so the page is never stuck on the default palette.
     function loadTheme() {
+        if (window.AppTheme) return;
         const saved = localStorage.getItem('sc-theme') || 'dark';
         document.documentElement.setAttribute('data-theme', saved);
     }
 
     function toggleTheme() {
+        if (window.AppTheme) { window.AppTheme.toggleMode(); return; }
         const current = document.documentElement.getAttribute('data-theme');
         const next = current === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', next);
@@ -539,11 +544,15 @@
             });
         }
 
-        // Theme (click + keyboard)
-        $('#theme-toggle').addEventListener('click', toggleTheme);
-        $('#theme-toggle').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTheme(); }
-        });
+        // Theme (click + keyboard). theme.js binds the same button to open
+        // the picker, so only take over when it is absent — otherwise a click
+        // would both open the picker and flip the mode behind it.
+        if (!window.AppTheme) {
+            $('#theme-toggle').addEventListener('click', toggleTheme);
+            $('#theme-toggle').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTheme(); }
+            });
+        }
 
         // Nav
         $('#nav-logo').addEventListener('click', () => {
@@ -809,11 +818,9 @@
             filtered.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'setup-card alg-card';
-                card.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:1.5rem;text-align:center;';
 
                 const holder = document.createElement('div');
                 holder.className = 'alg-card-viz';
-                holder.style.cssText = 'width:140px;height:140px;margin-bottom:1rem;position:relative;display:flex;align-items:center;justify-content:center;';
 
                 let previewAlg = event === 'Skewb' ? expandSkewbMacros(item.alg) : item.alg;
                 if (window.ScrambleEngine) previewAlg = window.ScrambleEngine.normalizeAlgFor(puzzleName, previewAlg);
@@ -823,7 +830,7 @@
                     const caseState = item.setup ? item.setup : getInverse(item.alg, event);
                     window.Square1Drawer.render(holder, caseState);
                     const svg = holder.querySelector('svg');
-                    if (svg) { svg.style.maxWidth = 'none'; svg.style.width = 'auto'; svg.style.height = '140px'; svg.style.margin = '0'; }
+                    if (svg) { svg.style.maxWidth = 'none'; svg.style.width = 'auto'; svg.style.height = '100%'; svg.style.margin = '0'; }
                 } else if (isPreviewable(event, item.alg)) {
                     holder.dataset.puzzle = puzzleName;
                     const caseRot = caseOrientationFor(event, subset, subgroup);
@@ -849,18 +856,17 @@
                 card.appendChild(holder);
 
                 const h3 = document.createElement('h3');
-                h3.style.cssText = 'font-size:1.1rem;margin-bottom:0.5rem;color:var(--clr-text);';
+                h3.className = 'alg-card-name';
                 h3.textContent = item.name;
                 card.appendChild(h3);
 
                 const code = document.createElement('code');
-                code.style.cssText = 'display:block;background:rgba(127,127,127,0.08);padding:0.5rem;border-radius:var(--radius-sm);font-size:0.85rem;color:var(--clr-primary);font-family:var(--font-mono);letter-spacing:0.5px;width:100%;overflow-wrap:anywhere;';
+                code.className = 'alg-card-alg';
                 code.textContent = item.alg;
                 card.appendChild(code);
 
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'btn btn-secondary btn-sm alg-copy-btn';
-                copyBtn.style.cssText = 'margin-top:0.6rem;font-size:0.75rem;padding:0.3rem 0.8rem;';
                 copyBtn.textContent = 'Copy';
                 copyBtn.setAttribute('aria-label', `Copy algorithm for ${item.name}`);
                 copyBtn.addEventListener('click', () => {
@@ -2054,9 +2060,17 @@
 
         try {
             const today = new Date().toISOString().split('T')[0];
-            const res = await fetch(`${WCA_API}/competitions?start=${today}&sort=start_date&per_page=20`);
+            // The WCA `start` filter is on the competition's END date, so it
+            // also returns events that are already under way (and ones that
+            // began today). Ask for a bigger page and keep only the ones that
+            // have not started yet, so "Upcoming" really means upcoming.
+            const res = await fetch(`${WCA_API}/competitions?start=${today}&sort=start_date&per_page=75`);
             if (!res.ok) throw new Error('Failed to fetch');
-            const comps = await res.json();
+            const all = await res.json();
+            const comps = all
+                .filter(c => c.start_date && c.start_date > today)
+                .sort((a, b) => a.start_date.localeCompare(b.start_date))
+                .slice(0, 20);
 
             if (comps.length === 0) {
                 listContainer.innerHTML = '<div class="upcoming-comps-empty">No upcoming competitions found.</div>';
