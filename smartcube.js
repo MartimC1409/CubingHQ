@@ -300,11 +300,14 @@
 
     const BT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>';
 
-    // The connect button only exists for 3x3 events.
+    // The connect button only exists for 3x3 events, and only where Web
+    // Bluetooth exists at all — iOS Safari has no support whatsoever, so on
+    // iPhone the button would be a control that can never work.
     function updateButtonVisibility() {
         const btn = document.getElementById('bt-connect-btn');
         if (!btn) return;
-        btn.style.display = isBtEvent(currentEvent()) ? '' : 'none';
+        const usable = !!navigator.bluetooth && isBtEvent(currentEvent());
+        btn.style.display = usable ? '' : 'none';
     }
 
     function renderButton() {
