@@ -1446,3 +1446,293 @@ select.form-select {
     .records-filters .form-input { min-width: 0; max-width: none; width: 100%; }
     .records-filter-field { flex: 1 1 150px; }
 }
+
+/* ============================================================
+   18. MOBILE APP SHELL
+   ------------------------------------------------------------
+   Below 850px the nav is a fixed bottom tab bar (four primary
+   tabs + More) and primary actions get chunky, physical press
+   feedback: a solid bottom edge that compresses when tapped.
+   Everything here is mobile-only — the desktop layout above the
+   breakpoint is untouched.
+   ============================================================ */
+
+@media (max-width: 850px) {
+
+    /* ---------- Bottom tab bar ---------- */
+
+    .nav-links {
+        /* Five equal tabs, no sideways scrolling. */
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0;
+        height: auto;
+        padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+        overflow: visible;
+        background: color-mix(in oklab, var(--clr-bg) 92%, transparent);
+        backdrop-filter: blur(18px) saturate(1.3);
+        -webkit-backdrop-filter: blur(18px) saturate(1.3);
+        border-top: 1px solid var(--clr-border);
+    }
+
+    .nav-links .nav-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        min-width: 0;
+        min-height: 52px;
+        height: auto;
+        padding: 7px 2px;
+        border: 0;
+        border-radius: 14px;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        line-height: 1.15;
+        white-space: nowrap;
+        opacity: 1;
+        color: var(--clr-text-muted);
+        background: transparent !important;
+        transition: color 0.15s ease, transform 0.12s ease;
+    }
+
+    .nav-links .nav-btn svg {
+        width: 22px;
+        height: 22px;
+        margin: 0;
+        stroke-width: 2.1;
+    }
+
+    /* Active tab: filled pill behind the icon, brand colour, bold label. */
+    .nav-links .nav-btn.active {
+        color: var(--clr-primary);
+        border-bottom: 0;
+        background: color-mix(in oklab, var(--clr-primary) 15%, transparent) !important;
+    }
+
+    .nav-links .nav-btn:active { transform: scale(0.94); }
+
+    /* The battle tab keeps its accent but not the desktop gradient fill. */
+    .nav-links .nav-btn--battle::after { display: none; }
+
+    /* ---------- "More" bottom sheet ---------- */
+
+    .mnav-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1400;
+        background: rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        transition: opacity 0.22s ease;
+    }
+    .mnav-backdrop.open { opacity: 1; }
+
+    .mnav-sheet {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1401;
+        padding: 10px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+        border-top: 1px solid var(--clr-border-top, var(--clr-border));
+        border-radius: 22px 22px 0 0;
+        background: var(--clr-bg-elevated, var(--clr-surface));
+        box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.5);
+        transform: translateY(100%);
+        transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .mnav-sheet.open { transform: translateY(0); }
+
+    .mnav-sheet-grip {
+        width: 38px;
+        height: 4px;
+        margin: 2px auto 12px;
+        border-radius: 999px;
+        background: var(--clr-border-active, var(--clr-border));
+    }
+
+    .mnav-sheet-title {
+        margin: 0 0 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--clr-text-muted);
+    }
+
+    .mnav-sheet-items {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    /* Sheet entries are the real nav buttons, moved here by mobile-nav.js. */
+    .mnav-sheet-items > * {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 84px;
+        padding: 12px 6px;
+        border: 1px solid var(--clr-border);
+        border-radius: 18px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        line-height: 1.2;
+        text-align: center;
+        color: var(--clr-text);
+        background: var(--clr-surface) !important;
+        cursor: pointer;
+        transition: transform 0.12s ease, border-color 0.15s ease;
+    }
+
+    .mnav-sheet-items > *:active {
+        transform: scale(0.96);
+        border-color: var(--clr-primary);
+    }
+
+    .mnav-sheet-items > *.active {
+        border-color: var(--clr-primary);
+        color: var(--clr-primary);
+    }
+
+    .mnav-sheet-items svg {
+        width: 24px;
+        height: 24px;
+        margin: 0;
+        stroke-width: 2.1;
+    }
+
+    /* Small screens hide `.nav-btn span`, which would strip the language
+       toggle's label inside the sheet. Tiles are always labelled here. */
+    .mnav-sheet-items span,
+    .mnav-item-label {
+        display: inline !important;
+    }
+
+    /* The battle badge would overflow the tile. */
+    .mnav-sheet-items .nav-btn--battle::after {
+        top: 6px;
+        right: 6px;
+    }
+
+    /* ---------- Chunky press physics ----------
+       The Duolingo signature: a solid bottom edge that compresses on
+       press. Applied to primary actions only, not to every button. */
+
+    .lu-btn-default,
+    .btn-primary,
+    #wca-login-btn,
+    .records-filter-chip.active {
+        border-radius: 16px;
+        font-weight: 700;
+        box-shadow: 0 4px 0 var(--lu-press-edge, rgba(0, 0, 0, 0.35));
+        transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .btn-primary,
+    #wca-login-btn,
+    .records-filter-chip.active {
+        --lu-press-edge: color-mix(in oklab, var(--clr-primary) 55%, black);
+    }
+
+    .lu-btn-default {
+        --lu-press-edge: color-mix(in oklab, var(--lu-primary) 62%, black);
+    }
+
+    .lu-btn-default:active,
+    .btn-primary:active,
+    #wca-login-btn:active,
+    .records-filter-chip.active:active {
+        transform: translateY(4px);
+        box-shadow: 0 0 0 var(--lu-press-edge);
+    }
+
+    /* ---------- Comfortable targets ---------- */
+
+    .btn,
+    .lu-btn,
+    .form-input,
+    .form-select,
+    select.form-input {
+        min-height: 48px;
+    }
+
+    .setup-card,
+    .bento-card,
+    .records-table-card {
+        border-radius: 20px;
+    }
+
+    /* Thicker, rounder progress and stat bars. */
+    .records-stat-card { border-radius: 18px; }
+    .comparison-bar-wrap,
+    .progress-bar,
+    .progress-track {
+        height: 12px;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .comparison-bar-fill,
+    .progress-fill { border-radius: 999px; }
+
+    /* Room for the tab bar at the end of every scrolling view. */
+    body.has-mobile-tabs main,
+    body.has-mobile-tabs .site-footer {
+        padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* Once installed to the home screen, clear the notch. */
+@media (display-mode: standalone) {
+    .navbar,
+    .cs-fixed-navbar {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mnav-sheet,
+    .mnav-backdrop { transition: none; }
+    .nav-links .nav-btn:active,
+    .mnav-sheet-items > *:active { transform: none; }
+}
+
+/* Records view scroll area (was an inline style; needs to be overridable
+   on small screens, where 32px of padding is a large slice of the width). */
+.records-scroll {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: var(--space-xl);
+    background: var(--clr-bg);
+}
+
+/* Grid children default to min-width:auto, so a long label like "Events with
+   records" stops the card shrinking and the strip overflows its container. */
+.records-stat-card { min-width: 0; }
+.records-stat-info { min-width: 0; }
+.records-stat-value,
+.records-stat-label { overflow-wrap: anywhere; }
+
+@media (max-width: 850px) {
+    .records-scroll { padding: var(--space-md); }
+
+    /* Two readable cards per row rather than four cramped ones. */
+    .records-stats-strip { gap: 8px; }
+    .records-stat-card { padding: 12px 10px; gap: 10px; }
+    .records-stat-label { font-size: 0.6rem; line-height: 1.25; }
+
+    /* The table keeps its own horizontal scroll inside the card. */
+    .records-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Stack the filter bar instead of squeezing it beside the title. */
+    .records-filters { width: 100%; }
+    .records-chip-group { width: 100%; justify-content: space-between; }
+    .records-filter-chip { flex: 1; text-align: center; }
+}

@@ -29,6 +29,8 @@
             'nav.history': 'History',
             'nav.battle': 'Battle',
             'nav.login': 'Login',
+            'nav.more': 'More',
+            'nav.theme': 'Theme',
 
             // ----- Login modal -----
             'login.welcome': 'Sign in to CubingHQ',
@@ -191,6 +193,8 @@
             'nav.history': 'Histórico',
             'nav.battle': 'Batalha',
             'nav.login': 'Entrar',
+            'nav.more': 'Mais',
+            'nav.theme': 'Tema',
 
             // ----- Modal de login -----
             'login.welcome': 'Entrar no CubingHQ',

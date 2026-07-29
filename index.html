@@ -2,8 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>CubingHQ — WCA Competition Simulator</title>
+
+    <!-- Installable app (Add to Home Screen) -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#09090b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CubingHQ">
+    <!-- "black", not "black-translucent": the latter slides content under the
+         status bar and collides with the fixed navbar. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
     <meta name="description" content="Practice for your upcoming Rubik's cube competition with CubingHQ! Simulate real WCA competition rounds with scrambles, timers, scorecards, and live leaderboards.">
     <meta property="og:title" content="CubingHQ — WCA Competition Simulator">
     <meta property="og:description" content="The ultimate speedcubing competition simulator. Practice under real competition pressure.">
@@ -1126,7 +1137,7 @@
                         </div>
                     </div>
                 </div>
-                <div style="flex-grow: 1; overflow-y: auto; padding: var(--space-xl); background: var(--clr-bg);">
+                <div class="records-scroll">
                     <div id="records-stats-strip" class="records-stats-strip" style="max-width: 1200px; margin: 0 auto var(--space-lg);">
                         <!-- Populated by JS -->
                     </div>
@@ -1669,5 +1680,17 @@
     <script src="cube-decor.js?v=1"></script>
     <script src="motion.js?v=2"></script>
     <script src="app.js?v=10"></script>
+    <script src="mobile-nav.js?v=1"></script>
+
+    <!-- Offline support / installability. Never allowed to break the page. -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch((err) => {
+                    console.warn('Service worker registration failed:', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>

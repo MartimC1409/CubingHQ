@@ -1,0 +1,48 @@
+{
+  "name": "CubingHQ — WCA Competition Simulator",
+  "short_name": "CubingHQ",
+  "description": "Practice for your upcoming Rubik's cube competition with CubingHQ! Simulate real WCA competition rounds with scrambles, timers, scorecards, and live leaderboards.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["sports", "education", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Timer",
+      "short_name": "Timer",
+      "url": "/timer.html",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Competition Simulation",
+      "short_name": "Comp Sim",
+      "url": "/index.html#simulation",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
