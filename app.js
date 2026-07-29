@@ -1974,9 +1974,9 @@
                 <td class="rec-event">
                     <span class="rec-event-name">${EVENT_NAMES[eventId]}</span>
                 </td>
-                <td class="rec-time rec-single">${formatRecordValue(rec.single, false)}</td>
+                <td class="rec-time rec-single" data-label="${level} ${esc(T('records.col.single', 'Single'))}">${formatRecordValue(rec.single, false)}</td>
                 <td class="rec-holder rec-holder-single">${formatRecordHolder(rec.single)}</td>
-                <td class="rec-time rec-average">${formatRecordValue(rec.average, true)}</td>
+                <td class="rec-time rec-average" data-label="${level} ${esc(T('records.col.average', 'Average'))}">${formatRecordValue(rec.average, true)}</td>
                 <td class="rec-holder rec-holder-average">${formatRecordHolder(rec.average)}</td>
                 <td class="rec-expand-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></td>
             `;
@@ -1993,7 +1993,9 @@
         if (note) note.style.display = (!isWorld && rendered.length) ? 'flex' : 'none';
 
         $('#records-loading').style.display = 'none';
-        if (table) table.style.display = rendered.length ? 'table' : 'none';
+        // Empty string, not 'table': an inline display would beat the mobile
+        // stylesheet, which lays the rows out as cards instead.
+        if (table) table.style.display = rendered.length ? '' : 'none';
     }
 
     // Summary cards above the table, reflecting the current selection.

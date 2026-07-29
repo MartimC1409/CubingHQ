@@ -1725,11 +1725,107 @@ select.form-select {
     .records-stat-card { padding: 12px 10px; gap: 10px; }
     .records-stat-label { font-size: 0.6rem; line-height: 1.25; }
 
-    /* The table keeps its own horizontal scroll inside the card. */
-    .records-table-wrap {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+    /* ---------- Records as stacked cards ----------
+       A six-column table cannot fit a phone: the header min-widths alone add
+       up to more than the card is wide, so it scrolled sideways inside its
+       own box. Below 850px each row becomes a card instead — which also
+       brings back the holder names, hidden outright at this width before. */
+
+    .records-table-wrap { overflow-x: visible; }
+
+    .records-table-enhanced,
+    .records-table-enhanced tbody { display: block; }
+
+    /* Column headings are gone; each cell carries its own label. */
+    .records-table-enhanced thead { display: none; }
+
+    .records-table-enhanced td {
+        display: block;
+        padding: 0;
+        border: 0;
+        background: none;
     }
+
+    .records-table-enhanced tr.records-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        align-items: baseline;
+        gap: 2px 12px;
+        margin: 0 0 10px;
+        padding: 12px 14px;
+        border: 1px solid var(--clr-border);
+        border-radius: 16px;
+        background: var(--clr-surface);
+        transition: border-color 0.15s ease, transform 0.12s ease;
+    }
+
+    .records-table-enhanced tr.records-row:active { transform: scale(0.985); }
+    .records-table-enhanced tr.records-row.active { border-color: var(--clr-primary); }
+
+    /* Explicit placement, so hiding a cell collapses its slot instead of
+       reshuffling the card. */
+    .records-table-enhanced .rec-event {
+        grid-column: 1 / 3;
+        grid-row: 1;
+        margin-bottom: 6px;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+    .records-table-enhanced .rec-expand-icon {
+        grid-column: 3;
+        grid-row: 1;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        color: var(--clr-text-muted);
+    }
+    .records-table-enhanced .rec-single       { grid-column: 1; grid-row: 2; }
+    .records-table-enhanced .rec-holder-single{ grid-column: 1; grid-row: 3; }
+    .records-table-enhanced .rec-average      { grid-column: 2; grid-row: 2; }
+    .records-table-enhanced .rec-holder-average { grid-column: 2; grid-row: 3; }
+
+    /* With one type hidden the survivor takes the full width rather than
+       leaving the card half empty. */
+    .records-table-enhanced.hide-single .rec-average,
+    .records-table-enhanced.hide-single .rec-holder-average,
+    .records-table-enhanced.hide-average .rec-single,
+    .records-table-enhanced.hide-average .rec-holder-single { grid-column: 1 / 3; }
+
+    .records-table-enhanced .rec-time {
+        font-size: 1.15rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    /* WR / CR / NR Single | Average, written by renderRecordsTable(). */
+    .records-table-enhanced .rec-time::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 1px;
+        font-family: var(--font-sans, inherit);
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--clr-text-muted);
+    }
+
+    /* Holder names are worth the space here; the hide-holders state (used for
+       regional records, which the WCA API publishes without names) still wins
+       because it is the more specific selector. */
+    .records-table-enhanced .rec-holder {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.78rem;
+        color: var(--clr-text-muted);
+        overflow-wrap: anywhere;
+    }
+    .records-table-enhanced .rec-holder img.country-flag { width: 15px; }
+
+    /* The expanded detail panel spans the whole card. */
+    .records-table-enhanced tr.record-detail-row { display: block; }
+    .records-table-enhanced tr.record-detail-row > td { display: block; }
 
     /* Stack the filter bar instead of squeezing it beside the title. */
     .records-filters { width: 100%; }

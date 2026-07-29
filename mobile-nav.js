@@ -44,6 +44,8 @@
     let backdrop = null;
     let moreBtn = null;
     let originalOrder = [];
+    let originalParent = null;
+    let originalNextSibling = null;
     let applied = false;
     let lastFocused = null;
     let observer = null;
@@ -189,10 +191,37 @@
         moreBtn.appendChild(document.createTextNode(label));
     }
 
+    // The bar is `position: fixed; bottom: 0`, which only means "the bottom of
+    // the screen" while no ancestor is a containing block for fixed children.
+    // On timer.html the nav sits inside .cs-fixed-navbar, and that element has
+    // a backdrop-filter — which makes it exactly such a containing block, so
+    // the bar was anchoring to the navbar at the top of the page and the Home
+    // tab ended up off-screen. Hoisting the bar to <body> on mobile makes both
+    // pages behave identically, and stays correct if a transform, filter or
+    // will-change is ever added to an ancestor.
+    function hoistBar() {
+        if (!navLinks || navLinks.parentElement === document.body) return;
+        originalParent = navLinks.parentElement;
+        originalNextSibling = navLinks.nextSibling;
+        document.body.appendChild(navLinks);
+    }
+
+    function restoreBar() {
+        if (!navLinks || !originalParent) return;
+        if (originalNextSibling && originalNextSibling.parentNode === originalParent) {
+            originalParent.insertBefore(navLinks, originalNextSibling);
+        } else {
+            originalParent.appendChild(navLinks);
+        }
+        originalParent = null;
+        originalNextSibling = null;
+    }
+
     function apply() {
         if (applied || !navLinks) return;
         buildSheet();
         ensureMoreButton();
+        hoistBar();
 
         Array.prototype.slice.call(navLinks.children).forEach((el) => {
             if (!isPrimary(el)) {
@@ -247,6 +276,7 @@
             navLinks.appendChild(el);
         });
 
+        restoreBar();
         document.body.classList.remove('has-mobile-tabs');
         applied = false;
     }
