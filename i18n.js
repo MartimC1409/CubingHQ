@@ -32,6 +32,17 @@
             'nav.more': 'More',
             'nav.theme': 'Theme',
 
+            // ----- Theme picker -----
+            'theme.title': 'Theme',
+            'theme.appearance': 'Appearance',
+            'theme.accent': 'Accent',
+            'theme.dark': 'Dark',
+            'theme.light': 'Light',
+            'theme.orange': 'Orange',
+            'theme.green': 'Green',
+            'theme.blue': 'Blue',
+            'theme.red': 'Red',
+
             // ----- Login modal -----
             'login.welcome': 'Sign in to CubingHQ',
             'login.subtitle': 'Connect your WCA account to make the simulator yours — it takes one click.',
@@ -195,6 +206,17 @@
             'nav.login': 'Entrar',
             'nav.more': 'Mais',
             'nav.theme': 'Tema',
+
+            // ----- Seletor de tema -----
+            'theme.title': 'Tema',
+            'theme.appearance': 'Aparência',
+            'theme.accent': 'Cor de destaque',
+            'theme.dark': 'Escuro',
+            'theme.light': 'Claro',
+            'theme.orange': 'Laranja',
+            'theme.green': 'Verde',
+            'theme.blue': 'Azul',
+            'theme.red': 'Vermelho',
 
             // ----- Modal de login -----
             'login.welcome': 'Entrar no CubingHQ',

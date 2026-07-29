@@ -14,6 +14,23 @@
     <meta name="apple-mobile-web-app-title" content="CubingHQ">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+
+    <!-- Apply the saved theme before first paint (see index.html). -->
+    <script>
+        (function () {
+            try {
+                var m = localStorage.getItem('sc-theme');
+                var a = localStorage.getItem('sc-accent');
+                document.documentElement.setAttribute('data-theme',
+                    (m === 'light' || m === 'dark') ? m : 'dark');
+                document.documentElement.setAttribute('data-accent',
+                    ['orange', 'green', 'blue', 'red'].indexOf(a) !== -1 ? a : 'orange');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-accent', 'orange');
+            }
+        })();
+    </script>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3Crect x='12' y='2' width='8' height='8' rx='1.5' fill='%23F7C948'/%3E%3Crect x='22' y='2' width='8' height='8' rx='1.5' fill='%232ECC71'/%3E%3Crect x='2' y='12' width='8' height='8' rx='1.5' fill='%23E74C3C'/%3E%3Crect x='12' y='12' width='8' height='8' rx='1.5' fill='%236366F1'/%3E%3Crect x='22' y='12' width='8' height='8' rx='1.5' fill='%233498DB'/%3E%3Crect x='2' y='22' width='8' height='8' rx='1.5' fill='%239B59B6'/%3E%3Crect x='12' y='22' width='8' height='8' rx='1.5' fill='%231ABC9C'/%3E%3Crect x='22' y='22' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -389,7 +406,8 @@
             return id;
         }
     </script>
-    <script src="i18n.js?v=2"></script>
+    <script src="i18n.js?v=3"></script>
+    <script src="theme.js?v=1"></script>
     <script src="scramble-engine.js?v=2"></script>
     <script src="square1-drawer.js?v=2"></script>
     <script src="timer.js?v=2"></script>
@@ -437,20 +455,24 @@
             const logo = document.getElementById('nav-logo');
             if (logo) logo.addEventListener('click', () => { window.location.href = 'index.html#home'; });
 
-            // Theme toggle (shared with the main app via localStorage)
-            const savedTheme = localStorage.getItem('sc-theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                const flip = () => {
-                    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-                    document.documentElement.setAttribute('data-theme', next);
-                    localStorage.setItem('sc-theme', next);
-                };
-                themeToggle.addEventListener('click', flip);
-                themeToggle.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
-                });
+            // Theme is owned by theme.js (appearance + accent, shared with the
+            // main app through localStorage). Only fall back to a plain
+            // light/dark flip if that module failed to load.
+            if (!window.AppTheme) {
+                const savedTheme = localStorage.getItem('sc-theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', savedTheme);
+                const themeToggle = document.getElementById('theme-toggle');
+                if (themeToggle) {
+                    const flip = () => {
+                        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                        document.documentElement.setAttribute('data-theme', next);
+                        localStorage.setItem('sc-theme', next);
+                    };
+                    themeToggle.addEventListener('click', flip);
+                    themeToggle.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
+                    });
+                }
             }
         })();
     </script>
