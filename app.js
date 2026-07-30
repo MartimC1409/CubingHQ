@@ -606,8 +606,39 @@
         const algSubsetContainer = $('#alg-subset-container');
         const algSubgroupSelect = $('#alg-subgroup-select');
 
+        // Currently-selected subgroup (or ALL_SUBGROUP / null). The chip row is
+        // the visible control; this is what the trainer reads.
+        let algCurrentSubgroup = null;
+        let _subgroupChips = null;
+        let _zbllNormalised = false;
+
+        // ZBLL ships as one flat array of "ZBLL U 1" … "ZBLL AS 72". Bucket it
+        // into the seven sets so the set selector (and the existing
+        // object-subgroup machinery + trainer) work — without touching any alg.
+        function normaliseZbll() {
+            if (_zbllNormalised) return;
+            _zbllNormalised = true;
+            const z = ALGORITHMS['3x3'] && ALGORITHMS['3x3']['ZBLL'];
+            if (!Array.isArray(z)) return;
+            const ORDER = ['U', 'T', 'L', 'Pi', 'H', 'S', 'AS'];
+            const groups = {};
+            ORDER.forEach(g => { groups[g] = []; });
+            const other = [];
+            z.forEach(item => {
+                const m = /^ZBLL\s+([A-Za-z]+)\s/.exec(item.name || '');
+                const g = m && m[1];
+                if (g && groups[g]) groups[g].push(item);
+                else other.push(item);
+            });
+            const out = {};
+            ORDER.forEach(g => { if (groups[g].length) out[g] = groups[g]; });
+            if (other.length) out.Other = other;
+            ALGORITHMS['3x3']['ZBLL'] = out;
+        }
+
         initializeAlgorithmsUI = function () {
             if (typeof ALGORITHMS === 'undefined') return;
+            normaliseZbll();
             const currentEvent = algEventSelect.value;
             // Hide empty sets (e.g. placeholder arrays left in the base db)
             const subsets = Object.keys(ALGORITHMS[currentEvent] || {}).filter(k => {
@@ -618,6 +649,7 @@
 
             algSubsetContainer.innerHTML = '';
             algSubgroupSelect.style.display = 'none';
+            hideSubgroupChips();
 
             subsets.forEach((subset, index) => {
                 const btn = document.createElement('button');
@@ -645,32 +677,86 @@
 
             if (Array.isArray(data)) {
                 algSubgroupSelect.style.display = 'none';
+                hideSubgroupChips();
+                algCurrentSubgroup = null;
                 renderAlgorithms(event, subset, null);
-            } else {
-                algSubgroupSelect.style.display = 'block';
-                algSubgroupSelect.innerHTML = '';
-                const subgroups = Object.keys(data);
-
-                // "All" first — shows every case in the set at once.
-                const allOpt = document.createElement('option');
-                allOpt.value = ALL_SUBGROUP;
-                allOpt.textContent = `${subset} — All`;
-                algSubgroupSelect.appendChild(allOpt);
-
-                subgroups.forEach(sub => {
-                    const opt = document.createElement('option');
-                    opt.value = sub;
-                    opt.textContent = `${subset} ${sub}`;
-                    algSubgroupSelect.appendChild(opt);
-                });
-
-                // Update listener safely
-                algSubgroupSelect.onchange = (e) => {
-                    renderAlgorithms(event, subset, e.target.value);
-                };
-
-                renderAlgorithms(event, subset, ALL_SUBGROUP);
+                return;
             }
+
+            const subgroups = Object.keys(data);
+
+            // Keep the native <select> populated as an accessible fallback and
+            // as the value the trainer used to read; the chip row is the
+            // visible control.
+            algSubgroupSelect.innerHTML = '';
+            const allOpt = document.createElement('option');
+            allOpt.value = ALL_SUBGROUP;
+            allOpt.textContent = `${subset} — All`;
+            algSubgroupSelect.appendChild(allOpt);
+            subgroups.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = `${subset} ${sub}`;
+                algSubgroupSelect.appendChild(opt);
+            });
+            algSubgroupSelect.style.display = 'none';
+            algSubgroupSelect.onchange = (e) => selectSubgroup(event, subset, e.target.value);
+
+            // Large sets (ZBLL, 7 sets) default to the first set rather than
+            // "All", so we never render hundreds of live previews at once.
+            const heavy = subgroups.length > 3;
+            const initial = heavy ? subgroups[0] : ALL_SUBGROUP;
+
+            renderSubgroupChips(event, subset, subgroups, heavy, initial);
+            selectSubgroup(event, subset, initial);
+        }
+
+        function ensureSubgroupChips() {
+            if (_subgroupChips) return _subgroupChips;
+            const row = document.createElement('div');
+            row.id = 'alg-subgroup-chips';
+            row.className = 'alg-subgroup-chips';
+            row.setAttribute('role', 'group');
+            row.setAttribute('aria-label', 'Algorithm set');
+            algSubgroupSelect.parentNode.insertBefore(row, algSubgroupSelect);
+            _subgroupChips = row;
+            return row;
+        }
+
+        function hideSubgroupChips() {
+            if (_subgroupChips) { _subgroupChips.style.display = 'none'; _subgroupChips.innerHTML = ''; }
+        }
+
+        function renderSubgroupChips(event, subset, subgroups, heavy, initial) {
+            const tr = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
+            const row = ensureSubgroupChips();
+            row.style.display = 'flex';
+            row.innerHTML = '';
+            const values = heavy ? subgroups.slice() : [ALL_SUBGROUP].concat(subgroups);
+            values.forEach(val => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'alg-group-chip' + (val === initial ? ' active' : '');
+                chip.dataset.subgroup = val;
+                chip.textContent = val === ALL_SUBGROUP ? tr('alg.all', 'All') : val;
+                chip.setAttribute('aria-pressed', val === initial ? 'true' : 'false');
+                chip.addEventListener('click', () => {
+                    row.querySelectorAll('.alg-group-chip').forEach(c => {
+                        c.classList.remove('active');
+                        c.setAttribute('aria-pressed', 'false');
+                    });
+                    chip.classList.add('active');
+                    chip.setAttribute('aria-pressed', 'true');
+                    selectSubgroup(event, subset, val);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function selectSubgroup(event, subset, val) {
+            algCurrentSubgroup = val;
+            if (algSubgroupSelect) algSubgroupSelect.value = val;
+            renderAlgorithms(event, subset, val);
         }
 
         if (algEventSelect) {
@@ -779,6 +865,9 @@
         // Sentinel subgroup value meaning "show every case across all subgroups".
         const ALL_SUBGROUP = '__ALL__';
 
+        // Small i18n helper for the algorithms view.
+        const trAlg = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
+
         // Render logic
         function renderAlgorithms(event, subset, subgroup) {
             const grid = $('#algorithms-grid');
@@ -864,6 +953,26 @@
                 code.className = 'alg-card-alg';
                 code.textContent = item.alg;
                 card.appendChild(code);
+
+                // Setup: the moves that scramble a solved cube into this case,
+                // so it can be set up and drilled (like SpeedCubeDB). Uses the
+                // curated setup when present, else the inverse of the alg.
+                const setupStr = getCaseSetup(item, event);
+                if (setupStr && setupStr !== 'skip' && setupStr.trim() && setupStr.trim() !== '/') {
+                    const setupEl = document.createElement('button');
+                    setupEl.type = 'button';
+                    setupEl.className = 'alg-card-setup';
+                    setupEl.title = trAlg('alg.setupCopy', 'Copy setup');
+                    setupEl.innerHTML =
+                        `<span class="alg-setup-label" data-i18n="alg.setup">${esc(trAlg('alg.setup', 'Setup'))}</span>` +
+                        `<code class="alg-setup-moves">${esc(setupStr)}</code>`;
+                    setupEl.addEventListener('click', () => {
+                        navigator.clipboard && navigator.clipboard.writeText(setupStr)
+                            .then(() => showToast(trAlg('alg.setupCopied', 'Setup copied'), 'success'))
+                            .catch(() => {});
+                    });
+                    card.appendChild(setupEl);
+                }
 
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'btn btn-secondary btn-sm alg-copy-btn';
@@ -971,7 +1080,7 @@
             const event = algEventSelect.value;
             const activeBtn = document.querySelector('.alg-cat-btn.active');
             const subset = activeBtn ? activeBtn.dataset.category : null;
-            const subgroupVal = algSubgroupSelect.style.display !== 'none' ? algSubgroupSelect.value : null;
+            const subgroupVal = algCurrentSubgroup;
 
             if (!subset) { showToast('Select an algorithm category first', 'error'); return; }
 

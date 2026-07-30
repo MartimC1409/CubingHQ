@@ -32,6 +32,12 @@
             'nav.more': 'More',
             'nav.theme': 'Theme',
 
+            // ----- Algorithms -----
+            'alg.all': 'All',
+            'alg.setup': 'Setup',
+            'alg.setupCopy': 'Copy setup',
+            'alg.setupCopied': 'Setup copied',
+
             // ----- Theme picker -----
             'theme.title': 'Theme',
             'theme.appearance': 'Appearance',
@@ -206,6 +212,12 @@
             'nav.login': 'Entrar',
             'nav.more': 'Mais',
             'nav.theme': 'Tema',
+
+            // ----- Algoritmos -----
+            'alg.all': 'Todos',
+            'alg.setup': 'Setup',
+            'alg.setupCopy': 'Copiar setup',
+            'alg.setupCopied': 'Setup copiado',
 
             // ----- Seletor de tema -----
             'theme.title': 'Tema',

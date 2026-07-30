@@ -2103,6 +2103,69 @@ select.form-select {
     overflow-wrap: anywhere;
 }
 
+/* Setup moves: the sequence that scrambles a solved cube into this case.
+   Full-width, click-to-copy, styled quieter than the solving alg. */
+.alg-card-setup {
+    display: block;
+    width: 100%;
+    margin-top: 0.4rem;
+    padding: 0.35rem 0.45rem;
+    border: 1px dashed var(--clr-border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    text-align: center;
+    cursor: pointer;
+    font: inherit;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.alg-card-setup:hover { border-color: var(--clr-primary); background: rgba(127, 127, 127, 0.06); }
+
+.alg-setup-label {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+}
+.alg-setup-moves {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: var(--clr-text-secondary);
+    overflow-wrap: anywhere;
+}
+
+/* ZBLL / subgroup set selector — a wrapping chip row (SpeedCubeDB style). */
+.alg-subgroup-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+}
+.alg-group-chip {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--clr-border);
+    border-radius: 999px;
+    background: var(--clr-surface);
+    color: var(--clr-text-secondary);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.alg-group-chip:hover { color: var(--clr-text); border-color: var(--clr-border-active); }
+.alg-group-chip.active {
+    background: var(--clr-primary);
+    color: #fff;
+    border-color: transparent;
+}
+.alg-group-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
 .alg-card .alg-copy-btn {
     margin-top: 0.45rem;
     padding: 0.25rem 0.7rem;
@@ -2128,4 +2191,5 @@ select.form-select {
     .alg-card-viz { max-width: 84px; }
     .alg-card-name { font-size: 0.85rem; }
     .alg-card-alg { font-size: 0.7rem; }
+    .alg-setup-moves { font-size: 0.66rem; }
 }
