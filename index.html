@@ -43,7 +43,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
-    <link rel="stylesheet" href="launch-ui.css?v=1">
+    <link rel="stylesheet" href="launch-ui.css?v=2">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -1126,7 +1126,7 @@
 
         <!-- Records View -->
         <div id="records-view" class="view">
-            <div class="records-container" style="display: flex; flex-direction: column; height: 100vh; padding-top: 60px;">
+            <div class="records-container" style="display: flex; flex-direction: column;">
                 <div class="dash-header" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-xl); margin-bottom: 0; background: var(--clr-surface); border-bottom: 1px solid var(--clr-border); flex-wrap: wrap; gap: var(--space-md);">
                     <div>
                         <h2 style="font-size: 1.5rem; margin-bottom: 4px;" data-i18n="records.title">Records</h2>
@@ -1505,7 +1505,7 @@
 
         <!-- Algorithms View -->
         <div id="algorithms-view" class="view">
-            <div class="algorithms-container" style="display: flex; flex-direction: column; height: 100vh; padding-top: 60px;">
+            <div class="algorithms-container" style="display: flex; flex-direction: column;">
                 <div class="dash-header" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-xl); margin-bottom: 0; background: var(--clr-surface); border-bottom: 1px solid var(--clr-border); flex-wrap: wrap; gap: var(--space-md);">
                     <div>
                         <h2 style="font-size: 1.5rem; margin-bottom: 4px;">Learn & Practice</h2>
@@ -1536,7 +1536,7 @@
                         </button>
                     </div>
                 </div>
-                <div style="flex-grow: 1; overflow-y: auto; padding: var(--space-xl); background: var(--clr-bg);">
+                <div class="view-body">
                     <div id="algorithms-grid" class="alg-grid">
                         <!-- Rendered via JS -->
                     </div>

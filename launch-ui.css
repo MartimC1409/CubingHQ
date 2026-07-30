@@ -1757,12 +1757,16 @@ select.form-select {
     .mnav-sheet-items > *:active { transform: none; }
 }
 
-/* Records view scroll area (was an inline style; needs to be overridable
-   on small screens, where 32px of padding is a large slice of the width). */
-.records-scroll {
-    flex-grow: 1;
-    overflow-y: auto;
+/* Records / algorithms content area. These used to be a fixed-height box with
+   its own overflow-y:auto, which on mobile squeezed the whole list into a tiny
+   scroll viewport (and let the footer overlap the last card). They now flow in
+   normal document order so the page itself grows and the body scrolls — the
+   .view padding-top clears the navbar, and body.has-mobile-tabs main adds the
+   bottom-bar clearance. */
+.records-scroll,
+.view-body {
     padding: var(--space-xl);
+    padding-bottom: var(--space-2xl);
     background: var(--clr-bg);
 }
 
@@ -1774,7 +1778,8 @@ select.form-select {
 .records-stat-label { overflow-wrap: anywhere; }
 
 @media (max-width: 850px) {
-    .records-scroll { padding: var(--space-md); }
+    .records-scroll,
+    .view-body { padding: var(--space-md); padding-bottom: var(--space-xl); }
 
     /* Two readable cards per row rather than four cramped ones. */
     .records-stats-strip { gap: 8px; }
@@ -1787,7 +1792,9 @@ select.form-select {
        own box. Below 850px each row becomes a card instead — which also
        brings back the holder names, hidden outright at this width before. */
 
-    .records-table-wrap { overflow-x: visible; }
+    /* max-height:180px (style.css, for the old scrolling table) would clip the
+       stacked cards and drop the footer on top of them — let it grow. */
+    .records-table-wrap { overflow-x: visible; max-height: none; }
 
     .records-table-enhanced,
     .records-table-enhanced tbody { display: block; }
@@ -1803,8 +1810,12 @@ select.form-select {
     }
 
     .records-table-enhanced tr.records-row {
+        position: relative;
         display: grid;
-        grid-template-columns: 1fr 1fr auto;
+        /* Two equal columns only — the expand chevron is floated top-right
+           rather than owning a third track, which used to push the card ~13px
+           past its own width and clip on the right. */
+        grid-template-columns: 1fr 1fr;
         align-items: baseline;
         gap: 2px 12px;
         margin: 0 0 10px;
@@ -1821,18 +1832,19 @@ select.form-select {
     /* Explicit placement, so hiding a cell collapses its slot instead of
        reshuffling the card. */
     .records-table-enhanced .rec-event {
-        grid-column: 1 / 3;
+        grid-column: 1 / -1;
         grid-row: 1;
         margin-bottom: 6px;
+        padding-right: 22px; /* clear the floated chevron */
         font-size: 1rem;
         font-weight: 700;
     }
     .records-table-enhanced .rec-expand-icon {
-        grid-column: 3;
-        grid-row: 1;
+        position: absolute;
+        top: 12px;
+        right: 14px;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
         color: var(--clr-text-muted);
     }
     .records-table-enhanced .rec-single       { grid-column: 1; grid-row: 2; }
@@ -1845,7 +1857,7 @@ select.form-select {
     .records-table-enhanced.hide-single .rec-average,
     .records-table-enhanced.hide-single .rec-holder-average,
     .records-table-enhanced.hide-average .rec-single,
-    .records-table-enhanced.hide-average .rec-holder-single { grid-column: 1 / 3; }
+    .records-table-enhanced.hide-average .rec-holder-single { grid-column: 1 / -1; }
 
     .records-table-enhanced .rec-time {
         font-size: 1.15rem;
