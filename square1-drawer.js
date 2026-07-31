@@ -100,10 +100,12 @@
     }
 
     function slash(state) {
-        if (!slashLegal(state)) {
-            state.legal = false;
-            console.warn('[Square1Drawer] Illegal "/" for state — drawing may be wrong.');
-        }
+        // An illegal slice means a corner straddles the cut, so the puzzle
+        // could never reach this state. We still perform the swap so the
+        // caller gets *something* to draw, but the flag rides along so it can
+        // be marked rather than passed off as a real case. render() reports it
+        // once per drawing — logging per slice buried the signal.
+        if (!slashLegal(state)) state.legal = false;
         const w = state.wedges;
         for (let i = 0; i < 6; i++) {
             const t = w[6 + i];
@@ -236,7 +238,7 @@
     }
 
     function render(container, scrambleStr) {
-        if (!container) return;
+        if (!container) return null;
         const state = stateFromScramble(scrambleStr);
         const W = 4 * SQB, H = 2 * SQB + 1.2;
         const parts = [];
@@ -251,6 +253,14 @@
         drawLayer(parts, state, false, 3 * SQB, cyMid);     // bottom layer, right
         parts.push('</svg>');
         container.innerHTML = parts.join('');
+
+        // Let callers (and CSS) see that this drawing is not a reachable state.
+        if (state.legal) container.removeAttribute('data-sq1-illegal');
+        else {
+            container.setAttribute('data-sq1-illegal', 'true');
+            console.warn('[Square1Drawer] "%s" is not a legal Square-1 sequence from solved — the drawing is not a reachable state.', scrambleStr);
+        }
+        return state;
     }
 
     window.Square1Drawer = { render, stateFromScramble, formatCsTimer, parseScramble };
