@@ -398,11 +398,11 @@
         // Voice cues
         if (TSTATE.settings.voiceCues === 'on') {
             if (remaining <= 8 && remaining > 7 && !TSTATE.voiceSpokenAt[8]) {
-                speak('8 seconds');
+                speak(T('voice.8s', '8 seconds'));
                 TSTATE.voiceSpokenAt[8] = true;
             }
             if (remaining <= 12 && remaining > 11 && !TSTATE.voiceSpokenAt[12]) {
-                speak('12 seconds');
+                speak(T('voice.12s', '12 seconds'));
                 TSTATE.voiceSpokenAt[12] = true;
             }
         }
@@ -580,6 +580,9 @@
             if ('speechSynthesis' in window) {
                 const u = new SpeechSynthesisUtterance(text);
                 u.rate = 1.1;
+                // The inspection cues are translated, so the voice has to
+                // match — an English voice reading "8 segundos" is unusable.
+                u.lang = (window.AppI18N && window.AppI18N.getLang() === 'pt') ? 'pt-PT' : 'en-US';
                 window.speechSynthesis.cancel();
                 window.speechSynthesis.speak(u);
             }
@@ -589,7 +592,8 @@
     function clearCurrentSession() {
         const sess = getSession();
         if (!sess || sess.solves.length === 0) return;
-        if (confirm(`Clear all ${sess.solves.length} solves in "${sess.name}"?`)) {
+        if (confirm(T('confirm.clearSolves', 'Clear all {n} solves in "{name}"?')
+            .replace('{n}', sess.solves.length).replace('{name}', sess.name))) {
             sess.solves = [];
             saveState();
             renderSolveList();
@@ -865,6 +869,9 @@
         renderScramble();
         renderTwisty();
         renderSettings();
+        // The idle badge ships as static English in the markup; render it so
+        // the first paint is in the chosen language, not just after a solve.
+        renderPhaseBadge();
     }
 
     function renderSessionTabs() {
@@ -891,10 +898,10 @@
             btn.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 if (TSTATE.sessionOrder.length <= 1) {
-                    alert('Cannot delete the only session.');
+                    alert(T('alert.lastSession', 'Cannot delete the only session.'));
                     return;
                 }
-                if (confirm(`Delete session "${sess.name}"? This will remove all its solves.`) && (e.target.classList.contains('cs-session-tab-close') || true)) {
+                if (confirm(T('confirm.deleteSession', 'Delete session "{name}"? This will remove all its solves.').replace('{name}', sess.name)) && (e.target.classList.contains('cs-session-tab-close') || true)) {
                     deleteSession(sid);
                 }
             });
@@ -902,14 +909,14 @@
             const close = document.createElement('span');
             close.className = 'cs-session-tab-close';
             close.textContent = '×';
-            close.title = 'Delete';
+            close.title = T('timer.deleteSession', 'Delete');
             close.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (TSTATE.sessionOrder.length <= 1) {
-                    alert('Cannot delete the only session.');
+                    alert(T('alert.lastSession', 'Cannot delete the only session.'));
                     return;
                 }
-                if (confirm(`Delete session "${sess.name}"? This will remove all its solves.`)) {
+                if (confirm(T('confirm.deleteSession', 'Delete session "{name}"? This will remove all its solves.').replace('{name}', sess.name))) {
                     deleteSession(sid);
                 }
             });
@@ -920,9 +927,10 @@
         const add = document.createElement('button');
         add.className = 'cs-session-tab-add';
         add.textContent = '+';
-        add.title = 'New session';
+        add.title = T('timer.newSession', 'New session');
         add.addEventListener('click', async () => {
-            const name = prompt('Session name:', `Session ${TSTATE.sessionOrder.length + 1}`);
+            const name = prompt(T('prompt.sessionName', 'Session name:'),
+                T('timer.sessionN', 'Session {n}').replace('{n}', TSTATE.sessionOrder.length + 1));
             if (name && name.trim()) {
                 const sess = getSession();
                 await newSession(name.trim(), sess ? sess.event : DEFAULT_EVENT);
@@ -1051,7 +1059,7 @@
             const timeEl = document.createElement('span');
             timeEl.className = 'cs-solve-time';
             timeEl.dataset.solveId = solve.id;
-            timeEl.title = 'Click to edit time (centiseconds)';
+            timeEl.title = T('title.editTime', 'Click to edit time (centiseconds)');
             timeEl.textContent = fmt(ms);
             div.appendChild(timeEl);
 
@@ -1059,7 +1067,7 @@
             penEl.className = 'cs-solve-pen';
             penEl.dataset.solveId = solve.id;
             penEl.dataset.pen = solve.penalty || 'OK';
-            penEl.title = 'Click to change penalty';
+            penEl.title = T('title.changePenalty', 'Click to change penalty');
             penEl.textContent = solve.penalty || 'OK';
             div.appendChild(penEl);
 
@@ -1268,7 +1276,7 @@
         on('cs-btn-rename-session', 'click', () => {
             const sess = getSession();
             if (!sess) return;
-            const n = prompt('Rename session:', sess.name);
+            const n = prompt(T('prompt.renameSession', 'Rename session:'), sess.name);
             if (n && n.trim()) renameSession(TSTATE.activeSession, n.trim());
         });
         on('cs-btn-fullscreen', 'click', () => {
@@ -1357,7 +1365,7 @@
             try {
                 const data = JSON.parse(reader.result);
                 if (data.sessions) {
-                    if (confirm('Replace all current data with imported data?')) {
+                    if (confirm(T('confirm.replaceData', 'Replace all current data with imported data?'))) {
                         TSTATE.sessions = data.sessions;
                         TSTATE.sessionOrder = data.sessionOrder || Object.keys(data.sessions);
                         TSTATE.activeSession = data.activeSession || TSTATE.sessionOrder[0];
@@ -1365,13 +1373,13 @@
                         saveState();
                         rollScramble(TSTATE.sessions[TSTATE.activeSession].event);
                         renderAll();
-                        alert('Import successful!');
+                        alert(T('alert.importOk', 'Import successful!'));
                     }
                 } else {
-                    alert('Invalid file: missing sessions data.');
+                    alert(T('alert.importBad', 'Invalid file: missing sessions data.'));
                 }
             } catch (err) {
-                alert('Failed to parse JSON: ' + err.message);
+                alert(T('alert.importParse', 'Failed to parse JSON:') + ' ' + err.message);
             }
         };
         reader.readAsText(file);
@@ -1391,7 +1399,7 @@
         TSTATE.loaded = true;
         if (!loadState() || TSTATE.sessionOrder.length === 0) {
             // First time — create default session
-            await newSession('Session 1', DEFAULT_EVENT);
+            await newSession(T('timer.sessionN', 'Session {n}').replace('{n}', 1), DEFAULT_EVENT);
         } else {
             const sess = getSession();
             rollScramble(sess ? sess.event : DEFAULT_EVENT);

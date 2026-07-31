@@ -472,6 +472,17 @@ body {
     box-shadow: 0 0 0 3px var(--clr-primary-glow);
 }
 
+/* Field that failed validation. Same shape as :focus so the two read as one
+   system, and it wins over :focus because the field is focused when the error
+   is raised. */
+.form-input.is-invalid,
+.form-input.is-invalid:focus,
+.form-select.is-invalid,
+.form-select.is-invalid:focus {
+    border-color: var(--clr-danger);
+    box-shadow: 0 0 0 3px var(--clr-danger-glow);
+}
+
 .form-input::placeholder {
     color: var(--clr-text-muted);
 }
@@ -2437,8 +2448,9 @@ body {
 }
 
 .upcoming-comps-list {
-    max-height: 400px;
-    overflow-y: auto;
+    /* No max-height/overflow: the competition lists flow with the page, the
+       same way the records and algorithms views do, instead of being trapped
+       in a short scroll box. */
     display: flex;
     flex-direction: column;
 }
