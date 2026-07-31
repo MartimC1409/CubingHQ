@@ -208,6 +208,11 @@
             'bt.only333': 'Smart cube tracking works with 3x3x3 events only.',
             'bt.only333Connect': 'The smart cube can only be connected in 3x3x3 events.',
 
+            'battle.createModalTitle': 'Create Battle Room',
+            'battle.roomName': 'Room Name',
+            'battle.roomPassword': 'Room Password',
+            'battle.wrongPassword': 'Incorrect password. Try again.',
+
             'home.liveBadge': 'LIVE',
 
             'algs.copy': 'Copy',
@@ -759,6 +764,11 @@
             'bt.offScramble': 'Fora do scramble — desfaz o movimento errado ou clica em "Marcar como resolvido" para recomeçar.',
             'bt.only333': 'O acompanhamento do cubo Bluetooth só funciona em eventos 3x3x3.',
             'bt.only333Connect': 'O cubo Bluetooth só pode ser ligado em eventos 3x3x3.',
+
+            'battle.createModalTitle': 'Criar sala de batalha',
+            'battle.roomName': 'Nome da sala',
+            'battle.roomPassword': 'Palavra-passe da sala',
+            'battle.wrongPassword': 'Palavra-passe incorreta. Tenta novamente.',
 
             'home.liveBadge': 'AO VIVO',
 

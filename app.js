@@ -4609,6 +4609,32 @@
         });
     }
 
+    // Inline validation for the create-room dialog. The message sits next to
+    // the field so it is visible while typing, and a toast still fires for
+    // anyone whose attention is elsewhere on the page.
+    function showCreateRoomError(msg, focusSel) {
+        const box = $('#battle-create-error');
+        const text = $('#battle-create-error-text');
+        if (box && text) {
+            text.textContent = msg;
+            box.style.display = 'flex';
+        }
+        if (focusSel) {
+            const field = $(focusSel);
+            if (field) { field.classList.add('is-invalid'); field.focus(); }
+        }
+        showToast(msg, 'error');
+    }
+
+    function clearCreateRoomError() {
+        const box = $('#battle-create-error');
+        if (box) box.style.display = 'none';
+        ['#battle-room-name-input', '#battle-room-password'].forEach(sel => {
+            const f = $(sel);
+            if (f) f.classList.remove('is-invalid');
+        });
+    }
+
     // ----- Bind static events -----
     function bindBattleEvents() {
         const kbMode = $('#battle-keyboard-mode');
@@ -4628,11 +4654,14 @@
         $('#battle-create-room-btn').addEventListener('click', () => {
             $('#battle-room-name-input').value = '';
             $('#battle-room-password').value = '';
+            clearCreateRoomError();
             $('#battle-password-group').style.display = 'none';
             $('#battle-vis-public').classList.add('active');
             $('#battle-vis-private').classList.remove('active');
             $('#battle-create-modal').style.display = 'flex';
         });
+        $('#battle-room-name-input').addEventListener('input', clearCreateRoomError);
+        $('#battle-room-password').addEventListener('input', clearCreateRoomError);
         $('#battle-create-close').addEventListener('click', () => $('#battle-create-modal').style.display = 'none');
         $('#battle-create-cancel').addEventListener('click', () => $('#battle-create-modal').style.display = 'none');
 
@@ -4650,11 +4679,15 @@
         $('#battle-create-confirm').addEventListener('click', async () => {
             const name = $('#battle-room-name-input').value.trim().replace(/\s+/g, ' ');
             if (name.length < BATTLE_ROOM_NAME_MIN) {
-                showToast(i18nT('toast.roomNameShort', 'Room name needs at least {n} characters').replace('{n}', BATTLE_ROOM_NAME_MIN), 'error');
+                showCreateRoomError(
+                    i18nT('toast.roomNameShort', 'Room name needs at least {n} characters').replace('{n}', BATTLE_ROOM_NAME_MIN),
+                    '#battle-room-name-input');
                 return;
             }
             if (name.length > BATTLE_ROOM_NAME_MAX) {
-                showToast(i18nT('toast.roomNameLong', 'Room name can be at most {n} characters').replace('{n}', BATTLE_ROOM_NAME_MAX), 'error');
+                showCreateRoomError(
+                    i18nT('toast.roomNameLong', 'Room name can be at most {n} characters').replace('{n}', BATTLE_ROOM_NAME_MAX),
+                    '#battle-room-name-input');
                 return;
             }
             // Cooldown between room creations, so the list can't be flooded
@@ -4662,12 +4695,17 @@
             const lastCreated = Number(localStorage.getItem(BATTLE_ROOM_LAST_KEY) || 0);
             const waitMs = BATTLE_ROOM_COOLDOWN_MS - (Date.now() - lastCreated);
             if (waitMs > 0) {
-                showToast(i18nT('toast.roomCooldown', 'Please wait {n}s before creating another room').replace('{n}', Math.ceil(waitMs / 1000)), 'error');
+                showCreateRoomError(
+                    i18nT('toast.roomCooldown', 'Please wait {n}s before creating another room').replace('{n}', Math.ceil(waitMs / 1000)));
                 return;
             }
             const isPrivate = $('#battle-vis-private').classList.contains('active');
             const password = $('#battle-room-password').value.trim();
-            if (isPrivate && !password) { showToast(i18nT('toast.needPassword', 'Please set a password'), 'error'); return; }
+            if (isPrivate && !password) {
+                showCreateRoomError(i18nT('toast.needPassword', 'Please set a password'), '#battle-room-password');
+                return;
+            }
+            clearCreateRoomError();
 
             const userId = getBattleUserId();
             const userName = getBattleUserName();
@@ -4687,13 +4725,14 @@
                 solves: {}
             };
 
+            const confirmLabel = $('#battle-create-confirm-label');
             $('#battle-create-confirm').disabled = true;
-            $('#battle-create-confirm').textContent = i18nT('battle.creating', 'Creating...');
+            confirmLabel.textContent = i18nT('battle.creating', 'Creating...');
             const result = await fbPush(BATTLE_PATH, roomData);
             $('#battle-create-confirm').disabled = false;
-            $('#battle-create-confirm').textContent = i18nT('battle.createRoom', 'Create Room');
+            confirmLabel.textContent = i18nT('battle.createRoom', 'Create Room');
 
-            if (!result || !result.name) { showToast(i18nT('toast.roomCreateFailed', 'Failed to create room. Try again.'), 'error'); return; }
+            if (!result || !result.name) { showCreateRoomError(i18nT('toast.roomCreateFailed', 'Failed to create room. Try again.')); return; }
             try { localStorage.setItem(BATTLE_ROOM_LAST_KEY, String(Date.now())); } catch (e) { /* private mode */ }
             $('#battle-create-modal').style.display = 'none';
             await enterBattleRoom(result.name, roomData);
