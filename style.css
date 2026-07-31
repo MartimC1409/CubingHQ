@@ -115,6 +115,10 @@
 html {
     font-size: 16px;
     scroll-behavior: smooth;
+    /* overflow-x on <body> alone doesn't stop iOS Safari panning the page when
+       something overflows; the root needs it too. Offenders are still fixed at
+       source so nothing is actually clipped. */
+    overflow-x: hidden;
 }
 
 body {
@@ -124,6 +128,7 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
+    max-width: 100%;
     position: relative;
 }
 
@@ -4455,7 +4460,13 @@ body {
     background: rgba(255, 255, 255, 0.03);
     padding: 6px 10px;
     border-radius: 8px;
-    word-wrap: break-word;
+    /* overflow-wrap:anywhere, not word-wrap:break-word — the latter does NOT
+       break a single unbroken run of characters, so one spammed wall of text
+       used to stretch the panel and wreck the layout. */
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    min-width: 0;
+    max-width: 100%;
     line-height: 1.4;
     border-left: 2px solid var(--clr-primary);
 }
@@ -4465,6 +4476,13 @@ body {
     color: var(--clr-primary);
     margin-right: 4px;
     font-size: 0.78rem;
+    /* A very long display name must not push the row wide either. */
+    display: inline-block;
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
 }
 
 .battle-chat-message .chat-time {

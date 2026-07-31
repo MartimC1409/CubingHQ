@@ -1757,12 +1757,16 @@ select.form-select {
     .mnav-sheet-items > *:active { transform: none; }
 }
 
-/* Records view scroll area (was an inline style; needs to be overridable
-   on small screens, where 32px of padding is a large slice of the width). */
-.records-scroll {
-    flex-grow: 1;
-    overflow-y: auto;
+/* Records / algorithms content area. These used to be a fixed-height box with
+   its own overflow-y:auto, which on mobile squeezed the whole list into a tiny
+   scroll viewport (and let the footer overlap the last card). They now flow in
+   normal document order so the page itself grows and the body scrolls — the
+   .view padding-top clears the navbar, and body.has-mobile-tabs main adds the
+   bottom-bar clearance. */
+.records-scroll,
+.view-body {
     padding: var(--space-xl);
+    padding-bottom: var(--space-2xl);
     background: var(--clr-bg);
 }
 
@@ -1774,7 +1778,8 @@ select.form-select {
 .records-stat-label { overflow-wrap: anywhere; }
 
 @media (max-width: 850px) {
-    .records-scroll { padding: var(--space-md); }
+    .records-scroll,
+    .view-body { padding: var(--space-md); padding-bottom: var(--space-xl); }
 
     /* Two readable cards per row rather than four cramped ones. */
     .records-stats-strip { gap: 8px; }
@@ -1787,7 +1792,9 @@ select.form-select {
        own box. Below 850px each row becomes a card instead — which also
        brings back the holder names, hidden outright at this width before. */
 
-    .records-table-wrap { overflow-x: visible; }
+    /* max-height:180px (style.css, for the old scrolling table) would clip the
+       stacked cards and drop the footer on top of them — let it grow. */
+    .records-table-wrap { overflow-x: visible; max-height: none; }
 
     .records-table-enhanced,
     .records-table-enhanced tbody { display: block; }
@@ -1803,8 +1810,12 @@ select.form-select {
     }
 
     .records-table-enhanced tr.records-row {
+        position: relative;
         display: grid;
-        grid-template-columns: 1fr 1fr auto;
+        /* Two equal columns only — the expand chevron is floated top-right
+           rather than owning a third track, which used to push the card ~13px
+           past its own width and clip on the right. */
+        grid-template-columns: 1fr 1fr;
         align-items: baseline;
         gap: 2px 12px;
         margin: 0 0 10px;
@@ -1821,18 +1832,19 @@ select.form-select {
     /* Explicit placement, so hiding a cell collapses its slot instead of
        reshuffling the card. */
     .records-table-enhanced .rec-event {
-        grid-column: 1 / 3;
+        grid-column: 1 / -1;
         grid-row: 1;
         margin-bottom: 6px;
+        padding-right: 22px; /* clear the floated chevron */
         font-size: 1rem;
         font-weight: 700;
     }
     .records-table-enhanced .rec-expand-icon {
-        grid-column: 3;
-        grid-row: 1;
+        position: absolute;
+        top: 12px;
+        right: 14px;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
         color: var(--clr-text-muted);
     }
     .records-table-enhanced .rec-single       { grid-column: 1; grid-row: 2; }
@@ -1845,7 +1857,7 @@ select.form-select {
     .records-table-enhanced.hide-single .rec-average,
     .records-table-enhanced.hide-single .rec-holder-average,
     .records-table-enhanced.hide-average .rec-single,
-    .records-table-enhanced.hide-average .rec-holder-single { grid-column: 1 / 3; }
+    .records-table-enhanced.hide-average .rec-holder-single { grid-column: 1 / -1; }
 
     .records-table-enhanced .rec-time {
         font-size: 1.15rem;
@@ -2091,6 +2103,34 @@ select.form-select {
     overflow-wrap: anywhere;
 }
 
+/* ZBLL / subgroup set selector — a wrapping chip row (SpeedCubeDB style). */
+.alg-subgroup-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+}
+.alg-group-chip {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--clr-border);
+    border-radius: 999px;
+    background: var(--clr-surface);
+    color: var(--clr-text-secondary);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.alg-group-chip:hover { color: var(--clr-text); border-color: var(--clr-border-active); }
+.alg-group-chip.active {
+    background: var(--clr-primary);
+    color: #fff;
+    border-color: transparent;
+}
+.alg-group-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
 .alg-card .alg-copy-btn {
     margin-top: 0.45rem;
     padding: 0.25rem 0.7rem;
@@ -2116,4 +2156,119 @@ select.form-select {
     .alg-card-viz { max-width: 84px; }
     .alg-card-name { font-size: 0.85rem; }
     .alg-card-alg { font-size: 0.7rem; }
+}
+
+/* ============================================================
+   21. SMART-CUBE SOLVE BREAKDOWN
+   ------------------------------------------------------------
+   CFOP reconstruction shown after a Bluetooth solve: phase times,
+   the moves used, and a quality badge per segment.
+   ============================================================ */
+
+.bt-analysis {
+    width: 100%;
+    max-width: 640px;
+    margin: var(--space-md) auto 0;
+    padding: 14px 16px 16px;
+    border: 1px solid var(--clr-border);
+    border-radius: 16px;
+    background: var(--clr-bg-card, var(--clr-surface));
+    text-align: left;
+}
+
+.bt-an-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+}
+.bt-an-total {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--clr-text-secondary);
+}
+
+.bt-an-phase {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 14px 0 4px;
+}
+.bt-an-phase:first-of-type { margin-top: 0; }
+.bt-an-phase-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--clr-text);
+}
+.bt-an-phase-time {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--clr-text-muted);
+}
+
+.bt-an-row { margin: 8px 0 0; }
+.bt-an-row-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.bt-an-slot {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--clr-text-secondary);
+}
+
+.bt-an-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.5;
+    color: #fff;
+}
+.bt-an-optimal { background: var(--clr-success, #22c55e); }
+.bt-an-fumble  { background: var(--clr-warning, #f59e0b); color: #1a1a1a; }
+.bt-an-blunder { background: var(--clr-danger, #ef4444); }
+
+.bt-an-meta {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--clr-text-muted);
+}
+
+.bt-an-moves {
+    margin-top: 3px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--clr-text);
+    overflow-wrap: anywhere;
+}
+.bt-an-moves-lead { margin-bottom: 2px; }
+
+.bt-an-note {
+    margin-top: 12px;
+    font-size: 0.76rem;
+    color: var(--clr-text-muted);
+}
+
+@media (max-width: 850px) {
+    .bt-analysis { padding: 12px; border-radius: 14px; }
+    .bt-an-phase-name { font-size: 0.95rem; }
+    .bt-an-moves { font-size: 0.76rem; }
+    .bt-an-meta { margin-left: 0; width: 100%; }
 }

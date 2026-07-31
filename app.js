@@ -606,8 +606,39 @@
         const algSubsetContainer = $('#alg-subset-container');
         const algSubgroupSelect = $('#alg-subgroup-select');
 
+        // Currently-selected subgroup (or ALL_SUBGROUP / null). The chip row is
+        // the visible control; this is what the trainer reads.
+        let algCurrentSubgroup = null;
+        let _subgroupChips = null;
+        let _zbllNormalised = false;
+
+        // ZBLL ships as one flat array of "ZBLL U 1" … "ZBLL AS 72". Bucket it
+        // into the seven sets so the set selector (and the existing
+        // object-subgroup machinery + trainer) work — without touching any alg.
+        function normaliseZbll() {
+            if (_zbllNormalised) return;
+            _zbllNormalised = true;
+            const z = ALGORITHMS['3x3'] && ALGORITHMS['3x3']['ZBLL'];
+            if (!Array.isArray(z)) return;
+            const ORDER = ['U', 'T', 'L', 'Pi', 'H', 'S', 'AS'];
+            const groups = {};
+            ORDER.forEach(g => { groups[g] = []; });
+            const other = [];
+            z.forEach(item => {
+                const m = /^ZBLL\s+([A-Za-z]+)\s/.exec(item.name || '');
+                const g = m && m[1];
+                if (g && groups[g]) groups[g].push(item);
+                else other.push(item);
+            });
+            const out = {};
+            ORDER.forEach(g => { if (groups[g].length) out[g] = groups[g]; });
+            if (other.length) out.Other = other;
+            ALGORITHMS['3x3']['ZBLL'] = out;
+        }
+
         initializeAlgorithmsUI = function () {
             if (typeof ALGORITHMS === 'undefined') return;
+            normaliseZbll();
             const currentEvent = algEventSelect.value;
             // Hide empty sets (e.g. placeholder arrays left in the base db)
             const subsets = Object.keys(ALGORITHMS[currentEvent] || {}).filter(k => {
@@ -618,6 +649,7 @@
 
             algSubsetContainer.innerHTML = '';
             algSubgroupSelect.style.display = 'none';
+            hideSubgroupChips();
 
             subsets.forEach((subset, index) => {
                 const btn = document.createElement('button');
@@ -645,32 +677,86 @@
 
             if (Array.isArray(data)) {
                 algSubgroupSelect.style.display = 'none';
+                hideSubgroupChips();
+                algCurrentSubgroup = null;
                 renderAlgorithms(event, subset, null);
-            } else {
-                algSubgroupSelect.style.display = 'block';
-                algSubgroupSelect.innerHTML = '';
-                const subgroups = Object.keys(data);
-
-                // "All" first — shows every case in the set at once.
-                const allOpt = document.createElement('option');
-                allOpt.value = ALL_SUBGROUP;
-                allOpt.textContent = `${subset} — All`;
-                algSubgroupSelect.appendChild(allOpt);
-
-                subgroups.forEach(sub => {
-                    const opt = document.createElement('option');
-                    opt.value = sub;
-                    opt.textContent = `${subset} ${sub}`;
-                    algSubgroupSelect.appendChild(opt);
-                });
-
-                // Update listener safely
-                algSubgroupSelect.onchange = (e) => {
-                    renderAlgorithms(event, subset, e.target.value);
-                };
-
-                renderAlgorithms(event, subset, ALL_SUBGROUP);
+                return;
             }
+
+            const subgroups = Object.keys(data);
+
+            // Keep the native <select> populated as an accessible fallback and
+            // as the value the trainer used to read; the chip row is the
+            // visible control.
+            algSubgroupSelect.innerHTML = '';
+            const allOpt = document.createElement('option');
+            allOpt.value = ALL_SUBGROUP;
+            allOpt.textContent = `${subset} — All`;
+            algSubgroupSelect.appendChild(allOpt);
+            subgroups.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = `${subset} ${sub}`;
+                algSubgroupSelect.appendChild(opt);
+            });
+            algSubgroupSelect.style.display = 'none';
+            algSubgroupSelect.onchange = (e) => selectSubgroup(event, subset, e.target.value);
+
+            // Large sets (ZBLL, 7 sets) default to the first set rather than
+            // "All", so we never render hundreds of live previews at once.
+            const heavy = subgroups.length > 3;
+            const initial = heavy ? subgroups[0] : ALL_SUBGROUP;
+
+            renderSubgroupChips(event, subset, subgroups, heavy, initial);
+            selectSubgroup(event, subset, initial);
+        }
+
+        function ensureSubgroupChips() {
+            if (_subgroupChips) return _subgroupChips;
+            const row = document.createElement('div');
+            row.id = 'alg-subgroup-chips';
+            row.className = 'alg-subgroup-chips';
+            row.setAttribute('role', 'group');
+            row.setAttribute('aria-label', 'Algorithm set');
+            algSubgroupSelect.parentNode.insertBefore(row, algSubgroupSelect);
+            _subgroupChips = row;
+            return row;
+        }
+
+        function hideSubgroupChips() {
+            if (_subgroupChips) { _subgroupChips.style.display = 'none'; _subgroupChips.innerHTML = ''; }
+        }
+
+        function renderSubgroupChips(event, subset, subgroups, heavy, initial) {
+            const tr = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
+            const row = ensureSubgroupChips();
+            row.style.display = 'flex';
+            row.innerHTML = '';
+            const values = heavy ? subgroups.slice() : [ALL_SUBGROUP].concat(subgroups);
+            values.forEach(val => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'alg-group-chip' + (val === initial ? ' active' : '');
+                chip.dataset.subgroup = val;
+                chip.textContent = val === ALL_SUBGROUP ? tr('alg.all', 'All') : val;
+                chip.setAttribute('aria-pressed', val === initial ? 'true' : 'false');
+                chip.addEventListener('click', () => {
+                    row.querySelectorAll('.alg-group-chip').forEach(c => {
+                        c.classList.remove('active');
+                        c.setAttribute('aria-pressed', 'false');
+                    });
+                    chip.classList.add('active');
+                    chip.setAttribute('aria-pressed', 'true');
+                    selectSubgroup(event, subset, val);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function selectSubgroup(event, subset, val) {
+            algCurrentSubgroup = val;
+            if (algSubgroupSelect) algSubgroupSelect.value = val;
+            renderAlgorithms(event, subset, val);
         }
 
         if (algEventSelect) {
@@ -778,6 +864,9 @@
 
         // Sentinel subgroup value meaning "show every case across all subgroups".
         const ALL_SUBGROUP = '__ALL__';
+
+        // Small i18n helper for the algorithms view.
+        const trAlg = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
 
         // Render logic
         function renderAlgorithms(event, subset, subgroup) {
@@ -971,7 +1060,7 @@
             const event = algEventSelect.value;
             const activeBtn = document.querySelector('.alg-cat-btn.active');
             const subset = activeBtn ? activeBtn.dataset.category : null;
-            const subgroupVal = algSubgroupSelect.style.display !== 'none' ? algSubgroupSelect.value : null;
+            const subgroupVal = algCurrentSubgroup;
 
             if (!subset) { showToast('Select an algorithm category first', 'error'); return; }
 
@@ -3905,6 +3994,11 @@
         // Auto-scroll to bottom only when new messages arrive
         if (appended) {
             container.appendChild(frag);
+            // Keep the rendered history bounded. Without this a spammed room
+            // grows the DOM without limit until the panel becomes unusable.
+            while (container.children.length > BATTLE_CHAT_MAX_RENDERED) {
+                container.removeChild(container.firstChild);
+            }
             container.scrollTop = container.scrollHeight;
         }
     }
@@ -3914,8 +4008,28 @@
         const input = $('#battle-chat-input');
         const btn = $('#battle-chat-send-btn');
         if (!input || !btn) return;
-        const text = (input.value || '').trim().substring(0, 500);
+
+        // Collapse absurd runs of one character ("aaaaa…") before length capping,
+        // so a spam wall becomes a short message rather than a wall.
+        let text = (input.value || '').trim()
+            .replace(/(.)\1{19,}/g, (m, c) => c.repeat(20))
+            .substring(0, BATTLE_CHAT_MAX_LEN);
         if (!text) return;
+
+        // Client-side spam brakes: a minimum gap between sends, and no
+        // immediate duplicates. (Server rules would be needed to make this
+        // airtight; this stops the accidental/casual case.)
+        const now = Date.now();
+        if (now - battleChatLastSentAt < BATTLE_CHAT_MIN_GAP_MS) {
+            showToast('Slow down a moment', 'error');
+            return;
+        }
+        if (text === battleChatLastSentText && now - battleChatLastSentAt < 10000) {
+            showToast('That message was just sent', 'error');
+            return;
+        }
+        battleChatLastSentAt = now;
+        battleChatLastSentText = text;
         input.disabled = true;
         btn.disabled = true;
         try {
@@ -4178,6 +4292,19 @@
     let battleChatLastTimestamp = 0;
     let battleChatRoomId = null;
     let battleChatSeenIds = new Set();
+
+    // Spam guards for room creation.
+    const BATTLE_ROOM_NAME_MIN = 3;
+    const BATTLE_ROOM_NAME_MAX = 40;
+    const BATTLE_ROOM_COOLDOWN_MS = 30000;
+    const BATTLE_ROOM_LAST_KEY = 'chq_last_room_created';
+
+    // Spam guards for the room chat.
+    const BATTLE_CHAT_MAX_RENDERED = 100;   // messages kept in the DOM
+    const BATTLE_CHAT_MAX_LEN = 300;        // characters per message
+    const BATTLE_CHAT_MIN_GAP_MS = 1200;    // minimum gap between sends
+    let battleChatLastSentAt = 0;
+    let battleChatLastSentText = '';
     const BATTLE_PATH = '/battle/rooms';
 
     const BATTLE_EVENTS = {
@@ -4485,8 +4612,23 @@
         });
 
         $('#battle-create-confirm').addEventListener('click', async () => {
-            const name = $('#battle-room-name-input').value.trim();
-            if (!name) { showToast('Please enter a room name', 'error'); return; }
+            const name = $('#battle-room-name-input').value.trim().replace(/\s+/g, ' ');
+            if (name.length < BATTLE_ROOM_NAME_MIN) {
+                showToast(`Room name needs at least ${BATTLE_ROOM_NAME_MIN} characters`, 'error');
+                return;
+            }
+            if (name.length > BATTLE_ROOM_NAME_MAX) {
+                showToast(`Room name can be at most ${BATTLE_ROOM_NAME_MAX} characters`, 'error');
+                return;
+            }
+            // Cooldown between room creations, so the list can't be flooded
+            // by one person hammering the button.
+            const lastCreated = Number(localStorage.getItem(BATTLE_ROOM_LAST_KEY) || 0);
+            const waitMs = BATTLE_ROOM_COOLDOWN_MS - (Date.now() - lastCreated);
+            if (waitMs > 0) {
+                showToast(`Please wait ${Math.ceil(waitMs / 1000)}s before creating another room`, 'error');
+                return;
+            }
             const isPrivate = $('#battle-vis-private').classList.contains('active');
             const password = $('#battle-room-password').value.trim();
             if (isPrivate && !password) { showToast('Please set a password', 'error'); return; }
@@ -4516,6 +4658,7 @@
             $('#battle-create-confirm').textContent = 'Create Room';
 
             if (!result || !result.name) { showToast('Failed to create room. Try again.', 'error'); return; }
+            try { localStorage.setItem(BATTLE_ROOM_LAST_KEY, String(Date.now())); } catch (e) { /* private mode */ }
             $('#battle-create-modal').style.display = 'none';
             await enterBattleRoom(result.name, roomData);
         });

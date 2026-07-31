@@ -59,6 +59,10 @@
         progress: 0,           // tokens correctly applied
         movesSinceMatch: 0,
         phase: 'idle',         // idle | scrambling | armed | solving | na
+        // Solve recording (for the CFOP analysis panel)
+        solveLog: [],          // [{ move, t }] with t in ms from first move
+        solveStartT: 0,
+        solveStartPattern: null, // physical state when the solve began
     };
 
     async function importFirstAvailable(urls) {
@@ -209,7 +213,10 @@
             try { twisty.experimentalAddMove(leaf); } catch (err) { /* non-move leaf */ }
         }
 
-        // Track physical state.
+        // Track physical state. Keep the pre-move pattern: when this move turns
+        // out to be the first of a solve, that is the scrambled state the
+        // analysis has to replay from.
+        const patternBefore = S.livePattern;
         if (S.livePattern) {
             try {
                 S.livePattern = S.livePattern.applyMove(moveStr);
@@ -222,16 +229,20 @@
         const timerRunning = tm && tm.getPhase() === 'running';
 
         if (timerRunning || S.phase === 'solving') {
+            recordSolveMove(moveStr);
             // Stop as soon as the cube is physically solved.
             if (isSolved()) {
                 if (tm) tm.smartStop();
                 S.phase = 'idle';
+                publishSolveAnalysis();
                 // rollScramble → 'cs-scramble-changed' will re-arm tracking.
             }
         } else if (S.phase === 'armed') {
             // First move after a completed scramble starts the timer.
             if (tm && tm.smartStart()) {
                 S.phase = 'solving';
+                beginSolveRecording(patternBefore);
+                recordSolveMove(moveStr);
             }
         } else if (S.phase === 'scrambling') {
             updateScrambleProgress();
@@ -251,6 +262,52 @@
         } catch (e) {
             return false;
         }
+    }
+
+    // ---------- Solve recording → CFOP analysis ----------
+
+    function beginSolveRecording(startPattern) {
+        S.solveLog = [];
+        S.solveStartT = performance.now();
+        S.solveStartPattern = startPattern || null;
+    }
+
+    function recordSolveMove(moveStr) {
+        if (!S.solveStartT) return;
+        S.solveLog.push({ move: moveStr, t: Math.round(performance.now() - S.solveStartT) });
+    }
+
+    // Replay the recorded solve and broadcast the phase breakdown. Everything
+    // here is best-effort: if the analysis module or the start state is
+    // missing, the solve simply isn't analysed.
+    function publishSolveAnalysis() {
+        const log = S.solveLog.slice();
+        const start = S.solveStartPattern;
+        S.solveLog = [];
+        S.solveStartT = 0;
+        S.solveStartPattern = null;
+
+        if (!log.length || !start || !window.SolveAnalysis) return;
+
+        let pattern = start;
+        const puzzle = {
+            applyMove(m) { pattern = pattern.applyMove(m); },
+            getState() {
+                const d = pattern.patternData;
+                return { edges: d.EDGES, corners: d.CORNERS };
+            },
+        };
+
+        let result;
+        try {
+            result = window.SolveAnalysis.analyze(log, puzzle);
+        } catch (err) {
+            console.warn('[SmartCube] solve analysis failed', err);
+            return;
+        }
+        if (!result || !result.segments.length) return;
+
+        document.dispatchEvent(new CustomEvent('cs-solve-analyzed', { detail: result }));
     }
 
     function updateScrambleProgress() {
@@ -295,8 +352,95 @@
         if (scrambleBar && scrambleBar.parentNode) {
             scrambleBar.parentNode.insertBefore(panel, scrambleBar.nextSibling);
         }
+
+        // Solve breakdown, filled in after each smart-cube solve.
+        if (!document.getElementById('bt-analysis')) {
+            const analysis = document.createElement('div');
+            analysis.id = 'bt-analysis';
+            analysis.className = 'bt-analysis';
+            analysis.style.display = 'none';
+            const center = $('.cstimer-center');
+            if (center) center.appendChild(analysis);
+            else if (scrambleBar && scrambleBar.parentNode) {
+                scrambleBar.parentNode.insertBefore(analysis, panel.nextSibling);
+            }
+        }
         renderButton();
     }
+
+    // ---------- Analysis panel ----------
+
+    // T() and esc() are already defined at the top of this module.
+    const fmtSec = (ms) => (ms / 1000).toFixed(2);
+    const escapeHtml = esc;
+
+    const RATING_LABEL = {
+        optimal: () => T('analysis.optimal', 'Optimal'),
+        fumble: () => T('analysis.fumble', 'Fumble'),
+        blunder: () => T('analysis.blunder', 'Blunder'),
+    };
+
+    function segmentRow(label, seg) {
+        const rating = seg.rating || 'optimal';
+        return `
+            <div class="bt-an-row">
+                <div class="bt-an-row-head">
+                    <span class="bt-an-slot">${escapeHtml(label)}</span>
+                    <span class="bt-an-badge bt-an-${rating}" title="${escapeHtml(seg.reason || '')}">
+                        ${escapeHtml(RATING_LABEL[rating] ? RATING_LABEL[rating]() : rating)}
+                    </span>
+                    <span class="bt-an-meta">${fmtSec(seg.ms)}s · ${seg.moveCount}${T('analysis.movesShort', 'm')} · ${seg.tps} ${T('analysis.tps', 'TPS')}</span>
+                </div>
+                <div class="bt-an-moves">${escapeHtml(seg.moves.join(' '))}</div>
+            </div>`;
+    }
+
+    function renderAnalysis(result) {
+        const el = document.getElementById('bt-analysis');
+        if (!el) return;
+        if (!result || !result.segments.length) { el.style.display = 'none'; return; }
+
+        const s = window.SolveAnalysis.summarize(result);
+        const parts = [];
+
+        parts.push(`<div class="bt-an-title">${T('analysis.title', 'Solve breakdown')}
+            <span class="bt-an-total">${fmtSec(result.totalMs)}s · ${result.moveCount} ${T('analysis.moves', 'moves')}</span></div>`);
+
+        if (s.cross) {
+            parts.push(`<div class="bt-an-phase"><span class="bt-an-phase-name">${T('analysis.cross', 'CROSS')}</span>
+                <span class="bt-an-phase-time">[${fmtSec(s.cross.ms)}]</span></div>`);
+            parts.push(`<div class="bt-an-moves bt-an-moves-lead">${escapeHtml(s.cross.moves.join(' '))}</div>`);
+        }
+
+        if (s.f2l.slots.length) {
+            parts.push(`<div class="bt-an-phase"><span class="bt-an-phase-name">${T('analysis.f2l', 'F2L')}</span>
+                <span class="bt-an-phase-time">[${fmtSec(s.f2l.ms)}]</span></div>`);
+            s.f2l.slots.forEach(seg => {
+                parts.push(segmentRow(`${T('analysis.slot', 'SLOT')} ${seg.slot}`, seg));
+            });
+        }
+
+        ['oll', 'pll'].forEach(k => {
+            if (!s[k]) return;
+            parts.push(`<div class="bt-an-phase"><span class="bt-an-phase-name">${k.toUpperCase()}</span>
+                <span class="bt-an-phase-time">[${fmtSec(s[k].ms)}]</span></div>`);
+            parts.push(segmentRow(k.toUpperCase(), s[k]));
+        });
+
+        if (!result.complete) {
+            parts.push(`<div class="bt-an-note">${T('analysis.partial', 'Solve did not finish — showing what was tracked.')}</div>`);
+        }
+
+        el.innerHTML = parts.join('');
+        el.style.display = 'block';
+    }
+
+    document.addEventListener('cs-solve-analyzed', (e) => renderAnalysis(e.detail));
+    // A new scramble means a new attempt; clear the old breakdown.
+    document.addEventListener('cs-scramble-changed', () => {
+        const el = document.getElementById('bt-analysis');
+        if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+    });
 
     const BT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>';
 
