@@ -921,9 +921,21 @@
                     // Flat square diagram (sarah-style). The pictured case is
                     // the state the solving alg starts from = inverse of the alg.
                     const caseState = item.setup ? item.setup : getInverse(item.alg, event);
-                    window.Square1Drawer.render(holder, caseState);
+                    const drawn = window.Square1Drawer.render(holder, caseState);
                     const svg = holder.querySelector('svg');
                     if (svg) { svg.style.maxWidth = 'none'; svg.style.width = 'auto'; svg.style.height = '100%'; svg.style.margin = '0'; }
+                    // A few stored algorithms are not valid sequences from
+                    // solved, so the state above is one the puzzle can never
+                    // reach — every real case is in cube shape. Mark it instead
+                    // of letting a wrong picture look authoritative.
+                    if (drawn && !drawn.legal) {
+                        const warn = document.createElement('span');
+                        warn.className = 'alg-card-warn';
+                        warn.textContent = i18nT('algs.badDiagram', 'Diagram unavailable');
+                        warn.title = i18nT('algs.badDiagramHint',
+                            'The stored algorithm is not a valid sequence from solved, so this picture is not a real case.');
+                        holder.appendChild(warn);
+                    }
                 } else if (isPreviewable(event, item.alg)) {
                     holder.dataset.puzzle = puzzleName;
                     const caseRot = caseOrientationFor(event, subset, subgroup);

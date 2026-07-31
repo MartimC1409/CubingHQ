@@ -207,6 +207,9 @@
             'bt.only333': 'Smart cube tracking works with 3x3x3 events only.',
             'bt.only333Connect': 'The smart cube can only be connected in 3x3x3 events.',
 
+            'algs.badDiagram': 'Diagram unavailable',
+            'algs.badDiagramHint': 'The stored algorithm is not a valid sequence from solved, so this picture is not a real case.',
+
             'aria.selectSession': 'Select session',
 
             'aria.solveActions': 'Solve penalty',
@@ -766,6 +769,9 @@
             'bt.offScramble': 'Fora do scramble — desfaz o movimento errado ou clica em "Marcar como resolvido" para recomeçar.',
             'bt.only333': 'O acompanhamento do cubo Bluetooth só funciona em eventos 3x3x3.',
             'bt.only333Connect': 'O cubo Bluetooth só pode ser ligado em eventos 3x3x3.',
+
+            'algs.badDiagram': 'Diagrama indisponível',
+            'algs.badDiagramHint': 'O algoritmo guardado não é uma sequência válida a partir do resolvido, por isso esta imagem não corresponde a um caso real.',
 
             'aria.selectSession': 'Escolher sessão',
 

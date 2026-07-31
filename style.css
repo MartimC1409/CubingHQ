@@ -3548,6 +3548,33 @@ body {
     transition: all 0.3s ease;
 }
 
+/* Marks a case diagram we can't vouch for: the stored algorithm is not a
+   legal sequence from solved, so the drawn state is one the puzzle can never
+   reach. Better an honest warning than a picture that looks authoritative. */
+.alg-card-warn {
+    position: absolute;
+    left: 50%;
+    bottom: -2px;
+    transform: translateX(-50%);
+    /* The viz box is only ~104px, so the label is allowed to overhang it and
+       use the card's width instead of being clipped to an ellipsis. */
+    max-width: 92vw;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--clr-warning) 22%, var(--clr-surface));
+    border: 1px solid var(--clr-warning);
+    color: var(--clr-warning);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: help;
+    z-index: 1;
+}
+/* Dim the drawing itself so the badge reads as a caveat on it. */
+.alg-card-viz[data-sq1-illegal] svg { opacity: 0.35; }
+
 /* ============================================================
    BATTLE FEATURE
    ============================================================ */
