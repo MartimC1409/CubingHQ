@@ -35,7 +35,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
     <link rel="stylesheet" href="timer.css?v=3">
     <link rel="stylesheet" href="launch-ui.css?v=4">
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
@@ -125,46 +125,46 @@
         </nav>
     </header>
 
-    <div class="nav-links" id="nav-links" role="navigation" aria-label="Primary navigation">
-        <button class="nav-btn" id="nav-home-btn" title="Home" data-i18n="nav.home">
+    <div class="nav-links" id="nav-links" role="navigation" aria-label="Primary navigation" data-i18n-aria="aria.primaryNav">
+        <button class="nav-btn" id="nav-home-btn" title="Home" data-i18n="nav.home" data-i18n-title="nav.home">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Home
         </button>
-        <button class="nav-btn" id="nav-timer-btn" title="Timer" data-i18n="nav.timer">
+        <button class="nav-btn" id="nav-timer-btn" title="Timer" data-i18n="nav.timer" data-i18n-title="nav.timer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Timer
         </button>
-        <button class="nav-btn" id="nav-simulation-btn" title="Comp Simulation" data-i18n="nav.compsim">
+        <button class="nav-btn" id="nav-simulation-btn" title="Comp Simulation" data-i18n="nav.compsim" data-i18n-title="home.card.sim">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
             Comp Sim
         </button>
-        <button class="nav-btn" id="nav-records-btn" title="Records & Rankings" data-i18n="nav.records">
+        <button class="nav-btn" id="nav-records-btn" title="Records & Rankings" data-i18n="nav.records" data-i18n-title="title.records">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
             Records
         </button>
-        <button class="nav-btn" id="nav-competitions-btn" title="Competitions" data-i18n="nav.competitions">
+        <button class="nav-btn" id="nav-competitions-btn" title="Competitions" data-i18n="nav.competitions" data-i18n-title="common.competitions">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Competitions
         </button>
-        <button class="nav-btn" id="nav-algorithms-btn" title="Algorithms & Drills" data-i18n="nav.algorithms">
+        <button class="nav-btn" id="nav-algorithms-btn" title="Algorithms & Drills" data-i18n="nav.algorithms" data-i18n-title="title.algs">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             Algorithms
         </button>
-        <button class="nav-btn" id="nav-history-btn" title="History" data-i18n="nav.history">
+        <button class="nav-btn" id="nav-history-btn" title="History" data-i18n="nav.history" data-i18n-title="nav.history">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 14"/></svg>
             History
         </button>
         <!-- Battle Button -->
-        <button class="nav-btn nav-btn--battle" id="nav-battle-btn" title="Battle" data-i18n="nav.battle">
+        <button class="nav-btn nav-btn--battle" id="nav-battle-btn" title="Battle" data-i18n="nav.battle" data-i18n-title="nav.battle">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
             Battle
         </button>
         <!-- Login Button -->
-        <button class="nav-btn" id="nav-login-btn" title="Login" data-i18n="nav.login">
+        <button class="nav-btn" id="nav-login-btn" title="Login" data-i18n="nav.login" data-i18n-title="nav.login">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             Login
         </button>
-        <div class="theme-toggle" id="theme-toggle" title="Toggle theme" role="button" tabindex="0" aria-label="Toggle light/dark theme">
+        <div class="theme-toggle" id="theme-toggle" title="Toggle theme" role="button" tabindex="0" aria-label="Toggle light/dark theme" data-i18n-title="title.toggleTheme" data-i18n-aria="aria.toggleTheme">
             <svg class="theme-icon sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             <svg class="theme-icon moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </div>
@@ -185,7 +185,7 @@
                         <div class="cs-panel-header">
                             <h3 class="cs-panel-title">
                                 <span id="cs-session-title">Session</span>
-                                <button id="cs-btn-rename-session" class="cs-icon-btn" title="Rename session">
+                                <button id="cs-btn-rename-session" class="cs-icon-btn" title="Rename session" data-i18n-title="title.renameSession">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 </button>
                             </h3>
@@ -205,7 +205,7 @@
                     <div class="cs-scramble-bar">
                         <div class="cs-scramble-text" id="cs-scramble-text">—</div>
                         <div class="cs-scramble-actions">
-                            <button id="cs-btn-new-scramble" class="cs-btn-secondary" title="New scramble (press space when idle)" data-i18n="timer.newScramble">
+                            <button id="cs-btn-new-scramble" class="cs-btn-secondary" title="New scramble (press space when idle)" data-i18n="timer.newScramble" data-i18n-title="title.newScramble">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                                 New Scramble
                             </button>
@@ -230,20 +230,20 @@
                     </div>
 
                     <div class="cs-bottom-bar">
-                        <button id="cs-btn-clear-session" class="cs-btn-ghost" title="Clear all solves in current session" data-i18n="timer.clearSession">
+                        <button id="cs-btn-clear-session" class="cs-btn-ghost" title="Clear all solves in current session" data-i18n="timer.clearSession" data-i18n-title="title.clearSession">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                             Clear Session
                         </button>
-                        <button id="cs-btn-export" class="cs-btn-ghost" title="Export JSON backup" data-i18n="timer.export">
+                        <button id="cs-btn-export" class="cs-btn-ghost" title="Export JSON backup" data-i18n="timer.export" data-i18n-title="title.exportJson">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             Export
                         </button>
-                        <button id="cs-btn-import" class="cs-btn-ghost" title="Import JSON backup" data-i18n="timer.import">
+                        <button id="cs-btn-import" class="cs-btn-ghost" title="Import JSON backup" data-i18n="timer.import" data-i18n-title="title.importJson">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             Import
                         </button>
                         <input type="file" id="cs-import-file" accept="application/json" style="display:none">
-                        <button id="cs-btn-fullscreen" class="cs-btn-ghost" title="Fullscreen">
+                        <button id="cs-btn-fullscreen" class="cs-btn-ghost" title="Fullscreen" data-i18n-title="title.fullscreen">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
                         </button>
                     </div>
@@ -255,13 +255,13 @@
                         <div class="cs-panel-header">
                             <h3 class="cs-panel-title" data-i18n="timer.timeList">Time List</h3>
                             <div class="cs-panel-actions">
-                                <button class="cs-icon-btn" id="cs-btn-delete-last" title="Delete last solve (Ctrl+Z)">
+                                <button class="cs-icon-btn" id="cs-btn-delete-last" title="Delete last solve (Ctrl+Z)" data-i18n-title="title.deleteLast">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
                                 </button>
                             </div>
                         </div>
                         <div class="cs-solve-list" id="cs-solve-list">
-                            <div class="cs-empty">No solves yet — press space to start!</div>
+                            <div class="cs-empty" data-i18n="timer.noSolves">No solves yet — press space to start!</div>
                         </div>
                     </div>
 
@@ -355,13 +355,13 @@
                                 <p data-i18n-html="timer.about.intro"><strong>SimTimer</strong> — a csTimer-inspired speedcubing practice tool.</p>
                                 <p data-i18n="timer.about.features">Features:</p>
                                 <ul class="cs-about-list">
-                                    <li>Hold spacebar → tap to start (configurable hold)</li>
-                                    <li>WCA-style 15s inspection with optional voice</li>
-                                    <li>Per-solve penalty marking (1=OK, 2=+2, 3=DNF)</li>
-                                    <li>Multiple sessions, all saved locally + optionally cloud</li>
-                                    <li>Statistics: best Ao5/Ao12/Ao100, single PBs, std dev, success %</li>
-                                    <li>Click any time to edit, click penalty to cycle</li>
-                                    <li>Export/Import JSON backup</li>
+                                    <li data-i18n="timer.about.f1">Hold spacebar → tap to start (configurable hold)</li>
+                                    <li data-i18n="timer.about.f2">WCA-style 15s inspection with optional voice</li>
+                                    <li data-i18n="timer.about.f3">Per-solve penalty marking (1=OK, 2=+2, 3=DNF)</li>
+                                    <li data-i18n="timer.about.f4">Multiple sessions, all saved locally + optionally cloud</li>
+                                    <li data-i18n="timer.about.f5">Statistics: best Ao5/Ao12/Ao100, single PBs, std dev, success %</li>
+                                    <li data-i18n="timer.about.f6">Click any time to edit, click penalty to cycle</li>
+                                    <li data-i18n="timer.about.f7">Export/Import JSON backup</li>
                                 </ul>
                             </div>
                         </details>
@@ -406,11 +406,11 @@
             return id;
         }
     </script>
-    <script src="i18n.js?v=5"></script>
+    <script src="i18n.js?v=6"></script>
     <script src="theme.js?v=1"></script>
     <script src="scramble-engine.js?v=2"></script>
     <script src="square1-drawer.js?v=2"></script>
-    <script src="timer.js?v=2"></script>
+    <script src="timer.js?v=3"></script>
     <script src="solve-analysis.js?v=1"></script>
     <script src="smartcube.js?v=2"></script>
     <script>

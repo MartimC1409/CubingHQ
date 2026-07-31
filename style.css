@@ -2437,8 +2437,9 @@ body {
 }
 
 .upcoming-comps-list {
-    max-height: 400px;
-    overflow-y: auto;
+    /* No max-height/overflow: the competition lists flow with the page, the
+       same way the records and algorithms views do, instead of being trapped
+       in a short scroll box. */
     display: flex;
     flex-direction: column;
 }

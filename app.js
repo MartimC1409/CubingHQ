@@ -5,6 +5,12 @@
 (function () {
     'use strict';
 
+    // ========== I18N ==========
+    // Module-wide shorthand for AppI18N.t(). The English text is always passed
+    // as the fallback, so a missing key degrades to the original copy instead
+    // of leaking a raw key into the UI.
+    const i18nT = (key, fallback) => (window.AppI18N ? window.AppI18N.t(key, fallback) : fallback);
+
     // ========== CONSTANTS ==========
     const WCA_API = 'https://www.worldcubeassociation.org/api/v0';
     const WCA_OAUTH_URL = 'https://www.worldcubeassociation.org/oauth/authorize';
@@ -20,8 +26,6 @@
         '444bf': '4x4 BLD', '555bf': '5x5 BLD'
     };
 
-    const ROUND_NAMES = { 1: 'Round 1', 2: 'Round 2', 3: 'Semi-Final', 4: 'Final' };
-
     // WCA round-naming convention, given the TOTAL number of rounds an
     // event has: the last round is always the Final, the one before it a
     // Semi-Final (only when there are 3+ rounds), and earlier rounds are
@@ -29,12 +33,14 @@
     // · 4→Round 1, Round 2, Semi-Final, Final.
     function roundNamesFor(total) {
         const t = Math.max(1, total || 1);
-        if (t === 1) return { 1: 'Final' };
+        const final = () => i18nT('round.final', 'Final');
+        const numbered = (i) => i18nT('round.n', 'Round {n}').replace('{n}', i);
+        if (t === 1) return { 1: final() };
         const names = {};
         for (let i = 1; i <= t; i++) {
-            if (i === t) names[i] = 'Final';
-            else if (i === t - 1 && t >= 3) names[i] = 'Semi-Final';
-            else names[i] = `Round ${i}`;
+            if (i === t) names[i] = final();
+            else if (i === t - 1 && t >= 3) names[i] = i18nT('round.semi', 'Semi-Final');
+            else names[i] = numbered(i);
         }
         return names;
     }
@@ -43,7 +49,7 @@
     // the active simulation's round count).
     function getRoundName(round, total) {
         const t = total || state.numRounds || 4;
-        return roundNamesFor(t)[round] || `Round ${round}`;
+        return roundNamesFor(t)[round] || i18nT('round.n', 'Round {n}').replace('{n}', round);
     }
 
     // Events that use Mean of 3 (instead of Average of 5)
@@ -260,7 +266,7 @@
                 const data = await res.json();
                 state.userProfile = data.me;
                 updateUIAfterLogin();
-                showToast(`Welcome back, ${data.me.name.split(' ')[0]}!`, 'success');
+                showToast(i18nT('toast.welcomeBack', 'Welcome back, {name}!').replace('{name}', data.me.name.split(' ')[0]), 'success');
                 closeLoginModal();
 
                 // Automatically load their WCA stats if they have a WCA ID
@@ -299,7 +305,7 @@
                     await lookupWCAProfile(state.userProfile.wca_id, true);
                     switchView('statistics');
                 } else {
-                    showToast('No WCA ID linked to this account.', 'info');
+                    showToast(i18nT('toast.noWcaLinked', 'No WCA ID linked to this account.'), 'info');
                 }
             });
         }
@@ -540,7 +546,7 @@
                 state.userProfile = null;
                 restoreLoginNavButton();
                 switchView('home');
-                showToast('Logged out successfully', 'success');
+                showToast(i18nT('toast.loggedOut', 'Logged out successfully'), 'success');
             });
         }
 
@@ -667,7 +673,7 @@
             if (subsets.length > 0) {
                 handleSubsetSelection(currentEvent, subsets[0]);
             } else {
-                $('#algorithms-grid').innerHTML = '<p style="color: var(--clr-text-muted);">No algorithms found for this event.</p>';
+                $('#algorithms-grid').innerHTML = `<p style="color: var(--clr-text-muted);">${esc(i18nT('algs.noneForEvent', 'No algorithms found for this event.'))}</p>`;
             }
         }
 
@@ -691,7 +697,7 @@
             algSubgroupSelect.innerHTML = '';
             const allOpt = document.createElement('option');
             allOpt.value = ALL_SUBGROUP;
-            allOpt.textContent = `${subset} — All`;
+            allOpt.textContent = `${subset} — ${i18nT('alg.all', 'All')}`;
             algSubgroupSelect.appendChild(allOpt);
             subgroups.forEach(sub => {
                 const opt = document.createElement('option');
@@ -717,7 +723,7 @@
             row.id = 'alg-subgroup-chips';
             row.className = 'alg-subgroup-chips';
             row.setAttribute('role', 'group');
-            row.setAttribute('aria-label', 'Algorithm set');
+            row.setAttribute('aria-label', i18nT('aria.algSet', 'Algorithm set'));
             algSubgroupSelect.parentNode.insertBefore(row, algSubgroupSelect);
             _subgroupChips = row;
             return row;
@@ -728,7 +734,6 @@
         }
 
         function renderSubgroupChips(event, subset, subgroups, heavy, initial) {
-            const tr = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
             const row = ensureSubgroupChips();
             row.style.display = 'flex';
             row.innerHTML = '';
@@ -738,7 +743,7 @@
                 chip.type = 'button';
                 chip.className = 'alg-group-chip' + (val === initial ? ' active' : '');
                 chip.dataset.subgroup = val;
-                chip.textContent = val === ALL_SUBGROUP ? tr('alg.all', 'All') : val;
+                chip.textContent = val === ALL_SUBGROUP ? i18nT('alg.all', 'All') : val;
                 chip.setAttribute('aria-pressed', val === initial ? 'true' : 'false');
                 chip.addEventListener('click', () => {
                     row.querySelectorAll('.alg-group-chip').forEach(c => {
@@ -866,7 +871,6 @@
         const ALL_SUBGROUP = '__ALL__';
 
         // Small i18n helper for the algorithms view.
-        const trAlg = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
 
         // Render logic
         function renderAlgorithms(event, subset, subgroup) {
@@ -893,10 +897,10 @@
                 : algs;
 
             const countEl = $('#alg-count');
-            if (countEl) countEl.textContent = `${filtered.length} case${filtered.length === 1 ? '' : 's'}`;
+            if (countEl) countEl.textContent = (filtered.length === 1 ? i18nT('algs.caseN', '{n} case') : i18nT('algs.casesN', '{n} cases')).replace('{n}', filtered.length);
 
             if (filtered.length === 0) {
-                grid.innerHTML = '<p style="color: var(--clr-text-muted);">No cases match your search.</p>';
+                grid.innerHTML = `<p style="color: var(--clr-text-muted);">${esc(i18nT('algs.noMatches', 'No cases match your search.'))}</p>`;
                 return;
             }
 
@@ -940,7 +944,7 @@
                     obs.observe(holder);
                 } else {
                     holder.innerHTML = '<span style="color:var(--clr-text-muted);font-size:2.2rem;" aria-hidden="true">🧩</span>';
-                    holder.title = 'No 2D preview for this notation';
+                    holder.title = i18nT('algs.no2d', 'No 2D preview for this notation');
                 }
                 card.appendChild(holder);
 
@@ -956,11 +960,11 @@
 
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'btn btn-secondary btn-sm alg-copy-btn';
-                copyBtn.textContent = 'Copy';
-                copyBtn.setAttribute('aria-label', `Copy algorithm for ${item.name}`);
+                copyBtn.textContent = i18nT('algs.copy', 'Copy');
+                copyBtn.setAttribute('aria-label', i18nT('aria.copyAlg', 'Copy algorithm for {name}').replace('{name}', item.name));
                 copyBtn.addEventListener('click', () => {
                     navigator.clipboard && navigator.clipboard.writeText(item.alg)
-                        .then(() => showToast('Algorithm copied', 'success'))
+                        .then(() => showToast(i18nT('toast.algCopied', 'Algorithm copied'), 'success'))
                         .catch(() => {});
                 });
                 card.appendChild(copyBtn);
@@ -1062,7 +1066,7 @@
             const subset = activeBtn ? activeBtn.dataset.category : null;
             const subgroupVal = algCurrentSubgroup;
 
-            if (!subset) { showToast('Select an algorithm category first', 'error'); return; }
+            if (!subset) { showToast(i18nT('toast.pickCategory', 'Select an algorithm category first'), 'error'); return; }
 
             let algData = ALGORITHMS[event] && ALGORITHMS[event][subset];
             if (!algData) return;
@@ -1070,7 +1074,7 @@
                 if (subgroupVal === ALL_SUBGROUP) algData = Object.values(algData).flat();
                 else if (subgroupVal) algData = algData[subgroupVal];
             }
-            if (!Array.isArray(algData)) { showToast('Select a subgroup first', 'error'); return; }
+            if (!Array.isArray(algData)) { showToast(i18nT('toast.pickSubgroup', 'Select a subgroup first'), 'error'); return; }
 
             const validAlgs = algData.filter(a => a.alg && a.alg !== 'skip');
             trainerState.algList = validAlgs;
@@ -1085,7 +1089,7 @@
             trainerState.selectedIdxs = new Set(validAlgs.map((_, i) => i));
 
             renderCaseSelectGrid();
-            $('#case-select-title').textContent = `Select Cases — ${trainerState.currentSetName}`;
+            $('#case-select-title').textContent = `${i18nT('algs.selectCases', 'Select Cases to Practice')} — ${trainerState.currentSetName}`;
             $('#alg-case-select-modal').style.display = 'flex';
             updateCaseSelectCount();
         }
@@ -1116,13 +1120,13 @@
         }
 
         function updateCaseSelectCount() {
-            $('#case-select-count-label').textContent = `${trainerState.selectedIdxs.size} selected`;
+            $('#case-select-count-label').textContent = i18nT('algs.nSelected', '{n} selected').replace('{n}', trainerState.selectedIdxs.size);
         }
 
         // Start trainer session
         function startTrainerSession() {
             if (trainerState.selectedIdxs.size === 0) {
-                showToast('Select at least 1 case', 'error');
+                showToast(i18nT('toast.pickOneCase', 'Select at least 1 case'), 'error');
                 return;
             }
             $('#alg-case-select-modal').style.display = 'none';
@@ -1136,7 +1140,7 @@
 
             // Update header
             $('#trainer-set-name').textContent = trainerState.currentSetName;
-            $('#trainer-case-count').textContent = `${trainerState.selectedIdxs.size} cases`;
+            $('#trainer-case-count').textContent = i18nT('algs.casesN', '{n} cases').replace('{n}', trainerState.selectedIdxs.size);
 
             // Update puzzle type (Square-1 needs 3D — no 2D net available)
             const puzzle = getPuzzleName(trainerState.currentEvent);
@@ -1170,7 +1174,7 @@
 
             // Show scramble (scraped setup when available, else computed inverse)
             const scramble = getCaseSetup(c, event);
-            $('#trainer-scramble').textContent = scramble || '(no scramble)';
+            $('#trainer-scramble').textContent = scramble || i18nT('algs.noScramble', '(no scramble)');
 
             // Show the case state in the twisty-player. Using
             // experimental-setup-anchor="end" draws the state that the
@@ -1191,7 +1195,7 @@
         function resetTimerDisplay() {
             $('#trainer-timer-time').textContent = '0.00';
             $('#trainer-timer-time').className = 'trainer-timer-time';
-            $('#trainer-timer-status').textContent = 'Press Space to start';
+            $('#trainer-timer-status').textContent = i18nT('algs.pressSpace', 'Press Space to start');
             $('#trainer-timer-status').style.color = '';
             trainerState.timerRunning = false;
             clearInterval(trainerState.timerInterval);
@@ -1227,7 +1231,7 @@
             }
             const statusEl = $('#trainer-timer-status');
             if (statusEl) {
-                statusEl.textContent = 'Press Space for next case';
+                statusEl.textContent = i18nT('algs.pressSpaceNext', 'Press Space for next case');
                 statusEl.style.color = '';
             }
             addTime(elapsed, trainerState.currentCase ? trainerState.currentCase.name : '?');
@@ -1243,7 +1247,7 @@
             const list = $('#trainer-times-list');
             const times = trainerState.times;
             if (times.length === 0) {
-                list.innerHTML = '<div class="trainer-times-empty">No solves yet — start practicing!</div>';
+                list.innerHTML = `<div class="trainer-times-empty">${esc(i18nT('algs.noSolves', 'No solves yet — start practicing!'))}</div>`;
                 $('#trainer-stat-mean').textContent = '—';
                 $('#trainer-stat-best').textContent = '—';
                 $('#trainer-stat-count').textContent = '0';
@@ -1344,18 +1348,18 @@
                 } else if (!trainerState.spaceHeld) {
                     trainerState.spaceHeld = true;
                     trainerState.isReadyToStart = false;
-                    $('#trainer-timer-status').textContent = 'Holding...';
+                    $('#trainer-timer-status').textContent = i18nT('battle.holding', 'Holding...');
                     $('#trainer-timer-status').style.color = 'var(--clr-warning)';
                     
                     if (trainerState.spaceHoldTime > 0) {
                         trainerState.spaceHoldTimeout = setTimeout(() => {
                             trainerState.isReadyToStart = true;
-                            $('#trainer-timer-status').textContent = 'Ready!';
+                            $('#trainer-timer-status').textContent = i18nT('algs.ready', 'Ready!');
                             $('#trainer-timer-status').style.color = 'var(--clr-success)';
                         }, trainerState.spaceHoldTime);
                     } else {
                         trainerState.isReadyToStart = true;
-                        $('#trainer-timer-status').textContent = 'Ready!';
+                        $('#trainer-timer-status').textContent = i18nT('algs.ready', 'Ready!');
                         $('#trainer-timer-status').style.color = 'var(--clr-success)';
                     }
                 }
@@ -1377,7 +1381,7 @@
                 if (trainerState.isReadyToStart) {
                     startTimer();
                 } else {
-                    $('#trainer-timer-status').textContent = 'Press Space to start';
+                    $('#trainer-timer-status').textContent = i18nT('algs.pressSpace', 'Press Space to start');
                     $('#trainer-timer-status').style.color = '';
                 }
             }
@@ -1403,18 +1407,18 @@
             } else if (!trainerState.spaceHeld) {
                 trainerState.spaceHeld = true;
                 trainerState.isReadyToStart = false;
-                $('#trainer-timer-status').textContent = 'Holding...';
+                $('#trainer-timer-status').textContent = i18nT('battle.holding', 'Holding...');
                 $('#trainer-timer-status').style.color = 'var(--clr-warning)';
                 
                 if (trainerState.spaceHoldTime > 0) {
                     trainerState.spaceHoldTimeout = setTimeout(() => {
                         trainerState.isReadyToStart = true;
-                        $('#trainer-timer-status').textContent = 'Ready!';
+                        $('#trainer-timer-status').textContent = i18nT('algs.ready', 'Ready!');
                         $('#trainer-timer-status').style.color = 'var(--clr-success)';
                     }, trainerState.spaceHoldTime);
                 } else {
                     trainerState.isReadyToStart = true;
-                    $('#trainer-timer-status').textContent = 'Ready!';
+                    $('#trainer-timer-status').textContent = i18nT('algs.ready', 'Ready!');
                     $('#trainer-timer-status').style.color = 'var(--clr-success)';
                 }
             }
@@ -1427,13 +1431,24 @@
                 if (trainerState.isReadyToStart) {
                     startTimer();
                 } else {
-                    $('#trainer-timer-status').textContent = 'Press Space to start';
+                    $('#trainer-timer-status').textContent = i18nT('algs.pressSpace', 'Press Space to start');
                     $('#trainer-timer-status').style.color = '';
                 }
             }
             trainerState.spaceHeld = false;
             trainerState.isReadyToStart = false;
         }
+
+        // The algorithm grid, the case count and the trainer status are all
+        // written from here, so a language switch has to redraw them. The event
+        // is fired by the global language handler, which cannot see this scope.
+        document.addEventListener('cs-algorithms-relabel', () => {
+            try {
+                const active = document.querySelector('.alg-cat-btn.active');
+                if (active) handleSubsetSelection(algEventSelect.value, active.dataset.category);
+                if (trainerState.active) renderTimeList();
+            } catch (e) { /* algorithms view never opened */ }
+        });
 
         overlay.addEventListener('mousedown', handlePointerDown);
         overlay.addEventListener('touchstart', handlePointerDown);
@@ -1510,7 +1525,7 @@
                 if (muteOff) muteOff.style.display = 'block';
                 if (muteBtn) {
                     muteBtn.style.color = 'var(--clr-danger)';
-                    muteBtn.title = 'Unmute competition noise';
+                    muteBtn.title = i18nT('title.unmuteNoise', 'Unmute competition noise');
                 }
             }
 
@@ -1532,13 +1547,13 @@
                     if (muteOn) muteOn.style.display = 'none';
                     if (muteOff) muteOff.style.display = 'block';
                     muteBtn.style.color = 'var(--clr-danger)';
-                    muteBtn.title = 'Unmute competition noise';
+                    muteBtn.title = i18nT('title.unmuteNoise', 'Unmute competition noise');
                 } else {
                     ambientNoise.volume = compNoiseVolume;
                     if (muteOn) muteOn.style.display = 'block';
                     if (muteOff) muteOff.style.display = 'none';
                     muteBtn.style.color = '';
-                    muteBtn.title = 'Mute competition noise';
+                    muteBtn.title = i18nT('title.muteNoiseOn', 'Mute competition noise');
                 }
             });
         }
@@ -1624,7 +1639,7 @@
     // ========== WCA API: COMPETITION LOOKUP ==========
     async function lookupCompetition() {
         const compId = $('#comp-id').value.trim();
-        if (!compId) { showToast('Please enter a competition ID', 'error'); return; }
+        if (!compId) { showToast(i18nT('toast.needCompId', 'Please enter a competition ID'), 'error'); return; }
 
         // Show loading
         $('#comp-info-display').style.display = 'none';
@@ -1666,7 +1681,7 @@
 
             $('#comp-info-display').style.display = 'block';
             $('#comp-error-display').style.display = 'none';
-            showToast(`✅ Found: ${data.short_name || data.name}`, 'success');
+            showToast(`✅ ${i18nT('toast.found', 'Found')}: ${data.short_name || data.name}`, 'success');
 
         } catch (err) {
             console.error('Error fetching competition:', err);
@@ -1927,13 +1942,12 @@
         const eventSel = $('#records-event-filter');
         const regionSel = $('#records-region-filter');
         if (!eventSel || !regionSel) return;
-        const T = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
 
         // Events
         eventSel.innerHTML = '';
         const allOpt = document.createElement('option');
         allOpt.value = 'all';
-        allOpt.textContent = T('records.allEvents', 'All events');
+        allOpt.textContent = i18nT('records.allEvents', 'All events');
         eventSel.appendChild(allOpt);
         RECORDS_EVENT_ORDER.forEach(id => {
             if (!EVENT_NAMES[id]) return;
@@ -1949,11 +1963,11 @@
         regionSel.innerHTML = '';
         const world = document.createElement('option');
         world.value = 'world';
-        world.textContent = T('records.world', 'World');
+        world.textContent = i18nT('records.world', 'World');
         regionSel.appendChild(world);
         if (W) {
             const contGroup = document.createElement('optgroup');
-            contGroup.label = T('records.continents', 'Continents');
+            contGroup.label = i18nT('records.continents', 'Continents');
             W.continents.forEach(c => {
                 const o = document.createElement('option');
                 o.value = c.id;
@@ -1963,7 +1977,7 @@
             regionSel.appendChild(contGroup);
 
             const countryGroup = document.createElement('optgroup');
-            countryGroup.label = T('records.countries', 'Countries');
+            countryGroup.label = i18nT('records.countries', 'Countries');
             W.countries.forEach(c => {
                 const o = document.createElement('option');
                 o.value = c.id;
@@ -1995,12 +2009,26 @@
         });
     }
 
-    // Option labels and the summary strip are built in JS, so they need
-    // rebuilding when the language changes (data-i18n covers the rest).
+    // Everything this module writes into the DOM itself — option labels,
+    // table bodies, badges, empty states — is invisible to data-i18n, so it
+    // has to be rebuilt when the language changes. Each renderer bails out on
+    // its own when its view has never been opened, and a failure in one must
+    // not stop the rest, hence the per-call guard.
     document.addEventListener('app-language-changed', () => {
-        if (!_recordsFiltersBuilt) return;
-        buildRecordsFilters();
-        renderRecordsTable();
+        const redraw = (fn) => { try { fn(); } catch (e) { /* view not ready */ } };
+        if (_recordsFiltersBuilt) {
+            redraw(buildRecordsFilters);
+            redraw(renderRecordsTable);
+        }
+        redraw(updateRoundOptions);
+        redraw(updateEventFormatHint);
+        redraw(updateScorecard);
+        redraw(updateGoalTracker);
+        redraw(renderLeaderboard);
+        redraw(renderHistory);
+        if (battleState.lastLobbyData) redraw(() => renderBattleLobby(battleState.lastLobbyData));
+        if (battleState.currentRoomData) redraw(() => renderBattleRoomView(battleState.currentRoomData));
+        document.dispatchEvent(new CustomEvent('cs-algorithms-relabel'));
     });
 
     // Format one side of a record for the table. FMC counts moves: a single is
@@ -2042,12 +2070,11 @@
         }
 
         // Column headings follow the region: WR / CR / NR.
-        const T = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
         const level = recordLevelLabel(region);
         const thSingle = $('#records-th-single');
         const thAverage = $('#records-th-average');
-        if (thSingle) thSingle.textContent = `${level} ${T('records.col.single', 'Single')}`;
-        if (thAverage) thAverage.textContent = `${level} ${T('records.col.average', 'Average')}`;
+        if (thSingle) thSingle.textContent = `${level} ${i18nT('records.col.single', 'Single')}`;
+        if (thAverage) thAverage.textContent = `${level} ${i18nT('records.col.average', 'Average')}`;
 
         const events = recordsFilter.event === 'all'
             ? RECORDS_EVENT_ORDER
@@ -2069,9 +2096,9 @@
                 <td class="rec-event">
                     <span class="rec-event-name">${EVENT_NAMES[eventId]}</span>
                 </td>
-                <td class="rec-time rec-single" data-label="${level} ${esc(T('records.col.single', 'Single'))}">${formatRecordValue(rec.single, false)}</td>
+                <td class="rec-time rec-single" data-label="${level} ${esc(i18nT('records.col.single', 'Single'))}">${formatRecordValue(rec.single, false)}</td>
                 <td class="rec-holder rec-holder-single">${formatRecordHolder(rec.single)}</td>
-                <td class="rec-time rec-average" data-label="${level} ${esc(T('records.col.average', 'Average'))}">${formatRecordValue(rec.average, true)}</td>
+                <td class="rec-time rec-average" data-label="${level} ${esc(i18nT('records.col.average', 'Average'))}">${formatRecordValue(rec.average, true)}</td>
                 <td class="rec-holder rec-holder-average">${formatRecordHolder(rec.average)}</td>
                 <td class="rec-expand-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></td>
             `;
@@ -2100,7 +2127,11 @@
 
         const regionId = recordsFilter.region;
         const W = window.WcaCountries;
-        const regionName = W ? W.name(regionId) : 'World';
+        // Country and continent names come from the WCA's own English list and
+        // stay as published; only "World" is a plain word we translate.
+        const regionName = (!regionId || regionId === 'world')
+            ? i18nT('records.world', 'World')
+            : (W ? W.name(regionId) : i18nT('records.world', 'World'));
         const iso2 = W ? W.iso2(regionId) : '';
         const regionIcon = iso2
             ? countryFlagImg(iso2, 26)
@@ -2119,7 +2150,6 @@
         const bestSingleEvent = bestSingle ? timed.find(r => r.rec.single === bestSingle) : null;
         const bestAvgEvent = bestAverage ? timed.find(r => r.rec.average === bestAverage) : null;
 
-        const T = (k, fb) => (window.AppI18N ? window.AppI18N.t(k, fb) : fb);
         const card = (icon, value, label) => `
             <div class="records-stat-card">
                 <div class="records-stat-icon">${icon}</div>
@@ -2130,12 +2160,12 @@
             </div>`;
 
         strip.innerHTML = [
-            card(regionIcon, esc(regionName), T('records.stat.region', 'Region')),
-            card('🧩', String(rendered.length), T('records.stat.events', 'Events with records')),
+            card(regionIcon, esc(regionName), i18nT('records.stat.region', 'Region')),
+            card('🧩', String(rendered.length), i18nT('records.stat.events', 'Events with records')),
             card('⚡', bestSingle ? `${formatRecordValue(bestSingle, false)} <small>${esc(EVENT_NAMES[bestSingleEvent.eventId])}</small>` : '—',
-                 T('records.stat.fastestSingle', 'Fastest single')),
+                 i18nT('records.stat.fastestSingle', 'Fastest single')),
             card('📊', bestAverage ? `${formatRecordValue(bestAverage, true)} <small>${esc(EVENT_NAMES[bestAvgEvent.eventId])}</small>` : '—',
-                 T('records.stat.fastestAverage', 'Fastest average')),
+                 i18nT('records.stat.fastestAverage', 'Fastest average')),
         ].join('');
     }
 
@@ -2145,7 +2175,7 @@
         const listContainer = $('#upcoming-comps-list');
         if (!listContainer) return;
 
-        listContainer.innerHTML = '<div class="upcoming-comps-loading"><div class="spinner"></div><span>Loading upcoming competitions...</span></div>';
+        listContainer.innerHTML = `<div class="upcoming-comps-loading"><div class="spinner"></div><span>${esc(i18nT('comps.loading', 'Loading upcoming competitions...'))}</span></div>`;
 
         try {
             const today = new Date().toISOString().split('T')[0];
@@ -2162,7 +2192,7 @@
                 .slice(0, 20);
 
             if (comps.length === 0) {
-                listContainer.innerHTML = '<div class="upcoming-comps-empty">No upcoming competitions found.</div>';
+                listContainer.innerHTML = `<div class="upcoming-comps-empty">${esc(i18nT('comps.none', 'No upcoming competitions found.'))}</div>`;
                 return;
             }
 
@@ -2195,7 +2225,7 @@
             state.upcomingCompsFetched = true;
         } catch (err) {
             console.error('Error fetching upcoming competitions:', err);
-            listContainer.innerHTML = '<div class="upcoming-comps-empty">Failed to load upcoming competitions.</div>';
+            listContainer.innerHTML = `<div class="upcoming-comps-empty">${esc(i18nT('comps.loadFailed', 'Failed to load upcoming competitions.'))}</div>`;
         }
     }
 
@@ -2338,7 +2368,7 @@
     // ========== WCA API: PERSON LOOKUP ==========
     async function lookupWCAProfile(overrideWcaId = null, quiet = false) {
         const wcaId = (typeof overrideWcaId === 'string' ? overrideWcaId : ($('#wca-id') ? $('#wca-id').value : '')).trim().toUpperCase();
-        if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
+        if (!wcaId) { showToast(i18nT('toast.needWcaId', 'Please enter a WCA ID'), 'error'); return; }
 
         if (!quiet) {
             // Show loading
@@ -2472,7 +2502,7 @@
                 if ($('#wca-error-display')) $('#wca-error-display').style.display = 'none';
                 
                 if (!quiet) {
-                    showToast(`✅ Found: ${data.person.name}`, 'success');
+                    showToast(`✅ ${i18nT('toast.found', 'Found')}: ${data.person.name}`, 'success');
                 }
             // End of removed if (!quiet) block
 
@@ -2496,7 +2526,7 @@
 
     async function fetchPastCompetitions() {
         const wcaId = $('#past-comp-wca-id').value.trim().toUpperCase();
-        if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
+        if (!wcaId) { showToast(i18nT('toast.needWcaId', 'Please enter a WCA ID'), 'error'); return; }
 
         const loadingDiv = $('#past-comps-loading');
         const errorDiv = $('#past-comps-error');
@@ -2551,7 +2581,7 @@
                 link.innerHTML = `
                     <div style="flex: 1;">
                         <div class="upcoming-comp-name">${compId}</div>
-                        <div class="upcoming-comp-date">View on WCA →</div>
+                        <div class="upcoming-comp-date">${esc(i18nT('comps.viewOnWca', 'View on WCA →'))}</div>
                     </div>
                 `;
                 compListContainer.appendChild(link);
@@ -2583,7 +2613,7 @@
         if (!btnGuard || btnGuard.disabled) return;
 
         const wcaId = $('#upcoming-comp-wca-id').value.trim().toUpperCase();
-        if (!wcaId) { showToast('Please enter a WCA ID', 'error'); return; }
+        if (!wcaId) { showToast(i18nT('toast.needWcaId', 'Please enter a WCA ID'), 'error'); return; }
 
         const loadingDiv = $('#upcoming-comps-search-loading');
         const errorDiv   = $('#upcoming-comps-search-error');
@@ -2725,7 +2755,7 @@
         const allEvents = Object.keys(prs).filter(evt => evt === currentEvent);
 
         if (allEvents.length === 0) {
-            prTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:var(--clr-text-muted);">No official results yet.</td></tr>';
+            prTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:var(--clr-text-muted);">${esc(i18nT('stats.noResults', 'No official results yet.'))}</td></tr>`;
         } else {
             prTableBody.innerHTML = allEvents.map(evt => {
                 const rec = prs[evt];
@@ -2777,7 +2807,7 @@
         state.numSolves = isMo3 ? 3 : 5;
         const hint = $('#event-format-hint');
         if (hint) {
-            hint.textContent = isMo3 ? 'Mean of 3' : 'Average of 5';
+            hint.textContent = isMo3 ? i18nT('timer.meanOf3', 'Mean of 3') : i18nT('setup.ao5', 'Average of 5');
         }
     }
 
@@ -2795,11 +2825,11 @@
                 // User is logged in via WCA OAuth — use their WCA ID automatically
                 await lookupWCAProfile(state.userProfile.wca_id, true);
                 if (!state.playerData) {
-                    showToast('⚠️ Could not load your WCA profile. Please try again.', 'error');
+                    showToast('⚠️ ' + i18nT('toast.profileFailed', 'Could not load your WCA profile. Please try again.'), 'error');
                     return;
                 }
             } else {
-                showToast('⚠️ Please enter or look up a WCA ID first', 'error');
+                showToast('⚠️ ' + i18nT('toast.lookupFirst', 'Please enter or look up a WCA ID first'), 'error');
                 return;
             }
         }
@@ -2823,7 +2853,7 @@
                 p.registration.eventIds && p.registration.eventIds.includes(state.event)
             );
             if (!isRegistered) {
-                showToast(`⚠️ You are not registered for ${EVENT_NAMES[state.event] || state.event} at this competition!`, 'error');
+                showToast('⚠️ ' + i18nT('toast.notRegistered', 'You are not registered for {event} at this competition!').replace('{event}', EVENT_NAMES[state.event] || state.event), 'error');
                 return;
             }
         }
@@ -2843,7 +2873,7 @@
         if (!state.compName && state.compId) {
             state.compName = state.compId;
         } else if (!state.compName) {
-            state.compName = 'Custom Competition';
+            state.compName = i18nT('sim.customComp', 'Custom Competition');
         }
 
         // Ensure we have a valid numCompetitors
@@ -2861,7 +2891,7 @@
         state.selectedPenalty = 'none';
 
         // Generate official random-state scrambles for the whole round
-        showToast('Generating official scrambles…', 'info');
+        showToast(i18nT('toast.generatingScrambles', 'Generating official scrambles…'), 'info');
         state.scrambles = await generateScrambleSet(state.event, state.numSolves);
 
         // Generate competitors
@@ -2876,7 +2906,7 @@
         resetTimer();
 
         switchView('dashboard');
-        showToast(`🏁 Simulation started! ${EVENT_NAMES[state.event]} - ${getRoundName(state.round)}`, 'info');
+        showToast(`🏁 ${i18nT('toast.simStarted', 'Simulation started!')} ${EVENT_NAMES[state.event]} - ${getRoundName(state.round)}`, 'info');
         
         if (state.rtInterval) clearInterval(state.rtInterval);
         state.rtInterval = setInterval(updateRealTimeSimulation, 500);
@@ -2985,7 +3015,7 @@
                 const MAX_HISTORICAL_FETCHES = 60;
                 const withId = toAdd.filter(p => p.wcaId).slice(0, MAX_HISTORICAL_FETCHES);
                 if (withId.length) {
-                    showToast(`Fetching historical PRs (${withId.length})…`, 'info');
+                    showToast(i18nT('toast.fetchingPrs', 'Fetching historical PRs ({n})…').replace('{n}', withId.length), 'info');
                     await mapWithConcurrency(withId, 8, async (p) => {
                         try {
                             const pr = await historicalPRForCompetitor(p.wcaId, state.compId, state.event);
@@ -3172,9 +3202,9 @@
                 spaceTimer.textContent = '0.00';
                 spaceTimer.className = 'sim-space-timer';
             }
-            if (hint) hint.textContent = 'Hold Space (or tap) to start · tap again to stop';
-            if (title) title.textContent = '⏱️ Timer';
-            if (statusEl) { statusEl.textContent = 'READY'; statusEl.className = 'timer-status ready'; }
+            if (hint) hint.textContent = i18nT('sim.spaceHint', 'Hold Space (or tap) to start · tap again to stop');
+            if (title) title.textContent = '⏱️ ' + i18nT('nav.timer', 'Timer');
+            if (statusEl) { statusEl.textContent = i18nT('timer.phase.ready', 'READY'); statusEl.className = 'timer-status ready'; }
         } else {
             // Manual entry mode (original behavior).
             state.timerState = 'stopped';
@@ -3185,9 +3215,9 @@
                 setTimeout(() => input.focus(), 50);
             }
             if (spaceTimer) spaceTimer.style.display = 'none';
-            if (hint) hint.textContent = 'Type numbers (e.g. 954 for 9.54s) and press Enter';
-            if (title) title.textContent = '⌨️ Enter Time';
-            if (statusEl) { statusEl.textContent = 'INPUT'; statusEl.className = 'timer-status ready'; }
+            if (hint) hint.textContent = i18nT('dash.typeHint', 'Type numbers (e.g. 954 for 9.54s) and press Enter');
+            if (title) title.textContent = i18nT('dash.enterTime', '⌨️ Enter Time');
+            if (statusEl) { statusEl.textContent = i18nT('dash.input', 'INPUT'); statusEl.className = 'timer-status ready'; }
         }
         $('#submit-solve-btn').disabled = false;
         selectPenalty('none');
@@ -3230,9 +3260,9 @@
         const input = $('#manual-time-input');
         if (input) input.value = state.timerValue.toFixed(2);
         const hint = $('#timer-hint');
-        if (hint) hint.textContent = 'Space to submit · or set +2 / DNF first';
+        if (hint) hint.textContent = i18nT('sim.submitHint', 'Space to submit · or set +2 / DNF first');
         const s = $('#timer-status');
-        if (s) { s.textContent = 'STOPPED'; s.className = 'timer-status ready'; }
+        if (s) { s.textContent = i18nT('sim.stopped', 'STOPPED'); s.className = 'timer-status ready'; }
         if (state.soundEnabled) playBeep(660, 60);
     }
 
@@ -3281,7 +3311,7 @@
         const penalty = state.selectedPenalty;
 
         if (!val && penalty !== 'dnf') {
-            showToast('Please enter a valid time', 'error');
+            showToast(i18nT('toast.invalidTime', 'Please enter a valid time'), 'error');
             return;
         }
 
@@ -3320,8 +3350,8 @@
             resetTimer();
 
             if (state.liveMode) {
-                showToast('⏳ Waiting for next attempt...', 'info');
-                setTimeout(() => showToast('✅ Ready for next attempt!', 'success'), 5000 + Math.random() * 10000);
+                showToast('⏳ ' + i18nT('toast.waitingNext', 'Waiting for next attempt...'), 'info');
+                setTimeout(() => showToast('✅ ' + i18nT('toast.readyNext', 'Ready for next attempt!'), 'success'), 5000 + Math.random() * 10000);
             }
         }
     }
@@ -3357,7 +3387,7 @@
                 ? truncateScramble(state.scrambles[i])
                 : (i < state.currentSolve && state.scrambles[i])
                     ? truncateScramble(state.scrambles[i])
-                    : '<span class="scramble-hidden">Hidden</span>';
+                    : `<span class="scramble-hidden">${esc(i18nT('sim.hidden', 'Hidden'))}</span>`;
             tr.innerHTML = `
                 <td>${i + 1}</td>
                 <td class="scramble-cell">${scrambleText}</td>
@@ -3515,7 +3545,7 @@
 
         if (state.solves.length === 0) {
             $('#goal-current-avg').textContent = '—';
-            $('#goal-status').textContent = 'Waiting...';
+            $('#goal-status').textContent = i18nT('dash.waiting', 'Waiting...');
             $('#goal-status').className = 'goal-val goal-status';
             updateGoalRing(0);
             return;
@@ -3524,7 +3554,7 @@
         const validSolves = state.solves.filter(s => s.penalty !== 'dnf');
         if (validSolves.length === 0) {
             $('#goal-current-avg').textContent = 'DNF';
-            $('#goal-status').textContent = 'All DNF';
+            $('#goal-status').textContent = i18nT('goal.allDnf', 'All DNF');
             $('#goal-status').className = 'goal-val goal-status behind';
             updateGoalRing(0);
             return;
@@ -3537,11 +3567,11 @@
         updateGoalRing(Math.round(progress));
 
         if (currentAvg <= goalTarget) {
-            $('#goal-status').textContent = '✅ On Track!';
+            $('#goal-status').textContent = '✅ ' + i18nT('goal.onTrack', 'On Track!');
             $('#goal-status').className = 'goal-val goal-status on-track';
         } else {
             const diff = (currentAvg - goalTarget).toFixed(2);
-            $('#goal-status').textContent = `+${diff}s behind`;
+            $('#goal-status').textContent = i18nT('goal.behind', '+{n}s behind').replace('{n}', diff);
             $('#goal-status').className = 'goal-val goal-status behind';
         }
     }
@@ -3632,20 +3662,20 @@
 
             let statusBadge = '';
             if (comp.isPlayer) {
-                statusBadge = '<span class="status-badge user">You</span>';
+                statusBadge = `<span class="status-badge user">${esc(i18nT('home.sim.you', 'You'))}</span>`;
             } else {
                 if (comp.status === 'solving') {
-                    statusBadge = '<span class="status-badge solving">Solving</span>';
+                    statusBadge = `<span class="status-badge solving">${esc(i18nT('lb.solving', 'Solving'))}</span>`;
                 } else if (comp.status === 'waiting') {
-                    statusBadge = '<span class="status-badge waiting">Waiting</span>';
+                    statusBadge = `<span class="status-badge waiting">${esc(i18nT('lb.waiting', 'Waiting'))}</span>`;
                 } else if (comp.status === 'finished') {
-                    statusBadge = '<span class="status-badge finished">Finished</span>';
+                    statusBadge = `<span class="status-badge finished">${esc(i18nT('lb.finished', 'Finished'))}</span>`;
                 }
             }
 
             tr.innerHTML = `
                 <td class="lb-rank">${medal || rank}</td>
-                <td class="lb-name">${flagHtml} ${comp.name}${comp.isPlayer ? ' (You)' : ''}</td>
+                <td class="lb-name">${flagHtml} ${comp.name}${comp.isPlayer ? ' (' + esc(i18nT('home.sim.you', 'You')) + ')' : ''}</td>
                 <td class="lb-pr">${prStr}</td>
                 <td class="lb-best">${bestStr}</td>
                 <td class="lb-avg">${avgStr}</td>
@@ -3690,10 +3720,10 @@
 
         let message = '';
         if (placement === 1) {
-            message = '🏆 INCREDIBLE! You won the round!';
+            message = '🏆 ' + i18nT('end.won', 'INCREDIBLE! You won the round!');
             $('#next-round-btn').style.display = hasNextRound ? 'inline-flex' : 'none';
         } else if (placement <= 3) {
-            message = '🏅 Amazing! Podium finish!';
+            message = '🏅 ' + i18nT('end.podium', 'Amazing! Podium finish!');
             $('#next-round-btn').style.display = hasNextRound ? 'inline-flex' : 'none';
         } else {
             // Check if would advance (top 75% for R1, top 50% for R2, etc)
@@ -3731,7 +3761,9 @@
         }
 
         $('#round-end-message').textContent = message;
-        $('#round-end-title').textContent = placement <= 3 ? '🏆 Incredible Performance!' : 'Round Complete!';
+        $('#round-end-title').textContent = placement <= 3
+            ? '🏆 ' + i18nT('end.greatPerf', 'Incredible Performance!')
+            : i18nT('dash.roundComplete', 'Round Complete!');
         $('#round-end-overlay').style.display = 'flex';
 
         if (placement <= 3) spawnConfetti();
@@ -3771,7 +3803,7 @@
         renderLeaderboard();
         resetTimer();
 
-        showToast(`🏁 ${getRoundName(state.round)} started! ${state.numCompetitors} competitors remaining.`, 'info');
+        showToast(`🏁 ${i18nT('toast.roundStarted', '{round} started! {n} competitors remaining.').replace('{round}', getRoundName(state.round)).replace('{n}', state.numCompetitors)}`, 'info');
         saveSimState();
     }
 
@@ -3844,11 +3876,11 @@
     }
 
     function clearHistory() {
-        if (confirm('Clear all simulation history?')) {
+        if (confirm(i18nT('confirm.clearHistory', 'Clear all simulation history?'))) {
             state.history = [];
             localStorage.removeItem('sc-history');
             renderHistory();
-            showToast('History cleared', 'info');
+            showToast(i18nT('toast.historyCleared', 'History cleared'), 'info');
         }
     }
 
@@ -3901,7 +3933,7 @@
         battleChatSeenIds = new Set();
         const messagesEl = $('#battle-chat-messages');
         if (messagesEl) messagesEl.innerHTML = '<div class="battle-chat-empty">No messages yet \u2014 say hi!</div>';
-        updateBattleChatStatus('connecting\u2026');
+        updateBattleChatStatus(i18nT('battle.connecting', 'connecting\u2026'));
         pollBattleChat();
         if (battleChatInterval) clearInterval(battleChatInterval);
         battleChatInterval = setInterval(() => {
@@ -3929,10 +3961,10 @@
                 if (r2.ok) data = await r2.json();
             }
             if (data === null) {
-                updateBattleChatStatus('offline');
+                updateBattleChatStatus(i18nT('battle.offline', 'offline'));
                 return;
             }
-            updateBattleChatStatus('live');
+            updateBattleChatStatus(i18nT('battle.liveLower', 'live'));
 
             if (!data) {
                 const el = $('#battle-chat-messages');
@@ -3954,7 +3986,7 @@
                 renderBattleChat(messages);
             }
         } catch (e) {
-            updateBattleChatStatus('offline');
+            updateBattleChatStatus(i18nT('battle.offline', 'offline'));
         }
     }
 
@@ -4021,11 +4053,11 @@
         // airtight; this stops the accidental/casual case.)
         const now = Date.now();
         if (now - battleChatLastSentAt < BATTLE_CHAT_MIN_GAP_MS) {
-            showToast('Slow down a moment', 'error');
+            showToast(i18nT('toast.slowDown', 'Slow down a moment'), 'error');
             return;
         }
         if (text === battleChatLastSentText && now - battleChatLastSentAt < 10000) {
-            showToast('That message was just sent', 'error');
+            showToast(i18nT('toast.duplicateMsg', 'That message was just sent'), 'error');
             return;
         }
         battleChatLastSentAt = now;
@@ -4160,8 +4192,8 @@
         text += `Best: ${best === Infinity ? 'DNF' : formatTime(best)}\n`;
 
         navigator.clipboard.writeText(text).then(() => {
-            showToast('📋 Results copied to clipboard!', 'success');
-        }).catch(() => { showToast('Failed to copy', 'error'); });
+            showToast('📋 ' + i18nT('toast.resultsCopied', 'Results copied to clipboard!'), 'success');
+        }).catch(() => { showToast(i18nT('toast.copyFailed', 'Failed to copy'), 'error'); });
     }
 
     // ========== STATE PERSISTENCE ==========
@@ -4228,7 +4260,7 @@
             // Restore state
             Object.assign(state, {
                 compId: restored.compId || '',
-                compName: restored.compName || 'Custom Competition',
+                compName: restored.compName || i18nT('sim.customComp', 'Custom Competition'),
                 event: restored.event || '333',
                 numSolves: restored.numSolves || 5,
                 round: restored.round || 1,
@@ -4261,7 +4293,7 @@
             resetTimer();
 
             switchView('dashboard');
-            showToast('🔄 Simulation restored!', 'info');
+            showToast('🔄 ' + i18nT('toast.simRestored', 'Simulation restored!'), 'info');
             return true;
         } catch (err) {
             console.error('Failed to restore simulation state:', err);
@@ -4393,6 +4425,7 @@
         inputMode: 'keyboard', // 'keyboard' | 'typing'
         lastSeenScrambleIndex: -1,
         autoAdvancedIndex: -1,
+        lastLobbyData: null,
     };
 
     // ----- Scramble generator -----
@@ -4505,6 +4538,9 @@
     function renderBattleLobby(data) {
         const grid = $('#battle-rooms-grid');
         if (!grid) return;
+        // Kept so the lobby can be redrawn on a language change without
+        // waiting for the next poll.
+        battleState.lastLobbyData = data;
 
         // Prune stale rooms (inactive >30 min)
         const rooms = [];
@@ -4522,7 +4558,7 @@
         if (visible.length === 0) {
             grid.innerHTML = `<div class="battle-empty-state">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <p>No rooms found. <button class="btn btn-primary" style="margin-left:8px;" onclick="document.getElementById('battle-create-room-btn').click()">Create one!</button></p>
+                <p>${esc(i18nT('battle.noRooms', 'No rooms found.'))} <button class="btn btn-primary" style="margin-left:8px;" onclick="document.getElementById('battle-create-room-btn').click()">${esc(i18nT('battle.createOne', 'Create one!'))}</button></p>
             </div>`;
             return;
         }
@@ -4537,20 +4573,20 @@
             return `<div class="battle-room-card" data-room-id="${room.id}" style="--evt-color:${evtInfo.color}">
                 <div class="battle-privacy-badge ${room.isPrivate ? 'is-private' : 'is-public'}">
                     ${room.isPrivate ? LOCK_CLOSED : LOCK_OPEN}
-                    <span>${room.isPrivate ? 'Private Room' : 'Public Room'}</span>
+                    <span>${esc(room.isPrivate ? i18nT('battle.privateRoom', 'Private Room') : i18nT('battle.publicRoom', 'Public Room'))}</span>
                 </div>
                 <div class="battle-room-card-event" style="background:${evtInfo.color}22;color:${evtInfo.color};border-color:${evtInfo.color}44">${evtInfo.label}</div>
-                <div class="battle-room-card-name">${room.name || 'Unnamed Room'}</div>
-                <div class="battle-room-card-host">Host: ${room.hostName || 'Unknown'}</div>
+                <div class="battle-room-card-name">${room.name || esc(i18nT('battle.unnamedRoom', 'Unnamed Room'))}</div>
+                <div class="battle-room-card-host">${esc(i18nT('battle.host', 'Host'))}: ${room.hostName || esc(i18nT('battle.unknown', 'Unknown'))}</div>
                 <div class="battle-room-card-footer">
                     <div class="battle-room-card-players">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                        ${memberCount} player${memberCount !== 1 ? 's' : ''}
+                        ${esc((memberCount === 1 ? i18nT('battle.player', '{n} player') : i18nT('battle.players', '{n} players')).replace('{n}', memberCount))}
                     </div>
-                    <div class="battle-room-card-status battle-status--waiting">Active</div>
+                    <div class="battle-room-card-status battle-status--waiting">${esc(i18nT('battle.active', 'Active'))}</div>
                 </div>
                 <button class="battle-join-btn" data-room-id="${room.id}">
-                    ${room.isPrivate ? '🔒 Join' : 'Join →'}
+                    ${room.isPrivate ? '🔒 ' + esc(i18nT('battle.join', 'Join')) : esc(i18nT('battle.join', 'Join')) + ' →'}
                 </button>
             </div>`;
         }).join('');
@@ -4614,11 +4650,11 @@
         $('#battle-create-confirm').addEventListener('click', async () => {
             const name = $('#battle-room-name-input').value.trim().replace(/\s+/g, ' ');
             if (name.length < BATTLE_ROOM_NAME_MIN) {
-                showToast(`Room name needs at least ${BATTLE_ROOM_NAME_MIN} characters`, 'error');
+                showToast(i18nT('toast.roomNameShort', 'Room name needs at least {n} characters').replace('{n}', BATTLE_ROOM_NAME_MIN), 'error');
                 return;
             }
             if (name.length > BATTLE_ROOM_NAME_MAX) {
-                showToast(`Room name can be at most ${BATTLE_ROOM_NAME_MAX} characters`, 'error');
+                showToast(i18nT('toast.roomNameLong', 'Room name can be at most {n} characters').replace('{n}', BATTLE_ROOM_NAME_MAX), 'error');
                 return;
             }
             // Cooldown between room creations, so the list can't be flooded
@@ -4626,12 +4662,12 @@
             const lastCreated = Number(localStorage.getItem(BATTLE_ROOM_LAST_KEY) || 0);
             const waitMs = BATTLE_ROOM_COOLDOWN_MS - (Date.now() - lastCreated);
             if (waitMs > 0) {
-                showToast(`Please wait ${Math.ceil(waitMs / 1000)}s before creating another room`, 'error');
+                showToast(i18nT('toast.roomCooldown', 'Please wait {n}s before creating another room').replace('{n}', Math.ceil(waitMs / 1000)), 'error');
                 return;
             }
             const isPrivate = $('#battle-vis-private').classList.contains('active');
             const password = $('#battle-room-password').value.trim();
-            if (isPrivate && !password) { showToast('Please set a password', 'error'); return; }
+            if (isPrivate && !password) { showToast(i18nT('toast.needPassword', 'Please set a password'), 'error'); return; }
 
             const userId = getBattleUserId();
             const userName = getBattleUserName();
@@ -4652,12 +4688,12 @@
             };
 
             $('#battle-create-confirm').disabled = true;
-            $('#battle-create-confirm').textContent = 'Creating...';
+            $('#battle-create-confirm').textContent = i18nT('battle.creating', 'Creating...');
             const result = await fbPush(BATTLE_PATH, roomData);
             $('#battle-create-confirm').disabled = false;
-            $('#battle-create-confirm').textContent = 'Create Room';
+            $('#battle-create-confirm').textContent = i18nT('battle.createRoom', 'Create Room');
 
-            if (!result || !result.name) { showToast('Failed to create room. Try again.', 'error'); return; }
+            if (!result || !result.name) { showToast(i18nT('toast.roomCreateFailed', 'Failed to create room. Try again.'), 'error'); return; }
             try { localStorage.setItem(BATTLE_ROOM_LAST_KEY, String(Date.now())); } catch (e) { /* private mode */ }
             $('#battle-create-modal').style.display = 'none';
             await enterBattleRoom(result.name, roomData);
@@ -4670,7 +4706,7 @@
             const roomId = battleState.pendingRoomId;
             if (!roomId) return;
             const room = await fbGet(`${BATTLE_PATH}/${roomId}`);
-            if (!room) { showToast('Room not found', 'error'); return; }
+            if (!room) { showToast(i18nT('toast.roomNotFound', 'Room not found'), 'error'); return; }
             const entered = $('#battle-pw-input').value;
             if (entered !== room.password) {
                 $('#battle-pw-error').style.display = 'flex';
@@ -4746,7 +4782,7 @@
         await fbUpdate(`${BATTLE_PATH}/${roomId}/members/${userId}`, { name: userName, joinedAt: now });
         await fbUpdate(`${BATTLE_PATH}/${roomId}`, { updatedAt: now });
         const roomData = roomDataArg || await fbGet(`${BATTLE_PATH}/${roomId}`);
-        if (!roomData) { showToast('Could not join room', 'error'); return; }
+        if (!roomData) { showToast(i18nT('toast.roomJoinFailed', 'Could not join room'), 'error'); return; }
         await enterBattleRoom(roomId, roomData);
     }
 
@@ -4764,7 +4800,7 @@
         battleState.timerArmed = false;
         const timeEl = $('#battle-timer-time');
         if (timeEl) { timeEl.textContent = '0.00'; timeEl.className = 'battle-timer-time'; }
-        if ($('#battle-timer-status')) { $('#battle-timer-status').textContent = 'Hold Space to start timer'; $('#battle-timer-status').style.color = ''; }
+        if ($('#battle-timer-status')) { $('#battle-timer-status').textContent = i18nT('battle.holdSpace', 'Hold Space to start timer'); $('#battle-timer-status').style.color = ''; }
 
         // Show/hide room UI
         if ($('#battle-lobby')) $('#battle-lobby').style.display = 'none';
@@ -4826,7 +4862,7 @@
         const currentScrambleObj = scrambles[currentIdx];
         const currentScramble = currentScrambleObj ? currentScrambleObj.scramble : null;
         if (scrambleEl) {
-            scrambleEl.textContent = currentScramble || 'Waiting for scramble...';
+            scrambleEl.textContent = currentScramble || i18nT('battle.waitingScramble', 'Waiting for scramble...');
         }
         const twisty = $('#battle-twisty');
         if (twisty && currentScramble) {
@@ -4845,7 +4881,7 @@
             const timeEl = $('#battle-timer-time');
             if (timeEl) { timeEl.textContent = '0.00'; timeEl.className = 'battle-timer-time'; }
             const statusEl = $('#battle-timer-status');
-            if (statusEl) { statusEl.textContent = 'Hold Space to start timer'; statusEl.style.color = ''; }
+            if (statusEl) { statusEl.textContent = i18nT('battle.holdSpace', 'Hold Space to start timer'); statusEl.style.color = ''; }
             const typingDisp = $('#battle-typing-display');
             if (typingDisp) { typingDisp.textContent = '0.00'; typingDisp.className = 'battle-timer-time'; }
             const typingInp = $('#battle-typing-input');
@@ -4858,7 +4894,7 @@
 
         // Ordered player IDs: host first, then others, me always highlighted
         const playerIds = Object.keys(members);
-        if (playerIds.length === 0) { tableWrap.innerHTML = '<div class="battle-scores-empty">No players yet</div>'; return; }
+        if (playerIds.length === 0) { tableWrap.innerHTML = `<div class="battle-scores-empty">${esc(i18nT('battle.noPlayers', 'No players yet'))}</div>`; return; }
 
         // Get all scramble indices (newest first)
         const allIndices = Object.keys(scrambles).map(Number).sort((a,b) => b - a);
@@ -4955,7 +4991,7 @@
 
         // ---- Solve rows (newest first) ----
         if (allIndices.length === 0) {
-            html += `<tr><td colspan="${playerIds.length + 1}" class="bct-empty">No solves yet — solve the scramble!</td></tr>`;
+            html += `<tr><td colspan="${playerIds.length + 1}" class="bct-empty">${esc(i18nT('battle.noSolvesTable', 'No solves yet — solve the scramble!'))}</td></tr>`;
         } else {
             allIndices.forEach(idx => {
                 const rowData = eventSolves[idx] || {};
@@ -5113,7 +5149,7 @@
                 if (!inp2) return;
                 const parsed = parseTypedTime(inp2.value);
                 if (parsed === null || parsed <= 0) {
-                    showToast('Invalid time format. Use digits: 1234 = 12.34s', 'error');
+                    showToast(i18nT('toast.badTimeFormat', 'Invalid time format. Use digits: 1234 = 12.34s'), 'error');
                     return;
                 }
                 await submitBattleSolve(parsed);
@@ -5156,10 +5192,10 @@
             battleState.spaceHeld = true;
             battleState.timerArmed = false;
             const statusEl = $('#battle-timer-status');
-            if (statusEl) { statusEl.textContent = 'Holding...'; statusEl.style.color = '#F1C40F'; }
+            if (statusEl) { statusEl.textContent = i18nT('battle.holding', 'Holding...'); statusEl.style.color = '#F1C40F'; }
             battleState.spaceHoldTimeout = setTimeout(() => {
                 battleState.timerArmed = true;
-                if (statusEl) { statusEl.textContent = 'Release to start!'; statusEl.style.color = '#2ECC71'; }
+                if (statusEl) { statusEl.textContent = i18nT('battle.release', 'Release to start!'); statusEl.style.color = '#2ECC71'; }
             }, 500);
         }
     }
@@ -5177,7 +5213,7 @@
                 startBattleTimer();
             } else {
                 const statusEl = $('#battle-timer-status');
-                if (statusEl) { statusEl.textContent = 'Hold Space to start timer'; statusEl.style.color = ''; }
+                if (statusEl) { statusEl.textContent = i18nT('battle.holdSpace', 'Hold Space to start timer'); statusEl.style.color = ''; }
             }
         }
         battleState.spaceHeld = false;
@@ -5199,10 +5235,10 @@
             battleState.spaceHeld = true;
             battleState.timerArmed = false;
             const statusEl = $('#battle-timer-status');
-            if (statusEl) { statusEl.textContent = 'Holding...'; statusEl.style.color = '#F1C40F'; }
+            if (statusEl) { statusEl.textContent = i18nT('battle.holding', 'Holding...'); statusEl.style.color = '#F1C40F'; }
             battleState.spaceHoldTimeout = setTimeout(() => {
                 battleState.timerArmed = true;
-                if (statusEl) { statusEl.textContent = 'Release to start!'; statusEl.style.color = '#2ECC71'; }
+                if (statusEl) { statusEl.textContent = i18nT('battle.release', 'Release to start!'); statusEl.style.color = '#2ECC71'; }
             }, 500);
         }
     }
@@ -5220,7 +5256,7 @@
                 startBattleTimer();
             } else {
                 const statusEl = $('#battle-timer-status');
-                if (statusEl) { statusEl.textContent = 'Hold Space/Touch to start timer'; statusEl.style.color = ''; }
+                if (statusEl) { statusEl.textContent = i18nT('battle.holdToStart', 'Hold Space/Touch to start timer'); statusEl.style.color = ''; }
             }
         }
         battleState.spaceHeld = false;
@@ -5251,7 +5287,7 @@
         await submitBattleSolve(elapsed);
         // Reset timer so user can start next attempt (while waiting for others)
         if (timeEl) { timeEl.textContent = '0.00'; timeEl.className = 'battle-timer-time'; }
-        if (statusEl) { statusEl.textContent = 'Hold Space to start timer'; statusEl.style.color = ''; }
+        if (statusEl) { statusEl.textContent = i18nT('battle.holdSpace', 'Hold Space to start timer'); statusEl.style.color = ''; }
     }
 
     // ---- Shared submit ----
@@ -5268,7 +5304,7 @@
             submittedAt: Date.now()
         });
         await fbUpdate(`${BATTLE_PATH}/${roomId}`, { updatedAt: Date.now() });
-        showToast(`Solve recorded: ${battleFormatTime(elapsedMs)}`, 'success');
+        showToast(`${i18nT('toast.solveRecorded', 'Solve recorded')}: ${battleFormatTime(elapsedMs)}`, 'success');
     }
 
     // ========== START ==========
