@@ -166,7 +166,6 @@
             'timer.hint': 'Space = start/stop · 1=OK · 2=+2 · 3=DNF · Ctrl+Z=delete last',
             'timer.manualHint': 'Type time and press Enter<br><small>e.g. <code>1234</code> = 12.34s &nbsp;·&nbsp; <code>1:05.30</code> = 1m 5.30s</small>',
             'timer.manualPlaceholder': 'Type time...',
-            'timer.stopHint': 'Click a penalty or press 1 / 2 / 3 / Esc &nbsp;·&nbsp; Shift+Backspace to delete',
             'timer.about.intro': '<strong>SimTimer</strong> — a csTimer-inspired speedcubing practice tool.',
             'timer.about.features': 'Features:',
 
@@ -207,6 +206,10 @@
             'bt.offScramble': 'Off scramble — undo the wrong move or click "Mark as solved" to restart.',
             'bt.only333': 'Smart cube tracking works with 3x3x3 events only.',
             'bt.only333Connect': 'The smart cube can only be connected in 3x3x3 events.',
+
+            'aria.selectSession': 'Select session',
+
+            'aria.solveActions': 'Solve penalty',
 
             'battle.createModalTitle': 'Create Battle Room',
             'battle.roomName': 'Room Name',
@@ -723,7 +726,6 @@
             'timer.hint': 'Espaço = iniciar/parar · 1=OK · 2=+2 · 3=DNF · Ctrl+Z=apagar último',
             'timer.manualHint': 'Escreve o tempo e prime Enter<br><small>ex.: <code>1234</code> = 12.34s &nbsp;·&nbsp; <code>1:05.30</code> = 1m 5.30s</small>',
             'timer.manualPlaceholder': 'Escreve o tempo...',
-            'timer.stopHint': 'Clica numa penalização ou prime 1 / 2 / 3 / Esc &nbsp;·&nbsp; Shift+Backspace para apagar',
             'timer.about.intro': '<strong>SimTimer</strong> — uma ferramenta de treino de speedcubing inspirada no csTimer.',
             'timer.about.features': 'Funcionalidades:',
 
@@ -764,6 +766,10 @@
             'bt.offScramble': 'Fora do scramble — desfaz o movimento errado ou clica em "Marcar como resolvido" para recomeçar.',
             'bt.only333': 'O acompanhamento do cubo Bluetooth só funciona em eventos 3x3x3.',
             'bt.only333Connect': 'O cubo Bluetooth só pode ser ligado em eventos 3x3x3.',
+
+            'aria.selectSession': 'Escolher sessão',
+
+            'aria.solveActions': 'Penalização do solve',
 
             'battle.createModalTitle': 'Criar sala de batalha',
             'battle.roomName': 'Nome da sala',

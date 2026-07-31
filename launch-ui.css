@@ -1570,9 +1570,6 @@ select.form-select {
 
     .nav-links .nav-btn:active { transform: scale(0.94); }
 
-    /* The battle tab keeps its accent but not the desktop gradient fill. */
-    .nav-links .nav-btn--battle::after { display: none; }
-
     /* ---------- "More" bottom sheet ---------- */
 
     .mnav-backdrop {
@@ -1667,12 +1664,6 @@ select.form-select {
     .mnav-sheet-items span,
     .mnav-item-label {
         display: inline !important;
-    }
-
-    /* The battle badge would overflow the tile. */
-    .mnav-sheet-items .nav-btn--battle::after {
-        top: 6px;
-        right: 6px;
     }
 
     /* ---------- Chunky press physics ----------
