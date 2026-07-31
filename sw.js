@@ -13,7 +13,7 @@
    Bump CACHE_VERSION to retire every previous cache.
    ============================================================ */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `cubinghq-${CACHE_VERSION}`;
 
 // Enough to boot the app offline on a first visit. Runtime caching picks up
@@ -29,8 +29,11 @@ const PRECACHE_URLS = [
     '/icons/apple-touch-icon-180.png',
 ];
 
-// The admin pages are not part of the app shell.
-const EXCLUDED = [/\/admin\.html$/, /\/admin_records\.html$/];
+// Paths this worker must not touch. The admin pages are not part of the app
+// shell; /_vercel/ is Vercel's own analytics endpoint, which is same-origin and
+// would otherwise be cached stale-while-revalidate — an analytics script served
+// from cache is pointless at best and misleading at worst.
+const EXCLUDED = [/\/admin\.html$/, /\/admin_records\.html$/, /^\/_vercel\//];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
