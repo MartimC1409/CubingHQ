@@ -633,7 +633,7 @@
     function bindEvents() {
         if (_globalListenersBound) {
             // Re-attach only the per-view pointer handlers (safe to redo).
-            const wrap = $('.cstimer-center');
+            const wrap = timerTapSurface();
             if (wrap && !wrap._csBtnBound) {
                 wrap.addEventListener('mousedown', onPointerDown);
                 wrap.addEventListener('touchstart', onPointerDown, { passive: false });
@@ -647,12 +647,20 @@
         document.addEventListener('mouseup', onPointerUp);
         document.addEventListener('touchend', onPointerUp);
 
-        const wrap = $('.cstimer-center');
+        const wrap = timerTapSurface();
         if (wrap && !wrap._csBtnBound) {
             wrap.addEventListener('mousedown', onPointerDown);
             wrap.addEventListener('touchstart', onPointerDown, { passive: false });
             wrap._csBtnBound = true;
         }
+    }
+
+    // Only the area between the scramble and the stats starts a solve. Binding
+    // the whole centre column meant a tap on the event or session picker ran
+    // preventDefault() — which is exactly what stops a native <select> from
+    // opening — and started the timer instead of showing the list.
+    function timerTapSurface() {
+        return $('#cs-timer-display-area') || $('.cstimer-center');
     }
 
     function isTypingTarget(t) {
@@ -718,8 +726,8 @@
         const timerView = $('#timer-view');
         if (!timerView || !timerView.classList.contains('active')) return;
         if (TSTATE.settings.useManualEntry) return;
-        // Don't capture clicks on actual buttons/inputs
-        if (e.target.closest && e.target.closest('button')) return;
+        // Don't capture presses on anything interactive.
+        if (e.target.closest && e.target.closest('button, select, a[href], label, [role="button"]')) return;
         if (isTypingTarget(e.target)) return;
         e.preventDefault();
         spaceAction('down');

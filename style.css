@@ -3552,9 +3552,6 @@ body {
    BATTLE FEATURE
    ============================================================ */
 
-.nav-btn--battle { position: relative; color: #FF6B35 !important; font-weight: 600; }
-.nav-btn--battle.active { background: linear-gradient(135deg, #FF6B35 0%, #E74C3C 100%) !important; color: #fff !important; border-color: transparent !important; }
-
 #battle-view { padding-top: 80px; min-height: 100vh; }
 
 .battle-login-gate { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 80px); padding: 2rem; }
