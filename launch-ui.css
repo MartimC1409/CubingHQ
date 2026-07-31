@@ -2103,41 +2103,6 @@ select.form-select {
     overflow-wrap: anywhere;
 }
 
-/* Setup moves: the sequence that scrambles a solved cube into this case.
-   Full-width, click-to-copy, styled quieter than the solving alg. */
-.alg-card-setup {
-    display: block;
-    width: 100%;
-    margin-top: 0.4rem;
-    padding: 0.35rem 0.45rem;
-    border: 1px dashed var(--clr-border);
-    border-radius: var(--radius-sm);
-    background: transparent;
-    text-align: center;
-    cursor: pointer;
-    font: inherit;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-.alg-card-setup:hover { border-color: var(--clr-primary); background: rgba(127, 127, 127, 0.06); }
-
-.alg-setup-label {
-    display: block;
-    margin-bottom: 2px;
-    font-size: 0.56rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--clr-text-muted);
-}
-.alg-setup-moves {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    line-height: 1.4;
-    color: var(--clr-text-secondary);
-    overflow-wrap: anywhere;
-}
-
 /* ZBLL / subgroup set selector — a wrapping chip row (SpeedCubeDB style). */
 .alg-subgroup-chips {
     display: flex;
@@ -2191,5 +2156,119 @@ select.form-select {
     .alg-card-viz { max-width: 84px; }
     .alg-card-name { font-size: 0.85rem; }
     .alg-card-alg { font-size: 0.7rem; }
-    .alg-setup-moves { font-size: 0.66rem; }
+}
+
+/* ============================================================
+   21. SMART-CUBE SOLVE BREAKDOWN
+   ------------------------------------------------------------
+   CFOP reconstruction shown after a Bluetooth solve: phase times,
+   the moves used, and a quality badge per segment.
+   ============================================================ */
+
+.bt-analysis {
+    width: 100%;
+    max-width: 640px;
+    margin: var(--space-md) auto 0;
+    padding: 14px 16px 16px;
+    border: 1px solid var(--clr-border);
+    border-radius: 16px;
+    background: var(--clr-bg-card, var(--clr-surface));
+    text-align: left;
+}
+
+.bt-an-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+}
+.bt-an-total {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--clr-text-secondary);
+}
+
+.bt-an-phase {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 14px 0 4px;
+}
+.bt-an-phase:first-of-type { margin-top: 0; }
+.bt-an-phase-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--clr-text);
+}
+.bt-an-phase-time {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--clr-text-muted);
+}
+
+.bt-an-row { margin: 8px 0 0; }
+.bt-an-row-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.bt-an-slot {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--clr-text-secondary);
+}
+
+.bt-an-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.5;
+    color: #fff;
+}
+.bt-an-optimal { background: var(--clr-success, #22c55e); }
+.bt-an-fumble  { background: var(--clr-warning, #f59e0b); color: #1a1a1a; }
+.bt-an-blunder { background: var(--clr-danger, #ef4444); }
+
+.bt-an-meta {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--clr-text-muted);
+}
+
+.bt-an-moves {
+    margin-top: 3px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--clr-text);
+    overflow-wrap: anywhere;
+}
+.bt-an-moves-lead { margin-bottom: 2px; }
+
+.bt-an-note {
+    margin-top: 12px;
+    font-size: 0.76rem;
+    color: var(--clr-text-muted);
+}
+
+@media (max-width: 850px) {
+    .bt-analysis { padding: 12px; border-radius: 14px; }
+    .bt-an-phase-name { font-size: 0.95rem; }
+    .bt-an-moves { font-size: 0.76rem; }
+    .bt-an-meta { margin-left: 0; width: 100%; }
 }

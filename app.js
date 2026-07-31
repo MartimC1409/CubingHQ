@@ -954,26 +954,6 @@
                 code.textContent = item.alg;
                 card.appendChild(code);
 
-                // Setup: the moves that scramble a solved cube into this case,
-                // so it can be set up and drilled (like SpeedCubeDB). Uses the
-                // curated setup when present, else the inverse of the alg.
-                const setupStr = getCaseSetup(item, event);
-                if (setupStr && setupStr !== 'skip' && setupStr.trim() && setupStr.trim() !== '/') {
-                    const setupEl = document.createElement('button');
-                    setupEl.type = 'button';
-                    setupEl.className = 'alg-card-setup';
-                    setupEl.title = trAlg('alg.setupCopy', 'Copy setup');
-                    setupEl.innerHTML =
-                        `<span class="alg-setup-label" data-i18n="alg.setup">${esc(trAlg('alg.setup', 'Setup'))}</span>` +
-                        `<code class="alg-setup-moves">${esc(setupStr)}</code>`;
-                    setupEl.addEventListener('click', () => {
-                        navigator.clipboard && navigator.clipboard.writeText(setupStr)
-                            .then(() => showToast(trAlg('alg.setupCopied', 'Setup copied'), 'success'))
-                            .catch(() => {});
-                    });
-                    card.appendChild(setupEl);
-                }
-
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'btn btn-secondary btn-sm alg-copy-btn';
                 copyBtn.textContent = 'Copy';
@@ -4014,6 +3994,11 @@
         // Auto-scroll to bottom only when new messages arrive
         if (appended) {
             container.appendChild(frag);
+            // Keep the rendered history bounded. Without this a spammed room
+            // grows the DOM without limit until the panel becomes unusable.
+            while (container.children.length > BATTLE_CHAT_MAX_RENDERED) {
+                container.removeChild(container.firstChild);
+            }
             container.scrollTop = container.scrollHeight;
         }
     }
@@ -4023,8 +4008,28 @@
         const input = $('#battle-chat-input');
         const btn = $('#battle-chat-send-btn');
         if (!input || !btn) return;
-        const text = (input.value || '').trim().substring(0, 500);
+
+        // Collapse absurd runs of one character ("aaaaa…") before length capping,
+        // so a spam wall becomes a short message rather than a wall.
+        let text = (input.value || '').trim()
+            .replace(/(.)\1{19,}/g, (m, c) => c.repeat(20))
+            .substring(0, BATTLE_CHAT_MAX_LEN);
         if (!text) return;
+
+        // Client-side spam brakes: a minimum gap between sends, and no
+        // immediate duplicates. (Server rules would be needed to make this
+        // airtight; this stops the accidental/casual case.)
+        const now = Date.now();
+        if (now - battleChatLastSentAt < BATTLE_CHAT_MIN_GAP_MS) {
+            showToast('Slow down a moment', 'error');
+            return;
+        }
+        if (text === battleChatLastSentText && now - battleChatLastSentAt < 10000) {
+            showToast('That message was just sent', 'error');
+            return;
+        }
+        battleChatLastSentAt = now;
+        battleChatLastSentText = text;
         input.disabled = true;
         btn.disabled = true;
         try {
@@ -4287,6 +4292,19 @@
     let battleChatLastTimestamp = 0;
     let battleChatRoomId = null;
     let battleChatSeenIds = new Set();
+
+    // Spam guards for room creation.
+    const BATTLE_ROOM_NAME_MIN = 3;
+    const BATTLE_ROOM_NAME_MAX = 40;
+    const BATTLE_ROOM_COOLDOWN_MS = 30000;
+    const BATTLE_ROOM_LAST_KEY = 'chq_last_room_created';
+
+    // Spam guards for the room chat.
+    const BATTLE_CHAT_MAX_RENDERED = 100;   // messages kept in the DOM
+    const BATTLE_CHAT_MAX_LEN = 300;        // characters per message
+    const BATTLE_CHAT_MIN_GAP_MS = 1200;    // minimum gap between sends
+    let battleChatLastSentAt = 0;
+    let battleChatLastSentText = '';
     const BATTLE_PATH = '/battle/rooms';
 
     const BATTLE_EVENTS = {
@@ -4594,8 +4612,23 @@
         });
 
         $('#battle-create-confirm').addEventListener('click', async () => {
-            const name = $('#battle-room-name-input').value.trim();
-            if (!name) { showToast('Please enter a room name', 'error'); return; }
+            const name = $('#battle-room-name-input').value.trim().replace(/\s+/g, ' ');
+            if (name.length < BATTLE_ROOM_NAME_MIN) {
+                showToast(`Room name needs at least ${BATTLE_ROOM_NAME_MIN} characters`, 'error');
+                return;
+            }
+            if (name.length > BATTLE_ROOM_NAME_MAX) {
+                showToast(`Room name can be at most ${BATTLE_ROOM_NAME_MAX} characters`, 'error');
+                return;
+            }
+            // Cooldown between room creations, so the list can't be flooded
+            // by one person hammering the button.
+            const lastCreated = Number(localStorage.getItem(BATTLE_ROOM_LAST_KEY) || 0);
+            const waitMs = BATTLE_ROOM_COOLDOWN_MS - (Date.now() - lastCreated);
+            if (waitMs > 0) {
+                showToast(`Please wait ${Math.ceil(waitMs / 1000)}s before creating another room`, 'error');
+                return;
+            }
             const isPrivate = $('#battle-vis-private').classList.contains('active');
             const password = $('#battle-room-password').value.trim();
             if (isPrivate && !password) { showToast('Please set a password', 'error'); return; }
@@ -4625,6 +4658,7 @@
             $('#battle-create-confirm').textContent = 'Create Room';
 
             if (!result || !result.name) { showToast('Failed to create room. Try again.', 'error'); return; }
+            try { localStorage.setItem(BATTLE_ROOM_LAST_KEY, String(Date.now())); } catch (e) { /* private mode */ }
             $('#battle-create-modal').style.display = 'none';
             await enterBattleRoom(result.name, roomData);
         });

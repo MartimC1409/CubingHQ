@@ -42,8 +42,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=3">
-    <link rel="stylesheet" href="launch-ui.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="launch-ui.css?v=4">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -1440,7 +1440,7 @@
                 <div class="battle-modal-body">
                     <div class="form-group">
                         <label class="form-label" for="battle-room-name-input">Room Name <span style="color:var(--clr-accent)">*</span></label>
-                        <input type="text" id="battle-room-name-input" class="form-input" placeholder="e.g. Friday Night Speed Run" maxlength="40">
+                        <input type="text" id="battle-room-name-input" class="form-input" placeholder="e.g. Friday Night Speed Run" minlength="3" maxlength="40" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Visibility</label>
@@ -1686,7 +1686,7 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=4"></script>
+    <script src="i18n.js?v=5"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=1"></script>
@@ -1697,10 +1697,11 @@
     <script src="algorithms-extra.js?v=5"></script>
     <link rel="stylesheet" href="timer.css?v=3">
     <script src="timer.js?v=2"></script>
-    <script src="smartcube.js?v=1"></script>
+    <script src="solve-analysis.js?v=1"></script>
+    <script src="smartcube.js?v=2"></script>
     <script src="cube-decor.js?v=1"></script>
     <script src="motion.js?v=2"></script>
-    <script src="app.js?v=11"></script>
+    <script src="app.js?v=12"></script>
     <script src="mobile-nav.js?v=1"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->

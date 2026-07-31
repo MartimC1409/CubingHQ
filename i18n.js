@@ -34,9 +34,19 @@
 
             // ----- Algorithms -----
             'alg.all': 'All',
-            'alg.setup': 'Setup',
-            'alg.setupCopy': 'Copy setup',
-            'alg.setupCopied': 'Setup copied',
+
+            // ----- Smart-cube solve analysis -----
+            'analysis.title': 'Solve breakdown',
+            'analysis.cross': 'CROSS',
+            'analysis.f2l': 'F2L',
+            'analysis.slot': 'SLOT',
+            'analysis.moves': 'moves',
+            'analysis.movesShort': 'm',
+            'analysis.tps': 'TPS',
+            'analysis.optimal': 'Optimal',
+            'analysis.fumble': 'Fumble',
+            'analysis.blunder': 'Blunder',
+            'analysis.partial': 'Solve did not finish — showing what was tracked.',
 
             // ----- Theme picker -----
             'theme.title': 'Theme',
@@ -215,9 +225,19 @@
 
             // ----- Algoritmos -----
             'alg.all': 'Todos',
-            'alg.setup': 'Setup',
-            'alg.setupCopy': 'Copiar setup',
-            'alg.setupCopied': 'Setup copiado',
+
+            // ----- Análise de resoluções (cubo bluetooth) -----
+            'analysis.title': 'Análise da resolução',
+            'analysis.cross': 'CRUZ',
+            'analysis.f2l': 'F2L',
+            'analysis.slot': 'PAR',
+            'analysis.moves': 'movimentos',
+            'analysis.movesShort': 'mov',
+            'analysis.tps': 'MPS',
+            'analysis.optimal': 'Ótimo',
+            'analysis.fumble': 'Hesitação',
+            'analysis.blunder': 'Erro',
+            'analysis.partial': 'A resolução não terminou — a mostrar o que foi registado.',
 
             // ----- Seletor de tema -----
             'theme.title': 'Tema',
