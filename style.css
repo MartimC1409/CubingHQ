@@ -3553,7 +3553,6 @@ body {
    ============================================================ */
 
 .nav-btn--battle { position: relative; color: #FF6B35 !important; font-weight: 600; }
-.nav-btn--battle::after { content: 'NEW'; position: absolute; top: -4px; right: -4px; background: linear-gradient(135deg, #FF6B35, #E74C3C); color: #fff; font-size: 0.45rem; font-weight: 800; padding: 1px 4px; border-radius: 4px; letter-spacing: 0.05em; }
 .nav-btn--battle.active { background: linear-gradient(135deg, #FF6B35 0%, #E74C3C 100%) !important; color: #fff !important; border-color: transparent !important; }
 
 #battle-view { padding-top: 80px; min-height: 100vh; }

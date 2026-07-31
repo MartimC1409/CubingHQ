@@ -35,9 +35,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=6">
-    <link rel="stylesheet" href="timer.css?v=3">
-    <link rel="stylesheet" href="launch-ui.css?v=4">
+    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="timer.css?v=4">
+    <link rel="stylesheet" href="launch-ui.css?v=5">
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <style>
         body { overflow: auto; min-height: 100vh; }
@@ -218,6 +218,14 @@
                     <div class="cs-timer-display-area" id="cs-timer-display-area">
                         <div class="cs-status-text" id="cs-status-text">Hold Space / Tap</div>
                         <div class="cs-timer-display" id="timer-display-text">0.00</div>
+                        <!-- Post-solve actions. The solve is already recorded with
+                             no penalty; these are here only for the times a +2 or a
+                             DNF is needed. Nothing blocks, nothing to dismiss. -->
+                        <div class="cs-solve-actions" id="cs-solve-actions" role="group" aria-label="Solve penalty" data-i18n-aria="aria.solveActions" style="display:none;">
+                            <button type="button" id="cs-act-plus2" class="cs-act-btn cs-act-plus2">+2</button>
+                            <button type="button" id="cs-act-dnf" class="cs-act-btn cs-act-dnf">DNF</button>
+                            <button type="button" id="cs-act-delete" class="cs-act-btn cs-act-delete" data-i18n="timer.delete">Delete</button>
+                        </div>
                         <div class="cs-timer-hint" data-i18n="timer.hint">Space = start/stop · 1=OK · 2=+2 · 3=DNF · Ctrl+Z=delete last</div>
                     </div>
 
@@ -370,28 +378,6 @@
             </div>
         </section>
         <!-- ========== csTimer-style STOP OVERLAY ========== -->
-        <div class="cs-stop-overlay" id="cs-stop-overlay" role="dialog" aria-label="Solve result">
-            <div class="cs-stop-card">
-                <div class="cs-stop-time" id="cs-stop-time">0.00</div>
-                <div class="cs-stop-actions">
-                    <button class="cs-stop-btn cs-stop-btn-ok" id="cs-stop-ok" data-penalty="">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                        OK
-                    </button>
-                    <button class="cs-stop-btn cs-stop-btn-plus2" id="cs-stop-plus2" data-penalty="+2">
-                        +2
-                    </button>
-                    <button class="cs-stop-btn cs-stop-btn-dnf" id="cs-stop-dnf" data-penalty="DNF">
-                        DNF
-                    </button>
-                    <button class="cs-stop-btn cs-stop-btn-delete" id="cs-stop-delete" title="Delete this solve (Shift+Backspace)" data-i18n="timer.delete">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
-                        Delete
-                    </button>
-                </div>
-                <div class="cs-stop-hint" data-i18n-html="timer.stopHint">Click a penalty or press 1 / 2 / 3 / Esc &nbsp;·&nbsp; Shift+Backspace to delete</div>
-            </div>
-        </div>
     </main>
 
     <script>
@@ -406,11 +392,11 @@
             return id;
         }
     </script>
-    <script src="i18n.js?v=7"></script>
+    <script src="i18n.js?v=8"></script>
     <script src="theme.js?v=1"></script>
     <script src="scramble-engine.js?v=2"></script>
     <script src="square1-drawer.js?v=2"></script>
-    <script src="timer.js?v=3"></script>
+    <script src="timer.js?v=4"></script>
     <script src="solve-analysis.js?v=1"></script>
     <script src="smartcube.js?v=2"></script>
     <script>

@@ -374,7 +374,7 @@
 
     function startInspection() {
         if (TSTATE.phase !== 'idle') return;
-        hideStopOverlay();
+        hideSolveActions();
         if (TSTATE.settings.inspection !== 'on') {
             // Skip inspection — go straight to hold
             beginHold();
@@ -426,7 +426,12 @@
         renderPhaseBadge();
 
         const display = $('#timer-display-text');
-        if (display) display.classList.add('cs-holding');
+        if (display) {
+            display.classList.add('cs-holding');
+            // The previous solve's time has been on screen until now; this is
+            // the moment the next solve begins, so clear it.
+            display.textContent = '0.00';
+        }
 
         if (TSTATE.settings.spacebarHold <= 0) {
             goReady();
@@ -469,48 +474,67 @@
         }
     }
 
-    // ---------- Stop overlay (big time + penalty buttons after a solve) ----------
+    // ---------- Post-solve actions ----------
+    // The solve is recorded the moment the timer stops, with no penalty. This
+    // bar only exists for the times a +2 or a DNF is needed, so it sits inline
+    // under the display and never blocks the page.
     let _lastStoppedSolveId = null;
 
-    function showStopOverlay(elapsedMs) {
-        const overlay = $('#cs-stop-overlay');
-        if (!overlay) return;
-        const t = $('#cs-stop-time');
-        if (t) t.textContent = fmt(elapsedMs);
-        overlay.classList.add('active');
+    function showSolveActions(solveId) {
+        _lastStoppedSolveId = solveId;
+        const bar = $('#cs-solve-actions');
+        if (!bar) return;
+        bindSolveActionEvents();
+        bar.style.display = 'flex';
+        syncSolveActions();
     }
 
-    function hideStopOverlay() {
-        const overlay = $('#cs-stop-overlay');
-        if (overlay) overlay.classList.remove('active');
+    function hideSolveActions() {
+        const bar = $('#cs-solve-actions');
+        if (bar) bar.style.display = 'none';
     }
 
-    let _stopOverlayBound = false;
-    function bindStopOverlayEvents() {
-        if (_stopOverlayBound) return;
-        const overlay = $('#cs-stop-overlay');
-        if (!overlay) return;
-        _stopOverlayBound = true;
+    // Reflect the solve's current penalty, so the buttons read as toggles
+    // rather than fire-and-forget.
+    function syncSolveActions() {
+        const sess = getSession();
+        const solve = sess && _lastStoppedSolveId
+            ? sess.solves.find(x => x.id === _lastStoppedSolveId)
+            : null;
+        const pen = solve ? (solve.penalty || '') : '';
+        const p2 = $('#cs-act-plus2');
+        const dnf = $('#cs-act-dnf');
+        if (p2) p2.classList.toggle('is-active', pen === '+2');
+        if (dnf) dnf.classList.toggle('is-active', pen === 'DNF');
+    }
 
-        const applyPenalty = pen => {
-            if (_lastStoppedSolveId) setSolvePenalty(_lastStoppedSolveId, pen);
-            hideStopOverlay();
+    let _solveActionsBound = false;
+    function bindSolveActionEvents() {
+        if (_solveActionsBound) return;
+        const bar = $('#cs-solve-actions');
+        if (!bar) return;
+        _solveActionsBound = true;
+
+        // Pressing the penalty that is already set clears it back to OK.
+        const toggle = pen => {
+            if (!_lastStoppedSolveId) return;
+            const sess = getSession();
+            const solve = sess && sess.solves.find(x => x.id === _lastStoppedSolveId);
+            if (!solve) return;
+            setSolvePenalty(_lastStoppedSolveId, (solve.penalty || '') === pen ? '' : pen);
+            syncSolveActions();
         };
-        const okBtn = $('#cs-stop-ok');
-        const plus2Btn = $('#cs-stop-plus2');
-        const dnfBtn = $('#cs-stop-dnf');
-        const delBtn = $('#cs-stop-delete');
-        if (okBtn) okBtn.addEventListener('click', () => applyPenalty(''));
-        if (plus2Btn) plus2Btn.addEventListener('click', () => applyPenalty('+2'));
-        if (dnfBtn) dnfBtn.addEventListener('click', () => applyPenalty('DNF'));
-        if (delBtn) delBtn.addEventListener('click', () => {
+        const p2 = $('#cs-act-plus2');
+        const dnf = $('#cs-act-dnf');
+        const del = $('#cs-act-delete');
+        if (p2) p2.addEventListener('click', () => toggle('+2'));
+        if (dnf) dnf.addEventListener('click', () => toggle('DNF'));
+        if (del) del.addEventListener('click', () => {
             if (_lastStoppedSolveId) deleteSolveById(_lastStoppedSolveId);
             _lastStoppedSolveId = null;
-            hideStopOverlay();
-        });
-        // Click on the backdrop (not the card) closes the overlay
-        overlay.addEventListener('click', e => {
-            if (e.target === overlay) hideStopOverlay();
+            hideSolveActions();
+            const display = $('#timer-display-text');
+            if (display) display.textContent = '0.00';
         });
     }
 
@@ -547,10 +571,10 @@
                 timestamp: Date.now(),
             };
             sess.solves.push(solve);
-            _lastStoppedSolveId = solve.id;
-            if (typeof showStopOverlay === 'function') { showStopOverlay(elapsed); bindStopOverlayEvents(); }
+            showSolveActions(solve.id);
             saveState(50);
-            // Show finished display then move to last solve focus
+            // The solve is in. Leave the time on the display — it stays until
+            // the next solve starts, so it can actually be read.
             if (display) display.textContent = fmt(elapsed);
 
             // After short delay, roll next scramble and re-render list with focus on last solve
@@ -569,8 +593,9 @@
         resetPhaseToIdle();
         const display = $('#timer-display-text');
         if (display) {
+            // Classes only — the time itself stays put and is cleared by
+            // beginHold() when the next solve actually starts.
             display.classList.remove('cs-holding', 'cs-ready', 'cs-running');
-            display.textContent = '0.00';
         }
         renderPhaseBadge();
     }
@@ -660,13 +685,13 @@
         } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
             e.preventDefault(); deleteLastSolve();
         } else if (e.key === 'Escape') {
-            hideStopOverlay();
+            hideSolveActions();
         } else if (e.key === 'Backspace' && e.shiftKey) {
             // Shift+Backspace deletes the just-stopped solve (stop overlay hint)
             if (TSTATE.phase === 'idle' || TSTATE.phase === 'stopped') {
                 e.preventDefault();
                 deleteLastSolve();
-                hideStopOverlay();
+                hideSolveActions();
             }
         } else if (e.key === 'Backspace') {
             // csTimer removes the last solve on Backspace when timer is idle
@@ -755,7 +780,7 @@
         } else {
             last.penalty = penalty;
         }
-        hideStopOverlay();
+        hideSolveActions();
         saveState(50);
         renderSolveList();
         renderStatsPanel();
@@ -1442,7 +1467,7 @@
     // physical solve. No-op unless the timer is idle.
     function smartStart() {
         if (TSTATE.phase !== 'idle') return false;
-        hideStopOverlay();
+        hideSolveActions();
         exitAnyPhase();
         startRunning();
         return true;

@@ -42,8 +42,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=6">
-    <link rel="stylesheet" href="launch-ui.css?v=4">
+    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="launch-ui.css?v=5">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -234,6 +234,14 @@
                     <div class="cs-timer-display-area" id="cs-timer-display-area">
                         <div class="cs-status-text" id="cs-status-text">Hold Space / Tap</div>
                         <div class="cs-timer-display" id="timer-display-text">0.00</div>
+                        <!-- Post-solve actions. The solve is already recorded with
+                             no penalty; these are here only for the times a +2 or a
+                             DNF is needed. Nothing blocks, nothing to dismiss. -->
+                        <div class="cs-solve-actions" id="cs-solve-actions" role="group" aria-label="Solve penalty" data-i18n-aria="aria.solveActions" style="display:none;">
+                            <button type="button" id="cs-act-plus2" class="cs-act-btn cs-act-plus2">+2</button>
+                            <button type="button" id="cs-act-dnf" class="cs-act-btn cs-act-dnf">DNF</button>
+                            <button type="button" id="cs-act-delete" class="cs-act-btn cs-act-delete" data-i18n="timer.delete">Delete</button>
+                        </div>
                         <div class="cs-timer-hint" data-i18n="timer.hint">Space = start/stop · 1=OK · 2=+2 · 3=DNF · Ctrl+Z=delete last</div>
                     </div>
 
@@ -1686,7 +1694,7 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=7"></script>
+    <script src="i18n.js?v=8"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=1"></script>
@@ -1695,8 +1703,8 @@
     <script src="square1-drawer.js?v=2"></script>
     <script src="algorithms.js?v=4"></script>
     <script src="algorithms-extra.js?v=5"></script>
-    <link rel="stylesheet" href="timer.css?v=3">
-    <script src="timer.js?v=3"></script>
+    <link rel="stylesheet" href="timer.css?v=4">
+    <script src="timer.js?v=4"></script>
     <script src="solve-analysis.js?v=1"></script>
     <script src="smartcube.js?v=2"></script>
     <script src="cube-decor.js?v=1"></script>

@@ -684,111 +684,47 @@
 
 
 /* ==========================================================================
-   csTimer-style STOP OVERLAY (shown after the timer stops)
+   POST-SOLVE ACTIONS (inline, under the timer)
+   --------------------------------------------------------------------------
+   The solve is already recorded with no penalty when the timer stops. This row
+   is only for the times a +2 or a DNF is needed, so it sits in normal flow and
+   never covers the page.
    ========================================================================== */
-.cs-stop-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    background: rgba(0, 0, 0, 0.72);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+.cs-solve-actions {
     display: flex;
-    align-items: center;
+    gap: 0.5rem;
     justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 140ms ease;
-}
-.cs-stop-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-}
-.cs-stop-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 2rem;
-    max-width: 90vw;
-}
-.cs-stop-time {
-    font-family: var(--font-mono);
-    font-size: clamp(5rem, 13vw, 11rem);
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: -3px;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
-    user-select: none;
-}
-.cs-stop-actions {
-    display: flex;
-    gap: 0.65rem;
     flex-wrap: wrap;
-    justify-content: center;
+    margin-top: 0.9rem;
 }
-.cs-stop-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 0.75rem 1.4rem;
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    background: var(--clr-surface);
-    color: var(--clr-text);
-    font-family: var(--font-body);
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
-    min-width: 110px;
-}
-.cs-stop-btn:hover { transform: translateY(-2px); }
-.cs-stop-btn:active { transform: translateY(0); }
-.cs-stop-btn-ok {
-    background: var(--clr-success);
-    color: #fff;
-    border-color: var(--clr-success);
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-}
-.cs-stop-btn-ok:hover { background: #0ea372; border-color: #0ea372; }
-.cs-stop-btn-plus2 {
-    background: var(--clr-warning);
-    color: #fff;
-    border-color: var(--clr-warning);
-    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
-}
-.cs-stop-btn-plus2:hover { background: #d97706; border-color: #d97706; }
-.cs-stop-btn-dnf {
-    background: var(--clr-danger);
-    color: #fff;
-    border-color: var(--clr-danger);
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
-}
-.cs-stop-btn-dnf:hover { background: #dc2626; border-color: #dc2626; }
-.cs-stop-btn-delete {
+.cs-act-btn {
+    padding: 0.4rem 0.95rem;
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
     background: var(--clr-surface);
     color: var(--clr-text-muted);
-    border-color: var(--clr-border);
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
-.cs-stop-btn-delete:hover {
-    background: rgba(239, 68, 68, 0.12);
+.cs-act-plus2:hover,
+.cs-act-plus2.is-active {
+    background: var(--clr-warning);
+    border-color: var(--clr-warning);
+    color: #fff;
+}
+.cs-act-dnf:hover,
+.cs-act-dnf.is-active {
+    background: var(--clr-danger);
+    border-color: var(--clr-danger);
+    color: #fff;
+}
+.cs-act-delete:hover {
     color: var(--clr-danger);
     border-color: var(--clr-danger);
 }
-.cs-stop-hint {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.55);
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    user-select: none;
-    text-align: center;
-}
 @media (max-width: 650px) {
-    .cs-stop-time { font-size: clamp(3.5rem, 18vw, 6rem); }
-    .cs-stop-btn { min-width: 90px; padding: 0.65rem 1rem; font-size: 0.9rem; }
-    .cs-stop-card { gap: 1rem; }
+    .cs-act-btn { padding: 0.45rem 0.8rem; font-size: 0.8rem; }
 }
