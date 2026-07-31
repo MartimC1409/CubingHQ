@@ -207,6 +207,8 @@
             'bt.only333': 'Smart cube tracking works with 3x3x3 events only.',
             'bt.only333Connect': 'The smart cube can only be connected in 3x3x3 events.',
 
+            'aria.selectSession': 'Select session',
+
             'aria.solveActions': 'Solve penalty',
 
             'battle.createModalTitle': 'Create Battle Room',
@@ -764,6 +766,8 @@
             'bt.offScramble': 'Fora do scramble — desfaz o movimento errado ou clica em "Marcar como resolvido" para recomeçar.',
             'bt.only333': 'O acompanhamento do cubo Bluetooth só funciona em eventos 3x3x3.',
             'bt.only333Connect': 'O cubo Bluetooth só pode ser ligado em eventos 3x3x3.',
+
+            'aria.selectSession': 'Escolher sessão',
 
             'aria.solveActions': 'Penalização do solve',
 

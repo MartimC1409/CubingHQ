@@ -900,6 +900,9 @@
     }
 
     function renderSessionTabs() {
+        // Runs on every renderAll(), so it covers create / switch / rename /
+        // delete for anything mirroring the session list (the mobile picker).
+        document.dispatchEvent(new CustomEvent('cs-sessions-changed'));
         const wrap = $('#cs-session-tabs');
         if (!wrap) return;
         wrap.innerHTML = '';
@@ -1143,6 +1146,14 @@
         }
     }
 
+    // The four headline averages the mobile layout shows. Kept here so the
+    // numbers have exactly one source, whichever layout is on screen.
+    let _headlineStats = { ao5: null, ao12: null, ao100: null, mean: null };
+    function publishHeadlineStats(stats) {
+        _headlineStats = stats;
+        document.dispatchEvent(new CustomEvent('cs-stats-updated', { detail: stats }));
+    }
+
     function renderStatsPanel() {
         const sess = getSession();
         const statsEl = $('#cs-stats-summary');
@@ -1161,11 +1172,19 @@
         const bestAo100 = getBestAverage(solves, 100, isMo3);
         const curAo5 = getAverage(solves, 5, isMo3);
         const curAo12 = getAverage(solves, 12, isMo3);
+        const curAo100 = getAverage(solves, 100, isMo3);
         const stdDev = getStdDev(solves);
         const success = getSuccessRate(solves);
 
         const avgLabel = info?.format === 'mo3' ? 'Mean-3' : 'Ao5';
         const sessionName = sess.name;
+
+        publishHeadlineStats({
+            ao5: curAo5 === null ? null : fmtMean(curAo5),
+            ao12: curAo12 === null ? null : fmtMean(curAo12),
+            ao100: curAo100 === null ? null : fmtMean(curAo100),
+            mean: mean === null ? null : fmt(mean),
+        });
 
         const L = {
             count: T('stats.count', 'Solve count'),
@@ -1494,6 +1513,7 @@
         deleteSession,
         exportJSON,
         exportCSV,
+        getHeadlineStats: () => _headlineStats,
         // Smart cube integration
         smartStart,
         smartStop,
