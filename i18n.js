@@ -695,7 +695,7 @@
             'sim.spacebarTimer': 'Espaço',
 
             // ----- Cronómetro -----
-            'timer.newScramble': ' Novo Scramble',
+            'timer.newScramble': ' Nova Scramble',
             'timer.timeList': 'Lista de Tempos',
             'timer.settings': 'Definições',
             'timer.group.timer': 'Cronómetro',
@@ -763,10 +763,10 @@
             'bt.markSolvedHint': 'Segura o cubo resolvido com o BRANCO para cima e o VERDE para ti, e clica.',
             'bt.notSupported': 'O Web Bluetooth não é suportado neste navegador. Usa o Chrome ou o Edge com HTTPS.',
             'bt.connectFailed': 'Não foi possível ligar ao cubo Bluetooth.',
-            'bt.followScramble': 'Segue o scramble no cubo — os movimentos feitos ficam verdes.',
-            'bt.scrambleDone': 'Scramble completo — começa a resolver para iniciar o cronómetro!',
+            'bt.followScramble': 'Segue a scramble no cubo — os movimentos feitos ficam verdes.',
+            'bt.scrambleDone': 'Scramble completa — começa a resolver para iniciar o cronómetro!',
             'bt.solving': 'A resolver…',
-            'bt.offScramble': 'Fora do scramble — desfaz o movimento errado ou clica em "Marcar como resolvido" para recomeçar.',
+            'bt.offScramble': 'Fora da scramble — desfaz o movimento errado ou clica em "Marcar como resolvido" para recomeçar.',
             'bt.only333': 'O acompanhamento do cubo Bluetooth só funciona em eventos 3x3x3.',
             'bt.only333Connect': 'O cubo Bluetooth só pode ser ligado em eventos 3x3x3.',
 
@@ -873,7 +873,7 @@
             'battle.liveLower': 'ao vivo',
             'battle.noPlayers': 'Ainda sem jogadores',
             'battle.noRooms': 'Nenhuma sala encontrada.',
-            'battle.noSolvesTable': 'Ainda sem solves — resolve o scramble!',
+            'battle.noSolvesTable': 'Ainda sem solves — resolve a scramble!',
             'battle.offline': 'offline',
             'battle.player': '{n} jogador',
             'battle.players': '{n} jogadores',
@@ -1011,7 +1011,7 @@
             'dash.penalty': 'Pen',
             'dash.placement': 'Posição',
             'dash.prAvg': 'Média PR',
-            'dash.pressStart': 'Carrega em Começar para gerar o scramble...',
+            'dash.pressStart': 'Carrega em Começar para gerar a scramble...',
             'dash.progress': 'Progresso',
             'dash.roundComplete': 'Ronda concluída!',
             'dash.scorecard': '📝 Folha de resultados',
@@ -1116,7 +1116,7 @@
             'title.lookupWca': 'Procurar perfil da WCA',
             'title.manualTime': 'Escrever o tempo manualmente',
             'title.muteNoise': 'Silenciar/ativar o som de competição',
-            'title.newScramble': 'Novo scramble (prime espaço quando parado)',
+            'title.newScramble': 'Nova scramble (prime espaço quando parado)',
             'title.noiseVolume': 'Volume do som de competição',
             'title.records': 'Recordes e classificações',
             'title.redoLast': 'Repetir o último (R)',
@@ -1125,7 +1125,7 @@
             'title.showHint': 'Mostrar dica (H)',
             'title.skip': 'Saltar (S)',
             'title.spaceTimer': 'Mantém Espaço para iniciar, toca para parar — em vez de escrever os tempos',
-            'title.toggleColors': 'Alternar cores do scramble',
+            'title.toggleColors': 'Alternar cores da scramble',
             'title.toggleTheme': 'Alternar tema',
 
             // ----- Etiquetas de acessibilidade -----
