@@ -102,6 +102,37 @@
         return alg;
     }
 
+    // Break a Megaminx scramble into csTimer's layout: seven lines, each ten
+    // alternating R/D moves followed by a single U or U'. That is the shape
+    // the WCA generator already produces — it just arrives as one long line,
+    // and a scramble that wraps wherever the box happens to end is much
+    // harder to follow while turning.
+    //
+    // The grouping keys off the U moves rather than counting to eleven, so an
+    // unexpected line length passes through untouched instead of being cut in
+    // the wrong place.
+    function toMegaminxLines(alg) {
+        const tokens = String(alg).trim().split(/\s+/).filter(Boolean);
+        if (!tokens.length) return alg;
+
+        const lines = [];
+        let line = [];
+        for (const tok of tokens) {
+            line.push(tok);
+            if (/^U['2]?$/.test(tok)) {
+                lines.push(line.join(' '));
+                line = [];
+            }
+        }
+        if (line.length) lines.push(line.join(' '));
+
+        // Only reformat something that actually looks like a WCA megaminx
+        // scramble; anything else is returned exactly as it came in.
+        const wellFormed = lines.length >= 2
+            && lines.every((l) => /\sU['2]?$/.test(l) || l === lines[lines.length - 1]);
+        return wellFormed ? lines.join('\n') : alg;
+    }
+
     // ---------- WCA scramble program loader (cached, multi-CDN) ----------
     // Primary CDN first; mirrors keep random-state scrambles available even
     // if one CDN is unreachable. Only a total failure of all three drops the
@@ -149,8 +180,10 @@
             try {
                 const { randomScrambleForEvent } = await loadScrambler();
                 const alg = await randomScrambleForEvent(wcaId);
-                // Square-1 is displayed in csTimer's compact notation.
+                // Square-1 is displayed in csTimer's compact notation, and
+                // Megaminx in csTimer's seven-line layout.
                 if (wcaId === 'sq1') return toCsTimerSq1(alg.toString());
+                if (wcaId === 'minx') return toMegaminxLines(alg.toString());
                 return alg.toString();
             } catch (e) {
                 console.warn(`[ScrambleEngine] random-state scramble attempt ${attempt} failed for ${wcaId}`, e);
@@ -282,7 +315,7 @@
             }
             moves.push('U' + pick(['', "'"]));
         }
-        return moves.join(' ');
+        return toMegaminxLines(moves.join(' '));
     }
 
     const OUTER = ['U', 'D', 'R', 'L', 'F', 'B'];
