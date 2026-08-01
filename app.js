@@ -52,6 +52,81 @@
         return roundNamesFor(t)[round] || i18nT('round.n', 'Round {n}').replace('{n}', round);
     }
 
+    // ---------- Competitor pacing ----------
+    // How long a simulated competitor waits between attempts, in ms. It was
+    // 0-30s, which for a ~38s Megaminx meant a whole five-attempt round in
+    // just over four minutes — the top competitors were finished before a real
+    // person had done their second solve. In an actual competition you queue,
+    // get scrambled for and judged between every attempt.
+    const ATTEMPT_GAP_MIN = 60000;
+    const ATTEMPT_GAP_MAX = 120000;
+    const attemptGap = () => ATTEMPT_GAP_MIN + Math.random() * (ATTEMPT_GAP_MAX - ATTEMPT_GAP_MIN);
+
+    // ---------- Advancement ----------
+    // The WCA decides who advances with the round's `advancementCondition`,
+    // which the WCIF gives us verbatim. This used to be invented — a table of
+    // 75%/50%/33% — which is how a competitor who finished 31st at a
+    // competition where only the top 14 advanced was told he had gone through.
+    //
+    // Worse, the end-of-round message and startNextRound() computed it
+    // separately and disagreed: the message used the table, the next round cut
+    // at a flat 50%. Everything below goes through one function so they cannot
+    // drift apart again.
+
+    // The condition for the round being played, or null for a final (and for
+    // any round we have no WCIF for).
+    function advancementConditionFor(round) {
+        const idx = (round || state.round) - 1;
+        const r = (state.wcifRounds || [])[idx];
+        return (r && r.advancementCondition) || null;
+    }
+
+    // The ranking result for one competitor: the average for Ao5/Mo3 rounds,
+    // falling back to the single when there is no average yet.
+    function rankingResult(c) {
+        if (c.average !== undefined && c.average !== Infinity) return c.average;
+        return c.best !== undefined ? c.best : Infinity;
+    }
+
+    // How many of `standings` (sorted best-first) advance out of `round`, plus
+    // a phrase describing the rule so the message can state it rather than
+    // leave the competitor guessing.
+    function advancementInfo(standings, round) {
+        const total = standings.length;
+        const cond = advancementConditionFor(round);
+        let count = null;
+        let rule = '';
+
+        if (cond) {
+            if (cond.type === 'ranking') {
+                count = cond.level;
+                rule = i18nT('adv.ruleRanking', 'the top {n} advanced').replace('{n}', cond.level);
+            } else if (cond.type === 'percent') {
+                count = Math.floor((total * cond.level) / 100);
+                rule = i18nT('adv.rulePercent', 'the top {n}% advanced').replace('{n}', cond.level);
+            } else if (cond.type === 'attemptResult') {
+                const limit = cond.level / 100;
+                count = standings.filter(c => rankingResult(c) < limit).length;
+                rule = i18nT('adv.ruleResult', 'anyone under {t} advanced').replace('{t}', formatTime(limit));
+            }
+        }
+
+        if (count === null) {
+            // No competition loaded: a custom sim still needs a rule, but it
+            // gets stated on screen instead of applied silently.
+            const fallback = { 1: 0.75, 2: 0.5, 3: 0.33 };
+            const rate = fallback[round || state.round] || 0.5;
+            count = Math.ceil(total * rate);
+            rule = i18nT('adv.ruleEstimated', 'about the top {n}% advanced (no competition data)')
+                .replace('{n}', Math.round(rate * 100));
+        }
+
+        // WCA Regulation 9p1: never more than three quarters of the round.
+        count = Math.min(count, Math.floor(total * 0.75));
+        count = Math.max(0, Math.min(count, total));
+        return { count, rule, fromWcif: !!cond };
+    }
+
     // Events that use Mean of 3 (instead of Average of 5)
     const MEAN_OF_3_EVENTS = ['666', '777', '333bf', '444bf', '555bf', '333fm', '333mbf'];
 
@@ -195,6 +270,8 @@
         compName: '',
         compData: null,     // Full competition API data
         wcifData: null,     // WCIF data
+        wcifRounds: [],     // the selected event's rounds, straight from the WCIF
+        wcifRoundsKnown: false, // false when the WCIF could not be fetched
         worldRecords: null, // Cached WCA world records
         event: '333',
         numSolves: 5,
@@ -1669,6 +1746,13 @@
             state.compName = data.name;
             state.numCompetitors = data.competitor_limit || 30;
 
+            // Drop the previous competition's rounds before fetching the new
+            // ones. Without this, a WCIF that fails after one that succeeded
+            // leaves the old competition's round count and cutoffs in place.
+            state.wcifData = null;
+            state.wcifRounds = [];
+            state.wcifRoundsKnown = false;
+
             // Display info
             $('#comp-display-name').textContent = data.name;
             $('#comp-display-date').textContent = `${data.start_date}${data.end_date !== data.start_date ? ' → ' + data.end_date : ''}`;
@@ -1688,8 +1772,11 @@
                 updateAvailableEvents(data.event_ids);
             }
 
-            // Fetch WCIF for round/cutoff/time-limit data
-            fetchWCIF(compId);
+            // Fetch WCIF for round/cutoff/time-limit data. Awaited: it is what
+            // fills in the round list, and firing it off unawaited meant the
+            // dropdown could still be showing the hardcoded four rounds when
+            // the competition was announced as loaded.
+            await fetchWCIF(compId);
 
             $('#comp-info-display').style.display = 'block';
             $('#comp-error-display').style.display = 'none';
@@ -1710,7 +1797,7 @@
     async function fetchWCIF(compId) {
         try {
             const res = await fetch(`${WCA_API}/competitions/${compId}/wcif/public`);
-            if (!res.ok) return;
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             state.wcifData = data;
 
@@ -1718,8 +1805,14 @@
             updateEventCompInfo();
 
         } catch (err) {
-            // WCIF not available for all competitions, that's okay
+            // Not every competition exposes a public WCIF. Say so rather than
+            // quietly pretending every event has four rounds — the round list
+            // is the one thing only the WCIF can tell us.
+            console.warn('[Sim] WCIF unavailable for', compId, err);
             state.wcifData = null;
+            updateEventCompInfo();
+            showToast(i18nT('toast.noWcif',
+                'Round data unavailable for this competition — rounds and cutoffs are estimated.'), 'info');
         }
     }
 
@@ -1773,6 +1866,8 @@
 
         if (!state.wcifData) {
             // No competition loaded — allow a generic multi-round custom sim.
+            state.wcifRounds = [];
+            state.wcifRoundsKnown = false;
             state.numRounds = 4;
             updateRoundOptions();
             infoPanel.style.display = 'none';
@@ -1782,13 +1877,27 @@
         // Find the selected event in WCIF
         const eventData = (state.wcifData.events || []).find(e => e.id === state.event);
         if (!eventData || !eventData.rounds || eventData.rounds.length === 0) {
+            state.wcifRounds = [];
+            state.wcifRoundsKnown = false;
             state.numRounds = 4;
             updateRoundOptions();
             infoPanel.style.display = 'none';
             return;
         }
 
-        const round1 = eventData.rounds[0];
+        // Keep the rounds themselves, not just how many there are: the
+        // advancement condition for each one lives in here.
+        state.wcifRounds = eventData.rounds;
+        state.wcifRoundsKnown = true;
+
+        // The limits belong to the round being played. Reading round 1's for a
+        // simulation starting at round 2 gave the wrong cutoff, and later
+        // rounds routinely drop the cutoff altogether.
+        const startRound = Math.min(
+            parseInt(($('#round-select') || {}).value, 10) || 1,
+            eventData.rounds.length,
+        );
+        const round1 = eventData.rounds[startRound - 1] || eventData.rounds[0];
 
         // Time limit
         const timeLimit = round1.timeLimit;
@@ -3067,7 +3176,7 @@
                     best: Infinity,
                     average: Infinity,
                     status: 'waiting',
-                    statusUntil: Date.now() + Math.random() * 30000
+                    statusUntil: Date.now() + Math.random() * ATTEMPT_GAP_MAX
                 });
             }
 
@@ -3099,7 +3208,7 @@
                     best: Infinity,
                     average: Infinity,
                     status: 'waiting',
-                    statusUntil: Date.now() + Math.random() * 30000
+                    statusUntil: Date.now() + Math.random() * ATTEMPT_GAP_MAX
                 });
             }
         }
@@ -3151,7 +3260,7 @@
                         comp.status = 'finished';
                     } else {
                         comp.status = 'waiting';
-                        comp.statusUntil = now + Math.random() * 30000;
+                        comp.statusUntil = now + attemptGap();
                     }
                     changed = true;
                 }
@@ -3730,27 +3839,39 @@
         // Is there another round after this one for this event?
         const hasNextRound = state.round < (state.numRounds || 4);
 
-        let message = '';
-        if (placement === 1) {
-            message = '🏆 ' + i18nT('end.won', 'INCREDIBLE! You won the round!');
-            $('#next-round-btn').style.display = hasNextRound ? 'inline-flex' : 'none';
-        } else if (placement <= 3) {
-            message = '🏅 ' + i18nT('end.podium', 'Amazing! Podium finish!');
-            $('#next-round-btn').style.display = hasNextRound ? 'inline-flex' : 'none';
-        } else {
-            // Check if would advance (top 75% for R1, top 50% for R2, etc)
-            const advancementRates = { 1: 0.75, 2: 0.5, 3: 0.33 };
-            const advRate = hasNextRound ? (advancementRates[state.round] || 0.5) : 0;
-            const advCount = Math.ceil(total * advRate);
-            const advanced = advCount > 0 && placement <= advCount;
+        // One source of truth for who goes through — the same call that
+        // startNextRound() makes when it builds the next field.
+        const adv = advancementInfo(all, state.round);
+        state.lastAdvanceCount = adv.count;
+        const advanced = hasNextRound && placement <= adv.count;
 
-            message = `You placed ${placement}${getOrdinal(placement)} out of ${total} competitors.`;
-            if (advanced && hasNextRound) {
-                message = `🎉 Congratulations! You advanced to ${getRoundName(state.round + 1)}!\n` + message;
-                $('#next-round-btn').style.display = 'inline-flex';
+        let message = i18nT('end.placed', 'You placed {p} out of {n} competitors.')
+            .replace('{p}', placement + getOrdinal(placement))
+            .replace('{n}', total);
+        if (hasNextRound) message += ' — ' + adv.rule + '.';
+
+        if (placement === 1) {
+            message = '🏆 ' + i18nT('end.won', 'INCREDIBLE! You won the round!') + '\n' + message;
+        } else if (placement <= 3) {
+            message = '🏅 ' + i18nT('end.podium', 'Amazing! Podium finish!') + '\n' + message;
+        }
+
+        const nextBtn = $('#next-round-btn');
+        if (hasNextRound) {
+            nextBtn.style.display = 'inline-flex';
+            if (advanced) {
+                message = '🎉 ' + i18nT('end.advanced', 'You advanced to {round}!')
+                    .replace('{round}', getRoundName(state.round + 1)) + '\n' + message;
+                nextBtn.textContent = i18nT('dash.nextRound', 'Next Round →');
             } else {
-                $('#next-round-btn').style.display = 'none';
+                // Told plainly, but not locked out: practising the next round
+                // is worth more than a closed door, as long as the result is
+                // not dressed up as something it wasn't.
+                message = i18nT('end.notAdvanced', 'You did not make the cut this time.') + '\n' + message;
+                nextBtn.textContent = i18nT('dash.practiceNextRound', 'Practise the next round →');
             }
+        } else {
+            nextBtn.style.display = 'none';
         }
 
         if (state.goalTime && avg !== Infinity) {
@@ -3793,7 +3914,22 @@
             return a.average - b.average;
         });
 
-        const advCount = Math.ceil(state.numCompetitors * 0.5);
+        // The field for the next round is exactly the number the end-of-round
+        // message just announced. These were computed separately before — the
+        // message used one rate and this cut at a flat 50%, which is why
+        // everybody appeared to go through.
+        // state.lastAdvanceCount is set when the round-end screen is shown,
+        // which is the only route here. The fallback covers a restored session
+        // whose stored state predates this field.
+        const advCount = state.lastAdvanceCount != null
+            ? state.lastAdvanceCount
+            : advancementInfo(
+                [...state.competitors, { isPlayer: true, average: Infinity }],
+                state.round - 1,
+            ).count;
+
+        // The player takes one of the places, so the rest of the field is one
+        // short of the advancing count.
         state.competitors = state.competitors.slice(0, Math.max(advCount - 1, 1));
         state.numCompetitors = state.competitors.length + 1;
 
@@ -5384,4 +5520,20 @@
 
 
 
+    // A read-only window onto the simulator's advancement maths, so the rules
+    // can be tested against real WCIF conditions without driving a whole round
+    // through the UI. Nothing here mutates state.
+    window.SimRules = {
+        advancementConditionFor,
+        advancementInfo,
+        attemptGap,
+        state: () => ({
+            numRounds: state.numRounds,
+            round: state.round,
+            wcifRounds: state.wcifRounds,
+            wcifRoundsKnown: state.wcifRoundsKnown,
+            numCompetitors: state.numCompetitors,
+            lastAdvanceCount: state.lastAdvanceCount,
+        }),
+    };
 })();

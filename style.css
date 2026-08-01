@@ -904,6 +904,10 @@ body {
     color: var(--clr-text);
     word-spacing: 4px;
     min-height: 60px;
+    /* Megaminx scrambles arrive pre-broken into csTimer's seven lines, so the
+       breaks have to survive. pre-line keeps them while still collapsing runs
+       of spaces and letting long lines wrap on narrow screens. */
+    white-space: pre-line;
 }
 
 /* Dual-colored scramble moves (anti-cheat removed per request - all white) */
