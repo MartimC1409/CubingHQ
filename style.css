@@ -4760,3 +4760,22 @@ body {
 @media (max-width: 640px) {
     .bt-panel { flex-direction: column; align-items: center; }
 }
+
+/* Where the simulator's field came from. Sits in the leaderboard header next
+   to the competitor count; amber when the opponents are invented, so an
+   invented leaderboard never reads as a record of who was actually there. */
+.card-bar-note {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--clr-text-muted);
+    margin-left: auto;
+    margin-right: 10px;
+    white-space: nowrap;
+}
+.card-bar-note.is-simulated {
+    color: oklch(75.77% 0.159 55.91);
+}
+@media (max-width: 700px) {
+    .card-bar-note { display: none; }
+}

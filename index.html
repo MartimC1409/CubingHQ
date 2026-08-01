@@ -42,7 +42,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=11">
     <link rel="stylesheet" href="launch-ui.css?v=5">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1006,6 +1006,7 @@
                     <div class="dash-card leaderboard-card" id="leaderboard-panel">
                         <div class="card-header-bar">
                             <h3 class="card-bar-title" data-i18n="dash.leaderboard">🏆 Leaderboard</h3>
+                            <span class="card-bar-note" id="lb-source"></span>
                             <span class="card-bar-info" id="lb-count">0 competitors</span>
                         </div>
                         <div class="leaderboard-wrap" id="leaderboard-wrap">
@@ -1721,7 +1722,7 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=12"></script>
+    <script src="i18n.js?v=13"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=1"></script>
@@ -1740,7 +1741,7 @@
     <script src="smartcube.js?v=2"></script>
     <script src="cube-decor.js?v=1"></script>
     <script src="motion.js?v=2"></script>
-    <script src="app.js?v=16"></script>
+    <script src="app.js?v=17"></script>
     <script src="mobile-nav.js?v=1"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->
