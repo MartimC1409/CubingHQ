@@ -1725,6 +1725,9 @@
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=1"></script>
+    <!-- Holds a screen wake lock for as long as the site is open, so a phone
+         doesn't dim and lock partway through a solve. Standalone. -->
+    <script src="wake-lock.js?v=1"></script>
     <script src="wca-countries.js?v=1"></script>
     <script src="scramble-engine.js?v=2"></script>
     <script src="square1-drawer.js?v=3"></script>
