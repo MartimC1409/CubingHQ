@@ -1,0 +1,9 @@
+# Build scaffolding for the local test suites: a symlink to the `cubing`
+# package so the browser can import kpuzzle/puzzles/twisty over http without
+# reaching a CDN. It points outside the repo and must never be committed —
+# deleting it by hand before every commit is what broke a test run once.
+_pkg_test
+_pkg_*
+
+# Local static server logs
+http.log
