@@ -204,7 +204,7 @@
         },
         '333oh': {
             single: { time: 5.66, holder: 'Dhruva Sai Meruva', country: 'IN', competition: 'Swiss Nationals 2024' },
-            average: { time: 7.72, holder: 'Luke Garrett', country: 'US', competition: 'Chicagoland Newcomers 2025' }
+            average: { time: 6.99, holder: 'Zhen Chen', country: 'CN', competition: 'Wuhu Open 2026' }
         },
         '333bf': {
             single: { time: 11.67, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' },
@@ -2017,13 +2017,38 @@
         const liveSingle = wcaRawToDisplay(eventId, live.single, false);
         const liveAvg = wcaRawToDisplay(eventId, live.average, true);
 
+        // The live feed carries times but no names — the v0 endpoint has none —
+        // so holder and competition can only come from the stored list. That is
+        // fine right up until a record changes hands: the time updates, the
+        // name does not, and the page credits the previous holder with somebody
+        // else's result. On a page headed "Official WCA records" that is the
+        // worst kind of wrong, because it is specific and plausible.
+        //
+        // So the stored metadata is only trusted while it still describes the
+        // time being shown. When the two disagree the record has moved on: show
+        // the live time with no name rather than the wrong name. Self-correcting
+        // for every event, instead of relying on someone noticing.
+        const metaFor = (side, liveVal) => {
+            const stale = !side || typeof side.time !== 'number'
+                || Math.abs(side.time - liveVal.time) > 0.005;
+            return stale ? {} : side;
+        };
+
         if (liveSingle) {
-            rec.single = Object.assign({ holder: '—', country: '' }, (meta && meta.single) || {}, liveSingle);
+            rec.single = Object.assign(
+                { holder: '—', country: '', competition: '' },
+                metaFor(meta && meta.single, liveSingle),
+                liveSingle,
+            );
         } else if (isWorld) {
             rec.single = meta && meta.single;
         }
         if (liveAvg) {
-            rec.average = Object.assign({ holder: '—', country: '' }, (meta && meta.average) || {}, liveAvg);
+            rec.average = Object.assign(
+                { holder: '—', country: '', competition: '' },
+                metaFor(meta && meta.average, liveAvg),
+                liveAvg,
+            );
         } else if (isWorld) {
             rec.average = meta && meta.average;
         }
