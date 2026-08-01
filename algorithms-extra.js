@@ -91,16 +91,22 @@
         ]
     });
 
-    // ==================== Square-1 -- EO / CP (source: sarah.cubing.net) ====================
+    // ==================== Square-1 -- EO / CP ====================
+    // EO: Brandon Lin's Square-1 page (brandonlin.com, (c) 2016), in page order.
+    // The earlier transcription had four errors — a dropped final twist on EO 1,
+    // (1,0) for (0,1) on what is now EO 5, (3,3) for (-3,3) on EO 6, and two
+    // wrong signs on EO 7 — which made three of the case diagrams draw a shape
+    // the puzzle cannot reach. Stored with parentheses because the drawer's
+    // parser requires them.
     merge('Square-1', {
         'EO': [
-            { name: 'EO 1', alg: '(1,0) / (3,0) / (3,0) / (-1,-1) / (-2,1) / (-3,0) /' },
+            { name: 'EO 1', alg: '(1,0) / (3,0) / (3,0) / (-1,-1) / (-2,1) / (-3,0) / (-1,0)' },
             { name: 'EO 2', alg: '(1,0) / (3,0) / (-1,-1) / (-3,0) / (0,1)' },
-            { name: 'EO 3', alg: '(0,-1) / (0,-3) / (0,-3) / (1,1) / (-1,2) / (1,4) / (-1,0)' },
-            { name: 'EO 4', alg: '(1,0) / (3,0) / (3,0) / (-1,-1) / (-2,1) / (-4,-1) / (1,0)' },
-            { name: 'EO 5', alg: '(1,0) / (-1,-1) / (0,1)' },
-            { name: 'EO 6', alg: '(0,-1) / (3,0) / (3,0) / (1,1) / (-3,0) / (-3,0) /' },
-            { name: 'EO 7', alg: '(1,0) / (-1,-1) / (3,3) / (1,1) / (-1,0)' }
+            { name: 'EO 3', alg: '(1,0) / (3,0) / (3,0) / (-1,-1) / (-3,0) / (-3,0) / (0,1)' },
+            { name: 'EO 4', alg: '(1,0) / (-1,-1) / (0,1)' },
+            { name: 'EO 5', alg: '(1,0) / (3,0) / (3,0) / (-1,-1) / (-2,1) / (-4,-1) / (0,1)' },
+            { name: 'EO 6', alg: '(1,0) / (-1,-1) / (-3,3) / (1,1) / (-1,0)' },
+            { name: 'EO 7', alg: '(0,-1) / (3,0) / (-3,0) / (1,1) / (3,0) / (-3,0) / (-1,0)' }
         ],
         'CP': {
             'Standard': [
