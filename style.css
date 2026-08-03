@@ -1347,11 +1347,22 @@ body {
    ============================================================ */
 .leaderboard-card {
     min-height: 200px;
+    /* What squeezes the table is this panel's width, not the screen's: on a
+       1440px desktop the two-column dashboard grid leaves it narrower than it
+       is on an 850px tablet. The container sits on the card rather than on
+       .leaderboard-wrap because a container query cannot style its own
+       container, and the wrap's padding is part of what has to give. */
+    container-type: inline-size;
+    container-name: leaderboard;
 }
 
 .leaderboard-wrap {
     flex-grow: 1;
     overflow-y: auto;
+    /* Only the vertical axis was ever wanted. CSS turns a `visible` axis into
+       `auto` as soon as the other one is not `visible`, so overflow-y alone
+       silently made this pan sideways on any phone. */
+    overflow-x: hidden;
     padding: 0 var(--space-lg);
     max-height: 500px;
 }
@@ -1360,6 +1371,11 @@ body {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.82rem;
+    /* Six columns whose intrinsic widths add up to ~315px cannot fit the 270px
+       this box has on a 360px phone, and an auto-laid table refuses to go below
+       its min-content width. Fixed layout makes the widths below authoritative
+       so no cell can push the table past its container, at any viewport. */
+    table-layout: fixed;
 }
 
 .leaderboard-table th {
@@ -1384,10 +1400,25 @@ body {
     font-size: 0.8rem;
 }
 
-.leaderboard-table .lb-rank { width: 36px; }
+/* Fixed layout ignores content and honours these, so every column needs one.
+   The name takes whatever is left over — it is the only cell that can usefully
+   be truncated, the rest are short numbers that must stay whole. */
+.leaderboard-table .lb-rank { width: 32px; }
+.leaderboard-table .lb-pr { width: 14%; }
+.leaderboard-table .lb-best { width: 15%; }
+.leaderboard-table .lb-avg { width: 17%; }
+/* The widest share of the four: it holds a word, not a number, and the
+   Portuguese "A RESOLVER" is longer than anything English has. */
+.leaderboard-table .lb-status { width: 22%; }
+
 .leaderboard-table .lb-name {
     font-family: var(--font-body);
     font-weight: 500;
+    /* Without this a long name wraps to three lines instead of overflowing,
+       which is what fixed layout does with words it cannot fit. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .leaderboard-table .lb-pr {
     font-weight: 500;
@@ -1423,15 +1454,24 @@ body {
 
 .leaderboard-table .lb-status { text-align: center; }
 
+/* Only the leaderboard uses this. min-width:60px used to live here to keep the
+   four states the same size, but it made Status the widest column in the table
+   and pushed it off the side of a phone — and it could not hold the Portuguese
+   text ("A RESOLVER") anyway. The pill now sizes to its word and is bounded by
+   its cell. */
 .status-badge {
     display: inline-block;
-    padding: 0.15rem 0.5rem;
+    max-width: 100%;
+    padding: 0.15rem 0.35rem;
     border-radius: var(--radius-full);
-    font-size: 0.65rem;
+    /* Sized so the longest state fits its column on one line at every width the
+       panel takes — the Portuguese "A RESOLVER" is the one to beat, and at
+       0.65rem it wrapped and made the whole row half again as tall. */
+    font-size: 0.58rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    min-width: 60px;
+    letter-spacing: 0.02em;
+    overflow-wrap: anywhere;
     text-align: center;
 }
 
@@ -1460,6 +1500,49 @@ body {
 }
 
 .lb-medal { font-size: 1rem; }
+
+/* ---------- Leaderboard in a narrow panel ----------
+   Six columns need about 315px of intrinsic width; the panel drops below that
+   on any phone and also on a 1440px desktop, where the two-column dashboard
+   grid leaves it around 350px. The room is taken from the padding, the pill and
+   the heading type — never from a column, so nothing is hidden. 420px is a
+   little above the widest panel that still struggles. */
+@container leaderboard (max-width: 420px) {
+    /* 24px each side is a quarter of the screen on a small phone. */
+    .leaderboard-wrap {
+        padding-left: var(--space-sm);
+        padding-right: var(--space-sm);
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+        padding-left: 3px;
+        padding-right: 3px;
+    }
+
+    /* Status holds a word rather than a number, so it runs out of room first:
+       "A RESOLVER" wrapped to two lines and made every solving row 13px taller
+       than the others. Shrinking the pill is cheaper than widening the column —
+       the name is the cell that actually needs the pixels. */
+    .leaderboard-table .status-badge {
+        font-size: 0.5rem;
+        letter-spacing: 0;
+        padding: 0.15rem 0.25rem;
+    }
+    .leaderboard-table .lb-status { width: 21%; }
+    .leaderboard-table .lb-pr { width: 13%; }
+    .leaderboard-table .lb-best { width: 14%; }
+    .leaderboard-table .lb-avg { width: 16%; }
+
+    /* The headings are single unbreakable words — "AVERAGE", "MELHOR" — so
+       instead of wrapping they painted straight over the next column. Scoped
+       through .leaderboard-wrap to outweigh launch-ui.css, which restyles
+       .leaderboard-table th and is loaded after this file. */
+    .leaderboard-wrap .leaderboard-table th {
+        font-size: 0.55rem;
+        letter-spacing: 0;
+    }
+}
 
 /* ============================================================
    ROUND END OVERLAY
@@ -2747,6 +2830,9 @@ body {
     .setup-container {
         padding: var(--space-md);
     }
+
+    /* The leaderboard's own tight layout is a container query, next to the rest
+       of its rules — it depends on the panel's width, not the screen's. */
 }
 
 @media (max-width: 480px) {
@@ -3965,9 +4051,11 @@ body {
 
     /* === STATS PAGE === */
     .stats-medals-row { gap: 0.5rem; }
-    .lb-wrapper { overflow-x: auto; }
-    .lb-table { font-size: 0.78rem; min-width: 340px; }
-    .lb-table th, .lb-table td { padding: 0.5rem 0.4rem; }
+    /* .lb-wrapper / .lb-table were mobile leaderboard rules aimed at classes
+       that exist nowhere in the markup — only the <td>s use the lb- prefix, the
+       wrapper and table are .leaderboard-wrap / .leaderboard-table. They never
+       applied anything, and their min-width:340px would fight the real rules in
+       the max-width:850px block above, so they are gone rather than renamed. */
 
     /* === BATTLE LOBBY === */
     .battle-lobby-container { padding: 0.75rem; }
