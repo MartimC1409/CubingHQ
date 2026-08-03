@@ -130,26 +130,17 @@
     // Events that use Mean of 3 (instead of Average of 5)
     const MEAN_OF_3_EVENTS = ['666', '777', '333bf', '444bf', '555bf', '333fm', '333mbf'];
 
-    // First names and last names for realistic competitor generation
-    const FIRST_NAMES = [
-        'Max', 'Feliks', 'Tymon', 'Yiheng', 'Luke', 'Matty', 'Ruihang', 'Patrick',
-        'Leo', 'Martin', 'Seung', 'Antoine', 'Chris', 'Dana', 'Juliette', 'Ming',
-        'Kevin', 'Sebastian', 'Tommy', 'Jayden', 'Ava', 'Chloe', 'Diego', 'Elijah',
-        'Fiona', 'Gael', 'Hannah', 'Ivan', 'Jun', 'Kai', 'Liam', 'Mia', 'Nina',
-        'Oscar', 'Priya', 'Quinn', 'Ravi', 'Sofia', 'Tomas', 'Uma', 'Victor',
-        'Wen', 'Xander', 'Yuki', 'Zara', 'Aiden', 'Bella', 'Carlos', 'Daria',
-        'Erik', 'Flora', 'Gustav', 'Hana', 'Igor', 'Jade', 'Lars', 'Marta'
-    ];
-
-    const LAST_NAMES = [
-        'Park', 'Zemdegs', 'Kolasinski', 'Wang', 'Garrett', 'Intan', 'Xu', 'Ponce',
-        'Borber', 'Egdal', 'Hyun', 'Cantin', 'Olson', 'Yi', 'Chen', 'Zhang',
-        'Lee', 'Kim', 'Mueller', 'Richter', 'Garcia', 'Silva', 'Santos', 'Taylor',
-        'Wilson', 'Brown', 'Miller', 'Anderson', 'Thomas', 'Martinez', 'Robinson',
-        'Clark', 'Lewis', 'Hall', 'Allen', 'Young', 'King', 'Wright', 'Hill',
-        'Scott', 'Green', 'Adams', 'Baker', 'Nelson', 'Carter', 'Mitchell', 'Roberts',
-        'Turner', 'Phillips', 'Campbell', 'Evans', 'Edwards', 'Collins', 'Stewart'
-    ];
+    // There is deliberately no pool of invented competitor names here.
+    //
+    // There used to be: two index-aligned lists built from real cubers, which
+    // were then shuffled together. Random pairing re-emitted actual people —
+    // "Max Park", "Feliks Zemdegs", "Yiheng Wang" are all reachable, and
+    // Yiheng Wang is in this file's own WORLD_RECORDS — with invented times
+    // attached to them on a leaderboard. Filling a field with a real person's
+    // name and made-up results is not something a simulator should do.
+    //
+    // Opponents now come from the competition's own WCIF registrations when
+    // it has them, and are numbered placeholders when it does not.
 
     // Average variations by event
     const EVENT_VARIATION = {
@@ -213,7 +204,7 @@
         },
         '333oh': {
             single: { time: 5.66, holder: 'Dhruva Sai Meruva', country: 'IN', competition: 'Swiss Nationals 2024' },
-            average: { time: 7.72, holder: 'Luke Garrett', country: 'US', competition: 'Chicagoland Newcomers 2025' }
+            average: { time: 6.99, holder: 'Zhen Chen', country: 'CN', competition: 'Wuhu Open 2026' }
         },
         '333bf': {
             single: { time: 11.67, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' },
@@ -2026,13 +2017,38 @@
         const liveSingle = wcaRawToDisplay(eventId, live.single, false);
         const liveAvg = wcaRawToDisplay(eventId, live.average, true);
 
+        // The live feed carries times but no names — the v0 endpoint has none —
+        // so holder and competition can only come from the stored list. That is
+        // fine right up until a record changes hands: the time updates, the
+        // name does not, and the page credits the previous holder with somebody
+        // else's result. On a page headed "Official WCA records" that is the
+        // worst kind of wrong, because it is specific and plausible.
+        //
+        // So the stored metadata is only trusted while it still describes the
+        // time being shown. When the two disagree the record has moved on: show
+        // the live time with no name rather than the wrong name. Self-correcting
+        // for every event, instead of relying on someone noticing.
+        const metaFor = (side, liveVal) => {
+            const stale = !side || typeof side.time !== 'number'
+                || Math.abs(side.time - liveVal.time) > 0.005;
+            return stale ? {} : side;
+        };
+
         if (liveSingle) {
-            rec.single = Object.assign({ holder: '—', country: '' }, (meta && meta.single) || {}, liveSingle);
+            rec.single = Object.assign(
+                { holder: '—', country: '', competition: '' },
+                metaFor(meta && meta.single, liveSingle),
+                liveSingle,
+            );
         } else if (isWorld) {
             rec.single = meta && meta.single;
         }
         if (liveAvg) {
-            rec.average = Object.assign({ holder: '—', country: '' }, (meta && meta.average) || {}, liveAvg);
+            rec.average = Object.assign(
+                { holder: '—', country: '', competition: '' },
+                metaFor(meta && meta.average, liveAvg),
+                liveAvg,
+            );
         } else if (isWorld) {
             rec.average = meta && meta.average;
         }
@@ -3113,6 +3129,7 @@
 
     async function generateCompetitors() {
         state.competitors = [];
+        state.fieldIsSimulated = false;
 
         let wcifCompetitors = [];
         if (state.wcifData && state.wcifData.persons) {
@@ -3182,15 +3199,11 @@
 
             state.numCompetitors = state.competitors.length + 1;
         } else {
-            const usedNames = new Set();
+            // No WCIF registrations for this event, so the field is invented.
+            // It is labelled as such rather than dressed up with names.
+            state.fieldIsSimulated = true;
             for (let i = 0; i < state.numCompetitors - 1; i++) {
-                let name;
-                do {
-                    const first = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
-                    const last = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
-                    name = `${first} ${last}`;
-                } while (usedNames.has(name));
-                usedNames.add(name);
+                const name = i18nT('sim.competitorN', 'Competitor {n}').replace('{n}', i + 1);
 
                 const spread = state.playerAvg * 0.6;
                 const compAvg = state.playerAvg + (Math.random() * spread * 2 - spread);
@@ -3199,6 +3212,7 @@
                 // Don't generate solves yet — they are added progressively
                 state.competitors.push({
                     name,
+                    simulated: true,
                     wcaId: null,
                     country: '',
                     prSingle: null,
@@ -3714,6 +3728,18 @@
     function renderLeaderboard() {
         const tbody = $('#leaderboard-body');
         tbody.innerHTML = '';
+
+        // Say where the field came from. A leaderboard is read as a record of
+        // who was there, so an invented one has to be labelled — otherwise the
+        // only thing distinguishing it from real WCA registrations is that the
+        // names happen to be numbers.
+        const note = $('#lb-source');
+        if (note) {
+            note.textContent = state.fieldIsSimulated
+                ? i18nT('sim.fieldSimulated', 'Simulated field — not real competitors')
+                : i18nT('sim.fieldReal', 'Registered competitors from the WCA');
+            note.classList.toggle('is-simulated', !!state.fieldIsSimulated);
+        }
 
         const hasFinished = state.solves.length === state.numSolves;
         const computedAvg = calculateAverage(state.solves);
