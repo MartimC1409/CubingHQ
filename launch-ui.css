@@ -266,41 +266,13 @@ body {
 .glass-5 { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--brand) 16%, transparent), color-mix(in oklab, var(--brand) 6%, transparent)); }
 
 /* ============================================================
-   5. GLOW
-   Two stacked radial ellipses in the brand colour.
+   5. GLOW — removed
+   The hero used to sit on two stacked radial ellipses in the brand
+   colour, which washed the whole background orange. The background
+   is flat now, so the class is gone rather than left dead in the
+   sheet; .lu-dialog-glow (section 16) is a separate, much smaller
+   thing and still in use.
    ============================================================ */
-.lu-glow {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    pointer-events: none;
-    z-index: 0;
-}
-.lu-glow--top { top: 0; }
-.lu-glow--bottom { bottom: 0; }
-.lu-glow--center { top: 50%; }
-.lu-glow::before,
-.lu-glow::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    border-radius: 50%;
-    transform: translateX(-50%) scale(2.5);
-}
-.lu-glow::before {
-    width: 60%;
-    height: clamp(200px, 34vw, 512px);
-    background: radial-gradient(ellipse, color-mix(in oklab, var(--brand-foreground) 50%, transparent) 10%, transparent 60%);
-}
-.lu-glow::after {
-    width: 40%;
-    height: clamp(120px, 18vw, 256px);
-    background: radial-gradient(ellipse, color-mix(in oklab, var(--brand) 30%, transparent) 10%, transparent 60%);
-    transform: translateX(-50%) scale(2);
-}
-.lu-glow--center::before,
-.lu-glow--center::after { transform: translate(-50%, -50%) scale(2.5); }
-[data-theme="light"] .lu-glow { opacity: 0.35; }
 
 /* ============================================================
    6. ENTRANCE ANIMATIONS
