@@ -1,0 +1,416 @@
+/* ============================================================
+   CubingHQ — static content pages
+   ------------------------------------------------------------
+   Shared shell for the pages that live outside the app: About,
+   Contact, Privacy, Terms, and the guides. Everything is expressed
+   in the tokens style.css already defines, so light mode and the
+   accent picker come along for free with no extra rules.
+
+   Deliberately plain. These pages exist to be read (and crawled),
+   so they get a measured column and generous line height rather
+   than the app's dense dashboard layout.
+   ============================================================ */
+
+/* ---------- Layout ---------- */
+.page-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--space-3xl) var(--space-lg) var(--space-2xl);
+}
+
+.page-wrap--wide {
+    max-width: 1040px;
+}
+
+/* The app's fixed nav sits over the top of the viewport; content pages
+   have no nav bar of their own, so they carry the offset themselves. */
+.page-body {
+    padding-top: 72px;
+}
+
+/* ---------- Breadcrumb ---------- */
+.page-crumb {
+    font-size: 0.85rem;
+    color: var(--clr-text-muted);
+    margin-bottom: var(--space-lg);
+}
+
+.page-crumb a {
+    color: var(--clr-text-secondary);
+    text-decoration: none;
+}
+
+.page-crumb a:hover {
+    color: var(--clr-primary-hover);
+    text-decoration: underline;
+}
+
+/* ---------- Typography ---------- */
+.page-wrap h1 {
+    font-size: clamp(1.9rem, 5vw, 2.6rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 var(--space-md);
+    color: var(--clr-text);
+}
+
+.page-lede {
+    font-size: 1.12rem;
+    line-height: 1.65;
+    color: var(--clr-text-secondary);
+    margin: 0 0 var(--space-2xl);
+}
+
+.page-wrap h2 {
+    font-size: 1.45rem;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: var(--space-2xl) 0 var(--space-md);
+    color: var(--clr-text);
+}
+
+.page-wrap h3 {
+    font-size: 1.12rem;
+    margin: var(--space-xl) 0 var(--space-sm);
+    color: var(--clr-text);
+}
+
+.page-wrap p,
+.page-wrap li {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--clr-text-secondary);
+}
+
+.page-wrap p {
+    margin: 0 0 var(--space-md);
+}
+
+.page-wrap ul,
+.page-wrap ol {
+    margin: 0 0 var(--space-md);
+    padding-left: 1.35rem;
+}
+
+.page-wrap li {
+    margin-bottom: var(--space-sm);
+}
+
+.page-wrap li::marker {
+    color: var(--clr-primary);
+}
+
+.page-wrap strong {
+    color: var(--clr-text);
+    font-weight: 600;
+}
+
+.page-wrap a {
+    color: var(--clr-primary-hover);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.page-wrap a:hover {
+    color: var(--clr-accent);
+}
+
+.page-wrap code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--clr-bg-card);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 0.12em 0.4em;
+    color: var(--clr-text);
+}
+
+.page-wrap hr {
+    border: 0;
+    border-top: 1px solid var(--clr-border);
+    margin: var(--space-2xl) 0;
+}
+
+/* ---------- Meta line under an article title ---------- */
+.page-meta {
+    font-size: 0.85rem;
+    color: var(--clr-text-muted);
+    margin: calc(var(--space-md) * -1) 0 var(--space-2xl);
+}
+
+/* ---------- Callout ---------- */
+.page-note {
+    background: var(--clr-bg-card);
+    border: 1px solid var(--clr-border);
+    border-left: 3px solid var(--clr-accent);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    margin: var(--space-xl) 0;
+}
+
+.page-note p:last-child {
+    margin-bottom: 0;
+}
+
+/* ---------- Definition-style table (used in Privacy) ---------- */
+.page-table-scroll {
+    overflow-x: auto;
+    margin: var(--space-lg) 0;
+}
+
+.page-table {
+    width: 100%;
+    min-width: 460px;
+    border-collapse: collapse;
+    font-size: 0.94rem;
+}
+
+.page-table th,
+.page-table td {
+    text-align: left;
+    vertical-align: top;
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--clr-border);
+    line-height: 1.6;
+}
+
+.page-table th {
+    color: var(--clr-text);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.page-table td {
+    color: var(--clr-text-secondary);
+}
+
+/* ---------- Guide index cards ---------- */
+.guide-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-lg);
+    margin: var(--space-xl) 0;
+}
+
+.guide-card {
+    display: block;
+    background: var(--clr-bg-card);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    text-decoration: none;
+    transition: border-color var(--transition-base), transform var(--transition-base);
+}
+
+.guide-card:hover {
+    border-color: var(--clr-border-active);
+    transform: translateY(-2px);
+}
+
+.guide-card h3 {
+    margin: 0 0 var(--space-sm);
+    font-size: 1.05rem;
+    color: var(--clr-text);
+}
+
+.guide-card p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--clr-text-secondary);
+}
+
+.guide-card:hover h3 {
+    color: var(--clr-primary-hover);
+}
+
+/* ---------- "Read next" strip at the foot of an article ---------- */
+.page-next {
+    margin-top: var(--space-3xl);
+    padding-top: var(--space-xl);
+    border-top: 1px solid var(--clr-border);
+}
+
+.page-next h2 {
+    margin-top: 0;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--clr-text-muted);
+}
+
+/* ---------- Contact form ---------- */
+.page-form {
+    display: grid;
+    gap: var(--space-md);
+    max-width: 520px;
+    margin: var(--space-xl) 0;
+}
+
+.page-form label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--clr-text);
+    margin-bottom: var(--space-xs);
+}
+
+.page-form input,
+.page-form textarea {
+    width: 100%;
+    background: var(--clr-bg-elevated);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+    padding: 0.7rem 0.85rem;
+    color: var(--clr-text);
+    font-family: var(--font-body);
+    font-size: 0.96rem;
+}
+
+.page-form input:focus,
+.page-form textarea:focus {
+    outline: none;
+    border-color: var(--clr-border-active);
+    box-shadow: 0 0 0 3px var(--clr-primary-glow);
+}
+
+.page-form textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+/* ---------- Simple back-to-app button ---------- */
+.page-cta {
+    display: inline-block;
+    background: var(--clr-primary);
+    color: #fff;
+    border: 0;
+    border-radius: var(--radius-md);
+    padding: 0.7rem 1.25rem;
+    font-family: var(--font-body);
+    font-size: 0.96rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.page-cta:hover {
+    background: var(--clr-primary-hover);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* ---------- Site footer (shared with index.html / timer.html) ---------- */
+.site-footer {
+    border-top: 1px solid var(--clr-border);
+    margin-top: var(--space-3xl);
+    padding: var(--space-2xl) var(--space-lg);
+    background: var(--clr-bg-elevated);
+}
+
+.site-footer-inner {
+    max-width: 1040px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.site-footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md) var(--space-lg);
+}
+
+.site-footer-nav a {
+    font-size: 0.92rem;
+    color: var(--clr-text-secondary);
+    text-decoration: none;
+}
+
+.site-footer-nav a:hover {
+    color: var(--clr-primary-hover);
+    text-decoration: underline;
+}
+
+.site-footer-legal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.site-footer-legal span {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--clr-text-muted);
+}
+
+.site-footer-legal a {
+    color: var(--clr-text-secondary);
+}
+
+/* ---------- Minimal top bar for content pages ---------- */
+.page-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background: color-mix(in srgb, var(--clr-bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--clr-border);
+}
+
+.page-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--clr-text);
+    text-decoration: none;
+}
+
+.page-topbar-brand:hover {
+    text-decoration: none;
+    color: var(--clr-text);
+}
+
+.page-topbar-brand .brand-accent {
+    color: var(--clr-accent);
+}
+
+.page-topbar-links {
+    display: flex;
+    gap: var(--space-lg);
+}
+
+.page-topbar-links a {
+    font-size: 0.92rem;
+    color: var(--clr-text-secondary);
+    text-decoration: none;
+}
+
+.page-topbar-links a:hover {
+    color: var(--clr-primary-hover);
+}
+
+@media (max-width: 560px) {
+    .page-wrap {
+        padding-top: var(--space-2xl);
+    }
+
+    .page-topbar-links {
+        gap: var(--space-md);
+    }
+
+    .page-topbar-links a {
+        font-size: 0.85rem;
+    }
+}
