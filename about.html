@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>About CubingHQ — who builds it and why</title>
+    <meta name="description" content="CubingHQ is a free speedcubing practice site built by one cuber: a WCA competition simulator, a timer, an algorithm trainer and live head-to-head rooms. Here's why it exists and how it works.">
+    <link rel="canonical" href="https://cubinghq.com/about.html">
+
+    <script>
+        (function () {
+            try {
+                var m = localStorage.getItem('sc-theme');
+                var a = localStorage.getItem('sc-accent');
+                document.documentElement.setAttribute('data-theme',
+                    (m === 'light' || m === 'dark') ? m : 'dark');
+                document.documentElement.setAttribute('data-accent',
+                    ['orange', 'green', 'blue', 'red'].indexOf(a) !== -1 ? a : 'orange');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-accent', 'orange');
+            }
+        })();
+    </script>
+
+    <meta property="og:title" content="About CubingHQ">
+    <meta property="og:description" content="A free speedcubing practice site built by one cuber. Here's why it exists.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://cubinghq.com/about.html">
+    <meta property="og:site_name" content="CubingHQ">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="page.css?v=1">
+
+    <script src="analytics.js?v=1"></script>
+    <meta name="google-adsense-account" content="ca-pub-1447384831345579">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
+     crossorigin="anonymous"></script>
+</head>
+<body class="page-body">
+
+<header class="page-topbar">
+    <a class="page-topbar-brand" href="/">Cubing<span class="brand-accent">HQ</span></a>
+    <nav class="page-topbar-links" aria-label="Site pages">
+        <a href="/guides/">Guides</a>
+        <a href="/about.html">About</a>
+        <a href="/contact.html">Contact</a>
+    </nav>
+</header>
+
+<main class="page-wrap">
+    <p class="page-crumb"><a href="/">Home</a> → About</p>
+
+    <h1>About CubingHQ</h1>
+
+    <p class="page-lede">CubingHQ exists because practising at your desk and competing on
+    a stage are not the same activity, and almost nothing online helps you bridge the gap.</p>
+
+    <h2>The problem it was built for</h2>
+
+    <p>Nearly every speedcuber has had the same experience. You average 14 seconds at home.
+    You sit down at your first competition, a judge you have never met starts the
+    inspection countdown, the timer is a Stackmat instead of a keyboard, someone is
+    watching, and you post 19, 22, 17, DNF, 18.</p>
+
+    <p>Nothing about your cube changed. What changed was everything around it: the
+    inspection being enforced rather than approximate, five attempts that all count instead
+    of a rolling average you can quietly restart, a room full of noise, and the knowledge
+    that this one is real.</p>
+
+    <p>That gap is trainable, but only if you can practise the conditions rather than just
+    the solves. That is what CubingHQ is for.</p>
+
+    <h2>What it does</h2>
+
+    <h3>Competition simulator</h3>
+    <p>Pick a real upcoming WCA competition, or configure a round yourself. CubingHQ pulls
+    the actual event list and round format from the WCA, generates competition-legal
+    scrambles, enforces the 15-second inspection with the 8- and 12-second calls, runs a
+    proper scorecard, and computes your result under WCA rules — including how a DNF wrecks
+    a mean but only trims an average of five. It runs venue ambience underneath, and it
+    does not let you restart a bad attempt.</p>
+
+    <h3>Timer</h3>
+    <p>A fast, keyboard-driven timer in the csTimer tradition, with sessions, statistics,
+    scramble previews, and support for Bluetooth smart cubes including a move-by-move
+    breakdown of where your time actually went. Available inside the app or standalone at
+    <a href="/timer.html">the timer page</a>.</p>
+
+    <h3>Algorithms and drills</h3>
+    <p>A browsable algorithm database covering the standard 3x3 sets and more, with a
+    trainer that drills a chosen subset case by case and times your recognition. Learning
+    an algorithm and being able to execute it under pressure are different skills; the
+    trainer targets the second.</p>
+
+    <h3>Records and competitions</h3>
+    <p>Current world and continental records, and a browser for upcoming WCA competitions
+    so you can find the one you are training for. Both read from the WCA's public API.</p>
+
+    <h3>Battle</h3>
+    <p>Head-to-head rooms where several cubers solve the same scramble at the same time and
+    watch the results land live. It is the closest thing to competitive pressure you can
+    get without leaving the house.</p>
+
+    <h2>Who builds it</h2>
+
+    <p>One person. CubingHQ is a personal project by a cuber from Portugal, built because
+    the tool was wanted and did not exist, and kept running because other people started
+    using it. It is not a company, has no team, and has never taken funding.</p>
+
+    <p>That has consequences worth being upfront about: fixes arrive when there is time to
+    make them, and the roadmap is whatever seems most useful next. It also means that if
+    you email about a bug, the person who wrote the bug is the person who reads the email.</p>
+
+    <h2>How it stays free</h2>
+
+    <p>CubingHQ is free and always will be. Hosting and the domain are paid for with
+    advertising. There is no subscription, no paid tier, no account to create, and nothing
+    behind a paywall. We do not sell data — see the <a href="/privacy.html">Privacy
+    Policy</a> for exactly what that means in practice.</p>
+
+    <h2>What it is not</h2>
+
+    <p>CubingHQ is an <strong>unofficial fan project</strong>. It is not affiliated with,
+    endorsed by, or operated by the World Cube Association. Simulated rounds are practice
+    and carry no official standing whatsoever. For official competitions, results and
+    rankings, go to the
+    <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>.</p>
+
+    <h2>Standing on other people's work</h2>
+
+    <p>Very little here is built from nothing:</p>
+
+    <ul>
+        <li><a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">The WCA</a> publishes an open API, which is why competition and ranking data can be shown at all.</li>
+        <li><a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> does the scrambling and the 3D puzzle rendering. Random-state scrambling is genuinely hard, and we did not solve it.</li>
+        <li><a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> is the reference for the algorithm sets.</li>
+        <li><a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a> set the conventions for what a cubing timer should feel like. The timer here follows them deliberately.</li>
+    </ul>
+
+    <h2>Where to start</h2>
+
+    <p>If you have never competed, read
+    <a href="/guides/first-wca-competition.html">what actually happens at a WCA
+    competition</a>. If you have competed and it went badly, read
+    <a href="/guides/competition-nerves.html">why your solves fall apart under pressure</a>.
+    Everything else is in the <a href="/guides/">guides</a>.</p>
+
+    <p><a class="page-cta" href="/#simulation">Try a simulated round</a></p>
+
+    <h2>Get in touch</h2>
+
+    <p>Bugs, corrections, feature requests, or a note that something is wrong in a guide —
+    all welcome at <a href="mailto:martimcbusiness@gmail.com">martimcbusiness@gmail.com</a>
+    or via the <a href="/contact.html">contact page</a>.</p>
+</main>
+
+<footer class="site-footer">
+    <div class="site-footer-inner">
+        <nav class="site-footer-nav" aria-label="Footer">
+            <a href="/">Home</a>
+            <a href="/timer.html">Timer</a>
+            <a href="/guides/">Guides</a>
+            <a href="/about.html">About</a>
+            <a href="/contact.html">Contact</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+        </nav>
+        <div class="site-footer-legal">
+            <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>
+            <span>Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

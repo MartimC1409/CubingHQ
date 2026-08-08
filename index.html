@@ -34,9 +34,19 @@
         })();
     </script>
     <meta name="description" content="Practice for your upcoming Rubik's cube competition with CubingHQ! Simulate real WCA competition rounds with scrambles, timers, scorecards, and live leaderboards.">
+    <link rel="canonical" href="https://cubinghq.com/">
     <meta property="og:title" content="CubingHQ — WCA Competition Simulator">
     <meta property="og:description" content="The ultimate speedcubing competition simulator. Practice under real competition pressure.">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://cubinghq.com/">
+    <meta property="og:site_name" content="CubingHQ">
+    <meta property="og:image" content="https://cubinghq.com/icons/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CubingHQ — WCA Competition Simulator">
+    <meta name="twitter:description" content="Practice under real competition pressure: real scrambles, enforced inspection, scorecards.">
+    <meta name="twitter:image" content="https://cubinghq.com/icons/og-image.png">
     <meta name="keywords" content="speedcubing, WCA, competition simulator, Rubik's cube, cubing practice">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3Crect x='12' y='2' width='8' height='8' rx='1.5' fill='%23F7C948'/%3E%3Crect x='22' y='2' width='8' height='8' rx='1.5' fill='%232ECC71'/%3E%3Crect x='2' y='12' width='8' height='8' rx='1.5' fill='%23E74C3C'/%3E%3Crect x='12' y='12' width='8' height='8' rx='1.5' fill='%236366F1'/%3E%3Crect x='22' y='12' width='8' height='8' rx='1.5' fill='%233498DB'/%3E%3Crect x='2' y='22' width='8' height='8' rx='1.5' fill='%239B59B6'/%3E%3Crect x='12' y='22' width='8' height='8' rx='1.5' fill='%231ABC9C'/%3E%3Crect x='22' y='22' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,16 +59,12 @@
     <!-- TwistyPlayer for native algorithm rendering -->
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YQSNC2LYVS"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+    <!-- Consent Mode defaults, then gtag.js. Loaded synchronously and BEFORE
+         the AdSense tag on purpose: the defaults have to reach the dataLayer
+         before either Google tag reads them, or the first pageview races the
+         consent dialogue. See analytics.js. -->
+    <script src="analytics.js?v=1"></script>
 
-      gtag('config', 'G-YQSNC2LYVS');
-    </script>
-    
     <!-- Google AdSense Verification & Auto Ads -->
     <meta name="google-adsense-account" content="ca-pub-1447384831345579">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
@@ -66,7 +72,8 @@
 
     <!-- Vercel Web Analytics. Vercel serves this at the path below once the
          project has Web Analytics enabled; it 404s harmlessly in local dev.
-         Cookieless, so no consent banner is needed. -->
+         Cookieless and not cross-site, so it sits outside the consent gate
+         above — which covers AdSense and GA4, both of which do set cookies. -->
     <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -597,6 +604,27 @@
                         </div>
                     </article>
                 </div>
+
+                <!-- Written content, and the only place the guides are linked
+                     from inside the app. Static markup on purpose: this is
+                     also what a crawler fetching / actually reads, since every
+                     other view is hydrated from an API. -->
+                <section class="home-editorial" aria-labelledby="home-editorial-title">
+                    <h2 id="home-editorial-title" data-i18n="home.editorial.title">Practising is not the same as competing</h2>
+                    <p data-i18n="home.editorial.p1">Almost every cuber is slower at their first competition than at home, and the cube is not the reason. What changes is everything around it: an inspection someone else is counting, five attempts that all count, no restarts, and a room full of noise. That gap is trainable — but only if you practise the conditions rather than just the solves.</p>
+                    <p data-i18n="home.editorial.p2">CubingHQ exists to close it. Pick a real WCA competition and the simulator pulls its actual events and round formats, generates competition-legal scrambles, enforces the fifteen-second inspection with the eight- and twelve-second calls, and scores your round under WCA rules. It will not let you restart a bad attempt, which is the entire point.</p>
+
+                    <ul class="home-editorial-links">
+                        <li><a href="/guides/first-wca-competition.html" data-i18n="home.editorial.link1">Your first WCA competition: what actually happens on the day</a></li>
+                        <li><a href="/guides/competition-nerves.html" data-i18n="home.editorial.link2">Why your solves fall apart under pressure</a></li>
+                        <li><a href="/guides/wca-regulations-explained.html" data-i18n="home.editorial.link3">The WCA regulations, explained</a></li>
+                        <li><a href="/guides/learn-oll-pll.html" data-i18n="home.editorial.link4">Learning OLL and PLL without burning out</a></li>
+                        <li><a href="/guides/cfop-roux-zz.html" data-i18n="home.editorial.link5">CFOP, Roux or ZZ? Choosing a method honestly</a></li>
+                        <li><a href="/guides/how-wca-scrambles-work.html" data-i18n="home.editorial.link6">How WCA scrambles work</a></li>
+                    </ul>
+
+                    <p><a class="home-editorial-all" href="/guides/" data-i18n="home.editorial.all">Read all the guides →</a></p>
+                </section>
                 </div>
             </div>
         </section>
@@ -1449,6 +1477,13 @@
                             <input type="text" id="battle-chat-input" placeholder="Type a message…" maxlength="500" autocomplete="off" aria-label="Chat message" data-i18n-placeholder="ph.chat" data-i18n-aria="aria.chatMessage">
                             <button id="battle-chat-send-btn" class="btn btn-primary btn-sm" aria-label="Send message" data-i18n-aria="aria.sendMessage">Send</button>
                         </div>
+                        <!-- Rooms are public and unmoderated in real time, so
+                             the route to report something has to be visible in
+                             the room rather than only in the Terms. -->
+                        <p class="battle-chat-rules">
+                            <span data-i18n="battle.chatRules">Rooms are public. Be decent, and don't share personal details.</span>
+                            <a href="/contact.html" data-i18n="battle.report">Report a problem</a>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1712,8 +1747,17 @@
 
     <footer class="site-footer" id="site-footer">
         <div class="site-footer-inner">
-            <span data-i18n-html="footer.about"><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>.</span>
-            <span data-i18n-html="footer.credits">Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
+            <nav class="site-footer-nav" aria-label="Footer" data-i18n-aria="aria.footerNav">
+                <a href="/guides/" data-i18n="footer.guides">Guides</a>
+                <a href="/about.html" data-i18n="footer.aboutLink">About</a>
+                <a href="/contact.html" data-i18n="footer.contact">Contact</a>
+                <a href="/privacy.html" data-i18n="footer.privacy">Privacy</a>
+                <a href="/terms.html" data-i18n="footer.terms">Terms</a>
+            </nav>
+            <div class="site-footer-legal">
+                <span data-i18n-html="footer.about"><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>
+                <span data-i18n-html="footer.credits">Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
+            </div>
         </div>
     </footer>
 
@@ -1740,6 +1784,10 @@
     <script src="smartcube.js?v=2"></script>
     <script src="cube-decor.js?v=1"></script>
     <script src="motion.js?v=2"></script>
+    <!-- Must precede app.js: app.js calls window.createAmbientNoise() at init. -->
+    <script src="ambient-noise.js?v=1"></script>
+    <!-- Must precede app.js: the battle chat filters on both send and render. -->
+    <script src="content-filter.js?v=1"></script>
     <script src="app.js?v=18"></script>
     <script src="mobile-nav.js?v=1"></script>
 

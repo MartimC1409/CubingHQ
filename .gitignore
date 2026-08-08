@@ -7,3 +7,13 @@ _pkg_*
 
 # Local static server logs
 http.log
+
+# Secrets. .env was tracked until the AdSense cleanup; the key that was in it
+# is in git history and has to be rotated, not just removed.
+.env
+.env.*
+!.env.example
+
+# Never belonged in the repo: there is no package.json, and a static host
+# serves whatever is committed.
+node_modules/

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Contact CubingHQ</title>
+    <meta name="description" content="Get in touch with CubingHQ — report a bug, correct an algorithm, report content in a Battle room, or ask a question. Email or use the form.">
+    <link rel="canonical" href="https://cubinghq.com/contact.html">
+
+    <script>
+        (function () {
+            try {
+                var m = localStorage.getItem('sc-theme');
+                var a = localStorage.getItem('sc-accent');
+                document.documentElement.setAttribute('data-theme',
+                    (m === 'light' || m === 'dark') ? m : 'dark');
+                document.documentElement.setAttribute('data-accent',
+                    ['orange', 'green', 'blue', 'red'].indexOf(a) !== -1 ? a : 'orange');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-accent', 'orange');
+            }
+        })();
+    </script>
+
+    <meta property="og:title" content="Contact CubingHQ">
+    <meta property="og:description" content="Report a bug, correct an algorithm, or ask a question.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://cubinghq.com/contact.html">
+    <meta property="og:site_name" content="CubingHQ">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="page.css?v=1">
+
+    <script src="analytics.js?v=1"></script>
+    <meta name="google-adsense-account" content="ca-pub-1447384831345579">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
+     crossorigin="anonymous"></script>
+</head>
+<body class="page-body">
+
+<header class="page-topbar">
+    <a class="page-topbar-brand" href="/">Cubing<span class="brand-accent">HQ</span></a>
+    <nav class="page-topbar-links" aria-label="Site pages">
+        <a href="/guides/">Guides</a>
+        <a href="/about.html">About</a>
+        <a href="/contact.html">Contact</a>
+    </nav>
+</header>
+
+<main class="page-wrap">
+    <p class="page-crumb"><a href="/">Home</a> → Contact</p>
+
+    <h1>Contact</h1>
+
+    <p class="page-lede">CubingHQ is run by one person, so messages go straight to the
+    person who wrote the code. Expect a reply within a few days.</p>
+
+    <h2>Email</h2>
+
+    <p><strong><a href="mailto:martimcbusiness@gmail.com">martimcbusiness@gmail.com</a></strong></p>
+
+    <p>Email is the most reliable way to reach us, and the right channel for anything
+    urgent or anything involving your personal data.</p>
+
+    <h2>What to get in touch about</h2>
+
+    <ul>
+        <li><strong>Bugs.</strong> Tell us your browser and device, and what you did just before it went wrong. A screenshot helps more than a description.</li>
+        <li><strong>Wrong algorithms.</strong> If a case in the algorithm database is wrong or has a better-known alternative, say which set and which case.</li>
+        <li><strong>Scramble or ruling problems.</strong> If a simulated round scored something in a way that does not match the WCA Regulations, we want to know — include the event and format.</li>
+        <li><strong>Reporting a Battle room.</strong> If someone posted something that breaks the <a href="/terms.html">Terms of Use</a>, send the room name and roughly when you saw it.</li>
+        <li><strong>Copyright.</strong> If material here is yours and should not be, tell us and we will remove it promptly.</li>
+        <li><strong>Privacy requests.</strong> Access, correction or deletion of anything we hold — see the <a href="/privacy.html">Privacy Policy</a>. We action these within 30 days and you do not need to give a reason.</li>
+        <li><strong>Feature ideas.</strong> Genuinely welcome. Most of what is here started as someone's suggestion.</li>
+    </ul>
+
+    <h2>Send a message</h2>
+
+    <form class="page-form" id="contact-form" novalidate>
+        <div>
+            <label for="cf-name">Your name</label>
+            <input type="text" id="cf-name" name="name" autocomplete="name" maxlength="80" required>
+        </div>
+        <div>
+            <label for="cf-email">Your email</label>
+            <input type="email" id="cf-email" name="email" autocomplete="email" maxlength="160" required>
+        </div>
+        <div>
+            <label for="cf-subject">Subject</label>
+            <input type="text" id="cf-subject" name="subject" maxlength="120" required>
+        </div>
+        <div>
+            <label for="cf-message">Message</label>
+            <textarea id="cf-message" name="message" maxlength="4000" required></textarea>
+        </div>
+        <!-- Honeypot: hidden from people, irresistible to bots. A filled value
+             means we drop the submission silently. -->
+        <div style="position:absolute;left:-9999px;" aria-hidden="true">
+            <label for="cf-website">Leave this empty</label>
+            <input type="text" id="cf-website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+        <div>
+            <button type="submit" class="page-cta" id="cf-submit">Send message</button>
+        </div>
+        <p id="cf-status" role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="page-note">
+        <p>The form stores your message so we can read it later; it does not open your mail
+        client. What you type here is covered by the <a href="/privacy.html">Privacy
+        Policy</a>. If you would rather not use it, plain email works just as well.</p>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            var RTDB = 'https://simulatecubing-default-rtdb.firebaseio.com';
+            var form = document.getElementById('contact-form');
+            var status = document.getElementById('cf-status');
+            var submit = document.getElementById('cf-submit');
+
+            function say(text, ok) {
+                status.textContent = text;
+                status.style.color = ok ? 'var(--clr-success)' : 'var(--clr-danger)';
+            }
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                // Honeypot tripped: pretend it worked rather than telling a bot
+                // it was caught.
+                if (document.getElementById('cf-website').value) {
+                    say('Thanks — your message has been sent.', true);
+                    form.reset();
+                    return;
+                }
+
+                var payload = {
+                    name: document.getElementById('cf-name').value.trim(),
+                    email: document.getElementById('cf-email').value.trim(),
+                    subject: document.getElementById('cf-subject').value.trim(),
+                    message: document.getElementById('cf-message').value.trim(),
+                    sentAt: Date.now()
+                };
+
+                if (!payload.name || !payload.email || !payload.subject || !payload.message) {
+                    say('Please fill in every field.', false);
+                    return;
+                }
+                if (payload.email.indexOf('@') < 1) {
+                    say('That email address does not look right.', false);
+                    return;
+                }
+
+                submit.disabled = true;
+                say('Sending…', true);
+
+                fetch(RTDB + '/contact_messages.json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        say('Thanks — your message has been sent. We will reply by email.', true);
+                        form.reset();
+                    })
+                    .catch(function () {
+                        // Never strand someone with an unsendable message: point
+                        // them at the address that always works.
+                        say('That did not send. Please email martimcbusiness@gmail.com instead.', false);
+                    })
+                    .then(function () {
+                        submit.disabled = false;
+                    });
+            });
+        })();
+    </script>
+</main>
+
+<footer class="site-footer">
+    <div class="site-footer-inner">
+        <nav class="site-footer-nav" aria-label="Footer">
+            <a href="/">Home</a>
+            <a href="/timer.html">Timer</a>
+            <a href="/guides/">Guides</a>
+            <a href="/about.html">About</a>
+            <a href="/contact.html">Contact</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+        </nav>
+        <div class="site-footer-legal">
+            <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>
+            <span>Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

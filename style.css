@@ -4748,6 +4748,26 @@ body {
     color: var(--clr-text-secondary);
     font-weight: 600;
 }
+/* Footer link row. Carries the About/Contact/Privacy/Terms links that AdSense
+   expects to find reachable from every page, so it is part of the shared
+   footer rather than something the content pages add for themselves. */
+.site-footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-sm) var(--space-lg);
+    margin-bottom: var(--space-sm);
+}
+.site-footer-nav a {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--clr-text-secondary);
+}
+.site-footer-legal {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
 .site-footer a {
     color: var(--clr-primary-hover);
     text-decoration: none;
@@ -4866,4 +4886,87 @@ body {
 }
 @media (max-width: 700px) {
     .card-bar-note { display: none; }
+}
+
+/* ============================================================
+   HOME — editorial block
+   ------------------------------------------------------------
+   Prose and guide links under the bento grid. This is the only
+   written content in index.html: every other view is an empty
+   shell hydrated from the WCA API or Firebase, so for a crawler
+   (and for anyone landing cold) this is the page.
+   ============================================================ */
+.home-editorial {
+    max-width: 720px;
+    margin: var(--space-3xl) auto 0;
+    padding: 0 var(--space-lg);
+}
+.home-editorial h2 {
+    font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--clr-text);
+    margin: 0 0 var(--space-md);
+}
+.home-editorial p {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--clr-text-secondary);
+    margin: 0 0 var(--space-md);
+}
+.home-editorial-links {
+    list-style: none;
+    margin: var(--space-lg) 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-sm);
+}
+.home-editorial-links li {
+    padding-left: 1.1rem;
+    position: relative;
+}
+.home-editorial-links li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--clr-accent);
+}
+.home-editorial-links a {
+    color: var(--clr-text-secondary);
+    text-decoration: none;
+    line-height: 1.6;
+}
+.home-editorial-links a:hover {
+    color: var(--clr-primary-hover);
+    text-decoration: underline;
+}
+.home-editorial-all {
+    color: var(--clr-primary-hover);
+    font-weight: 600;
+    text-decoration: none;
+}
+.home-editorial-all:hover {
+    text-decoration: underline;
+}
+
+/* Chat rules line under the Battle room input. Rooms are public and there is
+   no live moderation, so the house rules and the reporting route are stated in
+   the room itself, not only in the Terms. */
+.battle-chat-rules {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-sm);
+    margin: var(--space-sm) 0 0;
+    padding: 0 var(--space-xs);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--clr-text-muted);
+}
+.battle-chat-rules a {
+    color: var(--clr-text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.battle-chat-rules a:hover {
+    color: var(--clr-primary-hover);
 }

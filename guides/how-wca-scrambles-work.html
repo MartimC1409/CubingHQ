@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>How WCA scrambles work: random state, TNoodle and fairness | CubingHQ</title>
+    <meta name="description" content="Why competition scrambles are generated the way they are: random-state versus random-move scrambling, what TNoodle does, why every competitor in a round gets the same scramble, and why 'easy scrambles' are not the scrambler being kind.">
+    <link rel="canonical" href="https://cubinghq.com/guides/how-wca-scrambles-work.html">
+
+    <script>
+        (function () {
+            try {
+                var m = localStorage.getItem('sc-theme');
+                var a = localStorage.getItem('sc-accent');
+                document.documentElement.setAttribute('data-theme',
+                    (m === 'light' || m === 'dark') ? m : 'dark');
+                document.documentElement.setAttribute('data-accent',
+                    ['orange', 'green', 'blue', 'red'].indexOf(a) !== -1 ? a : 'orange');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-accent', 'orange');
+            }
+        })();
+    </script>
+
+    <meta property="og:title" content="How WCA scrambles work">
+    <meta property="og:description" content="Random state, TNoodle, and why your easy scramble was just luck.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://cubinghq.com/guides/how-wca-scrambles-work.html">
+    <meta property="og:site_name" content="CubingHQ">
+    <link rel="icon" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css?v=12">
+    <link rel="stylesheet" href="/page.css?v=1">
+
+    <script src="/analytics.js?v=1"></script>
+    <meta name="google-adsense-account" content="ca-pub-1447384831345579">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
+     crossorigin="anonymous"></script>
+</head>
+<body class="page-body">
+
+<header class="page-topbar">
+    <a class="page-topbar-brand" href="/">Cubing<span class="brand-accent">HQ</span></a>
+    <nav class="page-topbar-links" aria-label="Site pages">
+        <a href="/guides/">Guides</a>
+        <a href="/about.html">About</a>
+        <a href="/contact.html">Contact</a>
+    </nav>
+</header>
+
+<main class="page-wrap">
+    <p class="page-crumb"><a href="/">Home</a> → <a href="/guides/">Guides</a> → How scrambles work</p>
+
+    <h1>How WCA scrambles work</h1>
+    <p class="page-meta">Guide · about 8 minutes</p>
+
+    <p class="page-lede">A competition scramble is not somebody shuffling a cube. It is a
+    generated object with specific fairness properties, and the way it is generated has
+    consequences for what your practice should look like.</p>
+
+    <h2>Why not just shuffle it</h2>
+
+    <p>The obvious approach — turn random faces twenty-five times — is what most people
+    imagine, and it has a subtle problem.</p>
+
+    <p>Applying random moves does not sample the cube's states evenly. Some states become
+    much more likely than others, and, more importantly, the results are biased in ways that
+    correlate with solving. Short random sequences leave recognisable structure behind: pieces
+    that started adjacent tend to stay near each other, and a solver who has internalised
+    that pattern gets an edge that has nothing to do with skill.</p>
+
+    <p>For a competition that ranks people worldwide, that is not acceptable. Two solvers
+    should face the same difficulty distribution, and a scrambling process should not quietly
+    favour anyone.</p>
+
+    <h2>Random state</h2>
+
+    <p>The alternative inverts the process. Instead of picking moves and seeing where you
+    land, you <strong>pick the destination first</strong>.</p>
+
+    <ol>
+        <li>Choose a state uniformly at random from all the puzzle's legal states.</li>
+        <li>Compute a move sequence that reaches it from solved.</li>
+        <li>That sequence is the scramble.</li>
+    </ol>
+
+    <p>Every reachable state is exactly as likely as every other. There is no residual
+    structure, because the moves were derived from the state rather than the other way round.</p>
+
+    <p>This is why 3x3 competition scrambles are short — around twenty moves, sometimes
+    fewer. A short scramble sequence feels wrong to people expecting a long shuffle, but it
+    is a <em>consequence</em> of the method, not a shortcut: the solver computes an efficient
+    route to a genuinely random state. A 19-move scramble from a random-state generator is
+    considerably more scrambled than 40 random turns.</p>
+
+    <p>The hard part is step 2. Finding a short sequence to an arbitrary state is a
+    substantial search problem, which is why random-state scrambling arrived late and is
+    still not used for every event.</p>
+
+    <h2>Which events get which</h2>
+
+    <p>WCA scrambles are generated by <strong>TNoodle</strong>, the official scrambling
+    software. Random-state generation is used where it is computationally feasible — which
+    covers the 3x3x3, 2x2x2, 4x4x4, Pyraminx, Skewb, Square-1 and Clock.</p>
+
+    <p>The larger puzzles — 5x5x5, 6x6x6, 7x7x7 — and Megaminx use <strong>random
+    moves</strong> instead. Their state spaces are far too large to search for a short
+    solution in reasonable time. Instead they use long move sequences: many dozens of turns,
+    enough that the residual bias is negligible in practice.</p>
+
+    <p>This is the reason for the length difference you have already noticed. A 3x3 scramble
+    is around twenty moves and a 7x7 scramble is a wall of text. It is not that the bigger
+    puzzle needs more scrambling in some intuitive sense — it is two different algorithms
+    solving two different problems.</p>
+
+    <div class="page-note">
+        <p>The heavy lifting is open source. The scrambles on this site are generated by
+        <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a>,
+        which implements the same random-state approach in the browser. This is why a
+        <a href="/#simulation">simulated round</a> gives you scrambles with the same
+        properties as competition ones, rather than an approximation.</p>
+    </div>
+
+    <h2>Everyone gets the same scramble</h2>
+
+    <p>Within a round, every competitor solves the <strong>same set of scrambles</strong>.
+    Attempt one is the same scramble for everyone in the round; so is attempt two.</p>
+
+    <p>This is the core fairness property, and it is why the scrambling procedure at a
+    competition is as controlled as it is. Scrambles are generated in advance and kept
+    secret. A designated scrambler applies them out of your sight. You do not see the
+    scramble until you sit down, and you are not permitted to see other people's attempts of
+    a scramble you have not yet done.</p>
+
+    <p>It also means a lucky scramble is not unfair. If attempt three happens to give an
+    easy cross, it gives everyone an easy cross. The luck is in the round, not in your copy
+    of it — which is exactly why "I got a good scramble" is not a caveat anyone needs to add
+    to a competition result.</p>
+
+    <h2>What "lucky" actually means</h2>
+
+    <p>Since states are sampled uniformly, every scramble is equally likely. But "equally
+    likely" is not "equally difficult", and this is where intuition misleads people.</p>
+
+    <p>Some states genuinely are easier to solve. An OLL skip is a real thing that will
+    occasionally happen to you. So is a scramble with three F2L pairs nearly built. These are
+    not the generator being generous — they are simply rare states, and rare states occur at
+    their natural rate.</p>
+
+    <p>The useful consequence: <strong>you cannot practise your way out of scramble
+    variance, and you should not try.</strong> Over five attempts you will get a spread. The
+    <a href="/guides/wca-regulations-explained.html">average of five</a> format exists
+    precisely because of this — dropping the best and worst removes both the lucky scramble
+    and the disaster, leaving something closer to your actual ability.</p>
+
+    <p>Which is also why one great single says much less about a solver than a consistent
+    average does.</p>
+
+    <h2>What this means for practice</h2>
+
+    <h3>Do not filter your scrambles</h3>
+
+    <p>Skipping a scramble because it "looks awkward" corrupts the thing you are measuring.
+    Your average over scrambles you liked is not an average, and it will not survive contact
+    with a competition where you get what you are given.</p>
+
+    <p>This is the most common self-inflicted wound in speedcubing practice, and it is
+    entirely avoidable: solve every scramble you generate.</p>
+
+    <h3>Use scrambles from the same distribution</h3>
+
+    <p>If your practice scrambles come from a generator with different properties than
+    TNoodle's, you are practising a slightly different puzzle. In particular, hand-shuffling
+    or short random-move sequences produce systematically easier and more structured states
+    than competition scrambles.</p>
+
+    <h3>Practise the whole distribution, including the bad end</h3>
+
+    <p>People remember lucky scrambles and forget hard ones, then are surprised when a
+    competition round contains two awkward ones. It did not: your practice contained them
+    too, and you did not count them.</p>
+
+    <h2>Why scramble handling is so strict</h2>
+
+    <p>Everything a competition does around scrambles follows from the same requirement. The
+    scramble must be secret until you sit down, identical for everyone, and applied
+    correctly.</p>
+
+    <p>Hence: scrambles generated in advance and kept out of sight, a separate scrambler
+    rather than the competitor, puzzles covered between scrambling and inspection, and the
+    convention that you do not discuss a scramble with someone who has not attempted it yet.</p>
+
+    <p>None of that is ceremony. Each rule closes a specific way the fairness property could
+    be broken.</p>
+
+    <h2>Practising it properly</h2>
+
+    <p>The <a href="/#simulation">competition simulator</a> generates its scrambles with the
+    same random-state approach TNoodle uses, gives you the round's scrambles in order, and
+    does not let you skip one you dislike. Combined with the enforced inspection and the
+    scorecard, that gets practice conditions genuinely close to the day.</p>
+
+    <p>The <a href="/timer.html">timer</a> uses the same generator for ordinary sessions. If
+    you take one thing from this page, take the discipline: generate it, solve it, record it.
+    Every time.</p>
+
+    <div class="page-next">
+        <h2>Read next</h2>
+        <ul>
+            <li><a href="/guides/wca-regulations-explained.html">The WCA regulations, explained</a> — why the average of five format exists</li>
+            <li><a href="/guides/first-wca-competition.html">Your first WCA competition</a> — how scrambling works on the day</li>
+            <li><a href="/guides/competition-nerves.html">Why your solves fall apart under pressure</a></li>
+        </ul>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <div class="site-footer-inner">
+        <nav class="site-footer-nav" aria-label="Footer">
+            <a href="/">Home</a>
+            <a href="/timer.html">Timer</a>
+            <a href="/guides/">Guides</a>
+            <a href="/about.html">About</a>
+            <a href="/contact.html">Contact</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+        </nav>
+        <div class="site-footer-legal">
+            <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>
+            <span>Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

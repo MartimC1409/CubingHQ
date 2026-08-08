@@ -1,0 +1,25 @@
+# CubingHQ
+
+User-agent: *
+Allow: /
+
+# Admin panels. Excluded from the deploy by .vercelignore as well — this is
+# belt and braces, and it is not a security control.
+Disallow: /admin.html
+Disallow: /admin_records.html
+
+# One-off development scripts, kept in the repo but not part of the site.
+Disallow: /scripts/
+
+# Ad crawlers need to reach every page they may serve against, including the
+# app itself. Stated explicitly so a narrower rule above can never shadow it.
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
+User-agent: AdsBot-Google-Mobile
+Allow: /
+
+Sitemap: https://cubinghq.com/sitemap.xml

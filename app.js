@@ -249,7 +249,11 @@
     };
 
     // ========== STATE ==========
-    const ambientNoise = new Audio('competition_noise.mp3');
+    // Synthesized in ambient-noise.js rather than streamed from a file. Same
+    // volume/currentTime/play/pause surface, so everything below is unchanged.
+    const ambientNoise = window.createAmbientNoise
+        ? window.createAmbientNoise()
+        : { loop: true, volume: 0, currentTime: 0, play: () => Promise.resolve(), pause: () => {} };
     ambientNoise.loop = true;
     ambientNoise.volume = 0.4;
     let compNoiseMuted = false;
@@ -495,7 +499,7 @@
         state.currentView = viewName;
         
         if (viewName === 'dashboard' && state.soundEnabled) {
-            ambientNoise.currentTime = 300; // Start at 5 minute mark
+            // No seek any more: the bed is generated, so it has no intro to skip.
             ambientNoise.play().catch(e => console.warn('Audio play failed', e));
         } else {
             ambientNoise.pause();
@@ -4164,6 +4168,21 @@
         }
     }
 
+    // Thin wrappers over content-filter.js so a failure to load that file
+    // degrades to unfiltered text rather than breaking the chat entirely.
+    function filterOnRender(text) {
+        const raw = text == null ? '' : String(text);
+        if (!window.ContentFilter) return raw;
+        const res = window.ContentFilter.cleanMessage(raw);
+        return res.blocked ? '[message removed]' : res.text;
+    }
+
+    function filterName(name, fallback) {
+        const raw = name == null ? '' : String(name);
+        if (!window.ContentFilter) return raw || fallback;
+        return window.ContentFilter.cleanName(raw, fallback);
+    }
+
     function renderBattleChat(messages) {
         const container = $('#battle-chat-messages');
         if (!container) return;
@@ -4187,10 +4206,13 @@
             timeSpan.textContent = timeStr;
             const userSpan = document.createElement('span');
             userSpan.className = 'chat-user';
-            userSpan.textContent = (msg.userName || 'Guest') + ':';
+            userSpan.textContent = filterName(msg.userName, 'Guest') + ':';
             const textSpan = document.createElement('span');
             textSpan.className = 'chat-text';
-            textSpan.textContent = msg.text;
+            // Filtered on render as well as on send. The database is writable
+            // by anyone with curl, so anything that skipped the send path is
+            // still masked before it reaches the page.
+            textSpan.textContent = filterOnRender(msg.text);
             div.appendChild(timeSpan);
             div.appendChild(userSpan);
             div.appendChild(textSpan);
@@ -4222,6 +4244,18 @@
             .substring(0, BATTLE_CHAT_MAX_LEN);
         if (!text) return;
 
+        // Slurs are refused; ordinary profanity and contact details are
+        // masked in place. Refusing tells the sender why, which stops the
+        // "message vanished" confusion a silent drop would cause.
+        if (window.ContentFilter) {
+            const filtered = window.ContentFilter.cleanMessage(text);
+            if (filtered.blocked) {
+                showToast(i18nT('toast.msgBlocked', 'That message breaks the chat rules'), 'error');
+                return;
+            }
+            text = filtered.text;
+        }
+
         // Client-side spam brakes: a minimum gap between sends, and no
         // immediate duplicates. (Server rules would be needed to make this
         // airtight; this stops the accidental/casual case.)
@@ -4241,7 +4275,7 @@
         try {
             const payload = {
                 userId: getBattleChatUserId(),
-                userName: getBattleChatUserName(),
+                userName: filterName(getBattleChatUserName(), 'Guest'),
                 text: text,
                 timestamp: Date.now()
             };
