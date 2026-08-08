@@ -1477,6 +1477,13 @@
                             <input type="text" id="battle-chat-input" placeholder="Type a message…" maxlength="500" autocomplete="off" aria-label="Chat message" data-i18n-placeholder="ph.chat" data-i18n-aria="aria.chatMessage">
                             <button id="battle-chat-send-btn" class="btn btn-primary btn-sm" aria-label="Send message" data-i18n-aria="aria.sendMessage">Send</button>
                         </div>
+                        <!-- Rooms are public and unmoderated in real time, so
+                             the route to report something has to be visible in
+                             the room rather than only in the Terms. -->
+                        <p class="battle-chat-rules">
+                            <span data-i18n="battle.chatRules">Rooms are public. Be decent, and don't share personal details.</span>
+                            <a href="/contact.html" data-i18n="battle.report">Report a problem</a>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1779,6 +1786,8 @@
     <script src="motion.js?v=2"></script>
     <!-- Must precede app.js: app.js calls window.createAmbientNoise() at init. -->
     <script src="ambient-noise.js?v=1"></script>
+    <!-- Must precede app.js: the battle chat filters on both send and render. -->
+    <script src="content-filter.js?v=1"></script>
     <script src="app.js?v=18"></script>
     <script src="mobile-nav.js?v=1"></script>
 
