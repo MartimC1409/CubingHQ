@@ -22,4 +22,4 @@ Allow: /
 User-agent: AdsBot-Google-Mobile
 Allow: /
 
-Sitemap: https://cubinghq.com/sitemap.xml
+Sitemap: https://cubinghq.online/sitemap.xml
