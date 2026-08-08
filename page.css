@@ -105,13 +105,22 @@
     font-weight: 600;
 }
 
-.page-wrap a {
+/* Scoped to prose containers rather than `.page-wrap a`. A blanket rule
+   underlines the breadcrumb and turns every guide card — which is itself an
+   <a> — into a block of underlined text, and un-setting that afterwards means
+   a specificity fight with every exception. */
+.page-wrap p a,
+.page-wrap li a,
+.page-wrap td a,
+.page-wrap .page-lede a {
     color: var(--clr-primary-hover);
     text-decoration: underline;
     text-underline-offset: 2px;
 }
 
-.page-wrap a:hover {
+.page-wrap p a:hover,
+.page-wrap li a:hover,
+.page-wrap td a:hover {
     color: var(--clr-accent);
 }
 
@@ -301,54 +310,9 @@
     text-decoration: none;
 }
 
-/* ---------- Site footer (shared with index.html / timer.html) ---------- */
-.site-footer {
-    border-top: 1px solid var(--clr-border);
-    margin-top: var(--space-3xl);
-    padding: var(--space-2xl) var(--space-lg);
-    background: var(--clr-bg-elevated);
-}
-
-.site-footer-inner {
-    max-width: 1040px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-}
-
-.site-footer-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-md) var(--space-lg);
-}
-
-.site-footer-nav a {
-    font-size: 0.92rem;
-    color: var(--clr-text-secondary);
-    text-decoration: none;
-}
-
-.site-footer-nav a:hover {
-    color: var(--clr-primary-hover);
-    text-decoration: underline;
-}
-
-.site-footer-legal {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-}
-
-.site-footer-legal span {
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: var(--clr-text-muted);
-}
-
-.site-footer-legal a {
-    color: var(--clr-text-secondary);
-}
+/* The site footer itself lives in style.css, which every page loads. Kept
+   there rather than duplicated here so index.html, timer.html and these
+   pages cannot drift apart. */
 
 /* ---------- Minimal top bar for content pages ---------- */
 .page-topbar {

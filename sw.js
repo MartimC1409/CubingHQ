@@ -13,7 +13,7 @@
    Bump CACHE_VERSION to retire every previous cache.
    ============================================================ */
 
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const CACHE_NAME = `cubinghq-${CACHE_VERSION}`;
 
 // Enough to boot the app offline on a first visit. Runtime caching picks up
@@ -22,6 +22,14 @@ const CACHE_NAME = `cubinghq-${CACHE_VERSION}`;
 const PRECACHE_URLS = [
     '/index.html',
     '/timer.html',
+    // The static content pages. Small, rarely change, and the footer links to
+    // them from every page — so a visitor offline on the timer can still open
+    // the privacy policy.
+    '/about.html',
+    '/contact.html',
+    '/privacy.html',
+    '/terms.html',
+    '/guides/index.html',
     '/manifest.webmanifest',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
