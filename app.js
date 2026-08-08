@@ -249,7 +249,11 @@
     };
 
     // ========== STATE ==========
-    const ambientNoise = new Audio('competition_noise.mp3');
+    // Synthesized in ambient-noise.js rather than streamed from a file. Same
+    // volume/currentTime/play/pause surface, so everything below is unchanged.
+    const ambientNoise = window.createAmbientNoise
+        ? window.createAmbientNoise()
+        : { loop: true, volume: 0, currentTime: 0, play: () => Promise.resolve(), pause: () => {} };
     ambientNoise.loop = true;
     ambientNoise.volume = 0.4;
     let compNoiseMuted = false;
@@ -495,7 +499,7 @@
         state.currentView = viewName;
         
         if (viewName === 'dashboard' && state.soundEnabled) {
-            ambientNoise.currentTime = 300; // Start at 5 minute mark
+            // No seek any more: the bed is generated, so it has no intro to skip.
             ambientNoise.play().catch(e => console.warn('Audio play failed', e));
         } else {
             ambientNoise.pause();

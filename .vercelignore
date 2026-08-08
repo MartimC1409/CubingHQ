@@ -1,0 +1,19 @@
+# Everything here is committed for history but must not be reachable on the
+# live domain. A static host serves the repo as-is, so an AdSense reviewer
+# sampling URLs would otherwise find one-off patch scripts and admin panels
+# and read the domain as a scratch directory rather than a published site.
+
+# One-off patch/scrape/verify scripts from development.
+scripts/
+
+# Admin panels. Authentication is client-side only — the password is a literal
+# in the page source — so these must not be publicly reachable. Run them from
+# a local server against the same Firebase database instead.
+admin.html
+admin_records.html
+
+# Local-only.
+.env
+.env.*
+node_modules/
+http.log
