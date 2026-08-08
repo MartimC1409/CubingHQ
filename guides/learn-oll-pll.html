@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Learning OLL and PLL without burning out | CubingHQ</title>
+    <meta name="description" content="A practical order for learning the 57 OLL and 21 PLL cases: why 2-look first, why recognition is the real bottleneck, how many algorithms to learn at a time, and why full OLL makes you slower before it makes you faster.">
+    <link rel="canonical" href="https://cubinghq.com/guides/learn-oll-pll.html">
+
+    <script>
+        (function () {
+            try {
+                var m = localStorage.getItem('sc-theme');
+                var a = localStorage.getItem('sc-accent');
+                document.documentElement.setAttribute('data-theme',
+                    (m === 'light' || m === 'dark') ? m : 'dark');
+                document.documentElement.setAttribute('data-accent',
+                    ['orange', 'green', 'blue', 'red'].indexOf(a) !== -1 ? a : 'orange');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-accent', 'orange');
+            }
+        })();
+    </script>
+
+    <meta property="og:title" content="Learning OLL and PLL without burning out">
+    <meta property="og:description" content="An order that sticks, and why recognition is the real bottleneck.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://cubinghq.com/guides/learn-oll-pll.html">
+    <meta property="og:site_name" content="CubingHQ">
+    <link rel="icon" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css?v=12">
+    <link rel="stylesheet" href="/page.css?v=1">
+
+    <script src="/analytics.js?v=1"></script>
+    <meta name="google-adsense-account" content="ca-pub-1447384831345579">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
+     crossorigin="anonymous"></script>
+</head>
+<body class="page-body">
+
+<header class="page-topbar">
+    <a class="page-topbar-brand" href="/">Cubing<span class="brand-accent">HQ</span></a>
+    <nav class="page-topbar-links" aria-label="Site pages">
+        <a href="/guides/">Guides</a>
+        <a href="/about.html">About</a>
+        <a href="/contact.html">Contact</a>
+    </nav>
+</header>
+
+<main class="page-wrap">
+    <p class="page-crumb"><a href="/">Home</a> → <a href="/guides/">Guides</a> → Learning OLL and PLL</p>
+
+    <h1>Learning OLL and PLL without burning out</h1>
+    <p class="page-meta">Guide · about 9 minutes</p>
+
+    <p class="page-lede">There are 57 OLL cases and 21 PLL cases. Most people who set out to
+    learn all 78 stall somewhere around case thirty, and the reason is almost never memory.</p>
+
+    <h2>The mistake almost everyone makes</h2>
+
+    <p>The instinct is to treat this as a memorisation problem: 78 sequences, learn them,
+    become fast. So people work through a list, learn ten algorithms in a week, feel
+    productive — and then find their times have not improved, or have got worse.</p>
+
+    <p>The reason is that <strong>knowing an algorithm and using an algorithm are different
+    skills</strong>, and the second one is the bottleneck.</p>
+
+    <p>In a real solve you have to look at a scrambled last layer, work out which of 57 cases
+    you are looking at, from any of four angles, in well under a second, and then produce the
+    right sequence without deliberating. Reciting an algorithm on demand is not that. It is
+    barely related to that.</p>
+
+    <p>Recognition is the hard part. Execution is the easy part. Almost all learning
+    material is organised around execution, which is why so many people learn a lot of
+    algorithms and get no faster.</p>
+
+    <h2>Do 2-look first, properly</h2>
+
+    <p>2-look OLL and 2-look PLL solve the whole last layer with about ten algorithms
+    instead of 78. Do them first, and do not skip ahead.</p>
+
+    <p>2-look OLL splits the step: orient the edges (a handful of cases), then orient the
+    corners (seven cases). 2-look PLL splits similarly: permute the corners, then the edges.
+    You take an extra look and an extra algorithm, but you have removed roughly 68 things to
+    memorise.</p>
+
+    <p>People treat this as a stepping stone to be passed through quickly. It is not. A
+    solver with fluent 2-look and genuinely good F2L is comfortably sub-20, and often
+    sub-15. Meanwhile a solver with full OLL, full PLL and slow F2L is stuck around 25 and
+    cannot work out why.</p>
+
+    <div class="page-note">
+        <p><strong>The honest ordering:</strong> if you are above 20 seconds, your time is
+        in the cross and F2L, not the last layer. Full OLL will not fix that, and the months
+        spent learning it are months not spent on the thing that would. Get to a fluent
+        sub-20 on 2-look before you start.</p>
+    </div>
+
+    <h2>PLL before OLL</h2>
+
+    <p>When you do move to full sets, learn <strong>PLL first</strong>. Three reasons:</p>
+
+    <p><strong>It is a fifth of the work.</strong> 21 cases against 57. You will finish it,
+    and finishing a set is worth a lot — it makes the next one feel possible rather than
+    endless.</p>
+
+    <p><strong>The payoff is bigger per algorithm.</strong> 2-look PLL frequently costs you
+    two full algorithms plus an AUF plus a second recognition. Collapsing that into one
+    saves more time per case than most single OLLs will.</p>
+
+    <p><strong>Recognition is more learnable.</strong> PLL is recognised from headlights,
+    blocks and bars on the side faces — visual patterns with names people already use. OLL
+    recognition is a subtler business of counting oriented stickers, and it is easier once
+    you have already trained the habit of recognising a case rather than reading a cube.</p>
+
+    <h3>A workable PLL order</h3>
+
+    <p>Start with the ones you will meet constantly and that are short: the two adjacent and
+    diagonal corner swaps you may already know from 2-look, then the U perms, then H and Z,
+    then T, then J and R, then the rest. By the time you reach the awkward G perms you will
+    have a solid base, and the G perms are where most people stall — leave them last so
+    stalling there does not mean stalling on everything.</p>
+
+    <p>The four G perms deserve a note: they look alike, they are recognised late, and
+    everybody finds them irritating. Do them as a block of four, at the end, together, so you
+    learn to distinguish them from each other rather than one at a time.</p>
+
+    <h2>Then OLL, in groups that look alike</h2>
+
+    <p>The standard mistake with OLL is learning it in numerical order from a list. The
+    numbering is arbitrary, and learning case 14 then case 15 teaches you nothing about
+    telling them apart.</p>
+
+    <p>Learn by <strong>shape group</strong> instead: all the dots together, all the crosses,
+    the squares, the lightning bolts, the fish, the P shapes, the W shapes, the C shapes.</p>
+
+    <p>Within a group, cases share a look and differ in a detail. Learning them together
+    forces you to find that detail, which is precisely the recognition skill you need. Learn
+    them apart and you will know both algorithms and still hesitate every time one appears.</p>
+
+    <p>Start with the groups that already have edges oriented — the ones you meet after
+    2-look's first step — because those are the cases you can slot into your existing solve
+    immediately, without waiting until the set is complete.</p>
+
+    <h2>How many at a time</h2>
+
+    <p><strong>Two or three a week.</strong> Not ten.</p>
+
+    <p>This sounds slow. At three a week, full PLL takes seven weeks and full OLL takes
+    around twenty. That is roughly six months for both, which is about how long it takes
+    people who succeed. The people who try to do it in six weeks are the ones who quit.</p>
+
+    <p>The constraint is not how many you can memorise. It is how many you can drive into
+    reflex before they interfere with each other. Learn ten in a week and you will half-know
+    ten, confuse them under pressure, and in a real solve fall back on 2-look anyway — which
+    means you did the work and got nothing.</p>
+
+    <h3>The actual loop</h3>
+
+    <ol>
+        <li><strong>Learn the finger tricks, not the letters.</strong> An algorithm you execute as a memorised move sequence is slow forever. Learn it as a physical motion — which finger does what, where the regrips are. Ten slow, deliberate repetitions beat fifty rushed ones.</li>
+        <li><strong>Drill recognition separately from execution.</strong> Look at the case, name it, do not solve it. This is the skill that is actually missing, and it is the one nobody practises.</li>
+        <li><strong>Drill from all four angles.</strong> A case you only recognise from the front is a case you will miss three times out of four. This is the single most-skipped step in learning OLL.</li>
+        <li><strong>Use it in real solves the same day.</strong> An algorithm that never appears in a solve does not consolidate. Force it: do solves where you deliberately set up the case.</li>
+        <li><strong>Review the old ones.</strong> Every session, run through cases you learned weeks ago. Without this, case 12 quietly evaporates while you are learning case 40.</li>
+    </ol>
+
+    <h2>Expect to get slower first</h2>
+
+    <p>This is the part people are not warned about, and it is why they give up.</p>
+
+    <p>When you start using new algorithms in real solves, your times get worse. You hesitate
+    over recognition. You half-remember the new case and fall back to 2-look mid-solve. You
+    execute the new algorithm slowly because it is not in your fingers yet.</p>
+
+    <p>This is normal and it lasts weeks. A newly learned algorithm is slower than the 2-look
+    pair it replaced until it is fluent, and fluency takes hundreds of repetitions. The curve
+    goes down before it goes up, for everyone.</p>
+
+    <p>Knowing that in advance is most of the battle. People who quit at case thirty usually
+    quit because their average went up and they concluded they were doing it wrong. They were
+    not — they were in the middle of the dip.</p>
+
+    <h2>Which algorithm to choose</h2>
+
+    <p>For each case there are several published algorithms. Use these criteria, in order:</p>
+
+    <ul>
+        <li><strong>Does it flow?</strong> Move count matters less than whether it runs in one continuous motion. A 13-move algorithm with no regrips beats an 11-move one with two.</li>
+        <li><strong>Does it fit your hands?</strong> If an algorithm is uncomfortable, pick another. There is no prize for the "standard" one, and you will be doing it thousands of times.</li>
+        <li><strong>Is it consistent with ones you know?</strong> Algorithms sharing a trigger are easier to retain together.</li>
+        <li><strong>Where does it leave the cube?</strong> For OLL, an algorithm that leaves a recognisable PLL angle saves you a look afterwards.</li>
+    </ul>
+
+    <p>And then commit. Switching algorithms after learning one costs more than the small gain
+    from a marginally better sequence — you have to unlearn a motor pattern, which is harder
+    than learning one.</p>
+
+    <h2>Drilling it</h2>
+
+    <p>The <a href="/#algorithms">algorithm database</a> lets you browse the full OLL and PLL
+    sets, and the <a href="/#practice">trainer</a> drills a chosen subset: it shows a case,
+    times how long you take, and cycles through the ones you selected.</p>
+
+    <p>Use it on the two or three you are learning this week, plus a rotating sample of older
+    ones. That combination — new cases in depth, old cases in review — is what makes a set
+    stick rather than evaporate behind you.</p>
+
+    <p>Then take it into a <a href="/#simulation">full round</a>. An algorithm you can execute
+    while relaxed and cannot execute in an attempt that counts is not learned yet, and
+    finding that out at home is considerably better than finding it out on the day.</p>
+
+    <div class="page-next">
+        <h2>Read next</h2>
+        <ul>
+            <li><a href="/guides/cfop-roux-zz.html">CFOP, Roux or ZZ?</a> — whether you should be learning these sets at all</li>
+            <li><a href="/guides/competition-nerves.html">Why your solves fall apart under pressure</a> — recognition is the first thing pressure takes</li>
+        </ul>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <div class="site-footer-inner">
+        <nav class="site-footer-nav" aria-label="Footer">
+            <a href="/">Home</a>
+            <a href="/timer.html">Timer</a>
+            <a href="/guides/">Guides</a>
+            <a href="/about.html">About</a>
+            <a href="/contact.html">Contact</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+        </nav>
+        <div class="site-footer-legal">
+            <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>
+            <span>Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>
