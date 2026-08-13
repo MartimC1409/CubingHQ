@@ -14,7 +14,7 @@
 'use strict';
 
 const { requireUser, AuthError } = require('../_lib/auth.js');
-const { CoachModel } = require('../_lib/claude.js');
+const { CoachModel } = require('../_lib/model.js');
 const { chatPrompt } = require('../_lib/prompts.js');
 const { sendError, methodGuard, readBody, openStream } = require('../_lib/http.js');
 
