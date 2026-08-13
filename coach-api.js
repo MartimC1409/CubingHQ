@@ -1,0 +1,181 @@
+/* ============================================================
+   CubingHQ Coach — API client
+   ------------------------------------------------------------
+   Talks to /api/coach/*. Two things it does beyond fetch:
+
+   1. Reads server-sent events, so the UI can show what the Coach is
+      actually doing (§38) instead of a spinner.
+   2. Normalises every failure into a CoachError with a stable `code`,
+      so callers can react to "not configured" differently from "the
+      network died" — and so the user never sees a raw exception.
+
+   Exposed as window.CoachAPI.
+   ============================================================ */
+(function () {
+    'use strict';
+
+    const WCA_TOKEN_KEY = 'wca_access_token';
+
+    class CoachError extends Error {
+        constructor(code, message, status) {
+            super(message);
+            this.name = 'CoachError';
+            this.code = code;
+            this.status = status || 0;
+        }
+    }
+
+    // Messages the user actually sees. Written for a cuber, not a developer.
+    const FRIENDLY = {
+        offline: "You're offline. The Coach needs a connection for this — your data is safe on this device.",
+        timeout: 'The Coach took too long to answer. Try again.',
+        rate_limited: 'The Coach is busy right now. Give it a moment and try again.',
+        not_configured: 'The Coach is not switched on for this deployment yet.',
+        sync_unavailable: 'Cloud sync is off, so your coaching data is saved on this device only.',
+        no_token: 'Sign in with your WCA account to sync across devices.',
+        invalid_token: 'Your WCA sign-in expired. Sign in again to keep syncing.',
+        upstream: 'The Coach had a problem at its end. Try again shortly.',
+        internal: 'Something went wrong. Try again.',
+    };
+
+    function friendly(code, fallback) {
+        return FRIENDLY[code] || fallback || FRIENDLY.internal;
+    }
+
+    function authHeaders() {
+        let token = null;
+        try { token = localStorage.getItem(WCA_TOKEN_KEY); } catch (e) { }
+        const h = { 'Content-Type': 'application/json' };
+        if (token) h.Authorization = 'Bearer ' + token;
+        return h;
+    }
+
+    async function toError(res) {
+        let body = null;
+        try { body = await res.json(); } catch (e) { }
+        const err = (body && body.error) || {};
+        return new CoachError(
+            err.code || 'internal',
+            friendly(err.code, err.message),
+            res.status
+        );
+    }
+
+    async function requestJSON(path, options) {
+        if (!navigator.onLine) throw new CoachError('offline', FRIENDLY.offline);
+        let res;
+        try {
+            res = await fetch(path, options);
+        } catch (e) {
+            throw new CoachError('offline', FRIENDLY.offline);
+        }
+        if (!res.ok) throw await toError(res);
+        return res.json();
+    }
+
+    /* ---- storage ------------------------------------------------ */
+
+    function loadProfile() {
+        return requestJSON('/api/coach/profile', { method: 'GET', headers: authHeaders() });
+    }
+
+    function saveProfile(payload) {
+        return requestJSON('/api/coach/profile', {
+            method: 'PUT', headers: authHeaders(), body: JSON.stringify(payload),
+        });
+    }
+
+    function deleteProfile(scope) {
+        const q = scope && scope !== 'all' ? `?scope=${encodeURIComponent(scope)}` : '';
+        return requestJSON('/api/coach/profile' + q, { method: 'DELETE', headers: authHeaders() });
+    }
+
+    /* ---- streaming ---------------------------------------------- */
+
+    /**
+     * POSTs and reads an SSE response.
+     *
+     * @param {object} handlers
+     *   onProgress(stage, label) — a real pipeline step happened
+     *   onDelta(text)            — a chunk of the answer
+     * @returns {Promise<object>} the `result` payload
+     */
+    async function stream(path, body, handlers = {}) {
+        if (!navigator.onLine) throw new CoachError('offline', FRIENDLY.offline);
+
+        let res;
+        try {
+            res = await fetch(path, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(body),
+                signal: handlers.signal,
+            });
+        } catch (e) {
+            if (e && e.name === 'AbortError') throw new CoachError('aborted', 'Cancelled.');
+            throw new CoachError('offline', FRIENDLY.offline);
+        }
+
+        if (!res.ok) throw await toError(res);
+        if (!res.body) throw new CoachError('internal', FRIENDLY.internal);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result = null;
+        let failure = null;
+
+        // SSE frames are separated by a blank line. Anything after the
+        // last separator is an incomplete frame and stays in the buffer.
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            let sep;
+            while ((sep = buffer.indexOf('\n\n')) !== -1) {
+                const frame = buffer.slice(0, sep);
+                buffer = buffer.slice(sep + 2);
+
+                let event = 'message', data = '';
+                for (const line of frame.split('\n')) {
+                    if (line.startsWith('event:')) event = line.slice(6).trim();
+                    else if (line.startsWith('data:')) data += line.slice(5).trim();
+                }
+                if (!data) continue;
+
+                let payload;
+                try { payload = JSON.parse(data); } catch (e) { continue; }
+
+                if (event === 'progress' && handlers.onProgress) {
+                    handlers.onProgress(payload.stage, payload.label);
+                } else if (event === 'delta' && handlers.onDelta) {
+                    handlers.onDelta(payload.text || '');
+                } else if (event === 'result') {
+                    result = payload;
+                } else if (event === 'error') {
+                    failure = new CoachError(payload.code, friendly(payload.code, payload.message));
+                }
+            }
+        }
+
+        // An error frame is authoritative even if a partial result arrived.
+        if (failure) throw failure;
+        if (!result) {
+            throw new CoachError('incomplete',
+                'The Coach was interrupted before it finished. Try again.');
+        }
+        return result;
+    }
+
+    const assess = (payload, handlers) => stream('/api/coach/assess', payload, handlers);
+    const plan = (payload, handlers) => stream('/api/coach/plan', payload, handlers);
+    const revise = (payload, handlers) => stream('/api/coach/revise', payload, handlers);
+    const chat = (payload, handlers) => stream('/api/coach/chat', payload, handlers);
+
+    window.CoachAPI = {
+        loadProfile, saveProfile, deleteProfile,
+        assess, plan, revise, chat,
+        CoachError, friendly,
+    };
+})();

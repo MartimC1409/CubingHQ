@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "cubinghq",
+  "description": "Serverless functions for the CubingHQ AI Coach. The site itself is static — this manifest exists only so Vercel can install dependencies for /api.",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0"
+  },
+  "scripts": {
+    "test": "node scripts/test_cube_stats.js && node scripts/test_cstimer_import.js && node scripts/test_coach_analytics.js && node scripts/test_coach_api.js && node scripts/test_coach_frontend.js"
+  }
+}

@@ -19,12 +19,17 @@
 
     const BREAKPOINT = 850;
 
-    // The tabs that stay in the bar, in display order.
+    // The tabs that stay in the bar, in display order. Four plus "More"
+    // is all that fits without the row scrolling sideways.
+    //
+    // Coach leads: it is the product, not one tool among nine. Records
+    // moved to the sheet to make room — it is a reference lookup, not
+    // something reached for mid-session.
     const PRIMARY_IDS = [
+        'nav-coach-btn',
         'nav-home-btn',
         'nav-timer-btn',
         'nav-simulation-btn',
-        'nav-records-btn',
     ];
 
     const MORE_ID = 'nav-more-btn';
