@@ -101,6 +101,19 @@ eq('goal insufficient', thin.reason, 'not_enough_solves');
 eq('goal insufficient pct', thin.pct, 0);
 eq('goal invalid metric', A.goalProgress(run(5, 12000), { metric: 'nonsense', targetMs: 1 }), null);
 
+// A DNF-heavy window is NOT the same problem as too few solves, and
+// telling someone with 140 solves to "do more solves" is useless advice.
+const dnfWindow = [...run(60, 12000), ...Array.from({ length: 60 }, (_, i) =>
+    (i % 2 ? dnf(12000) : ok(12000)))];
+const dnfGoal = A.goalProgress(dnfWindow, { metric: 'ao100', targetMs: 10000 });
+eq('dnf window reason', dnfGoal.reason, 'dnf_average');
+eq('dnf window reports count', dnfGoal.solveCount, 120);
+eq('dnf window needed', dnfGoal.solvesNeeded, 100);
+// Genuinely too few solves still says so, with the shortfall.
+const fewGoal = A.goalProgress(run(20, 12000), { metric: 'ao100', targetMs: 10000 });
+eq('few solves reason', fewGoal.reason, 'not_enough_solves');
+eq('few solves count', fewGoal.solveCount, 20);
+
 // ---------- streak -----------------------------------------------
 const today = Date.now();
 const d = (n) => new Date(today - n * 86400000).toISOString().slice(0, 10);

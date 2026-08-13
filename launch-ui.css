@@ -1149,7 +1149,13 @@ select.form-select {
     .nav-links { gap: 3px; }
     .nav-btn { font-size: 0.84rem; padding: 8px 11px; }
 }
-@media (min-width: 851px) and (max-width: 1180px) {
+/* Icon-only until there is genuinely room for labels.
+   .nav-links is fixed to the right and grows leftward, so a nav that is
+   too wide runs under the brand rather than wrapping. Adding the Coach
+   button took the labelled row to ~1094px, which needs ~1330px of
+   viewport to clear the brand — and Portuguese labels are longer again,
+   so the threshold sits at 1440px with room to spare. */
+@media (min-width: 851px) and (max-width: 1439px) {
     .nav-btn { font-size: 0; gap: 0; padding: 9px; }
     #lang-toggle { font-size: 0.8rem; }
 }

@@ -34,6 +34,16 @@
         return s === '—' ? s : (s.includes(':') ? s : s + 's');
     }
 
+    /**
+     * A goal as people say it: "Sub-10", not "Sub-10.00". Goals are
+     * almost always whole seconds, and the decimals are noise in a
+     * headline. Kept only when they carry information.
+     */
+    function fmtGoal(ms) {
+        const s = fmt(ms);
+        return s.endsWith('.00') ? s.slice(0, -3) : s;
+    }
+
     /** Signed delta: negative (faster) is the good direction. */
     function fmtDelta(ms) {
         if (!isFinite(ms) || ms === 0) return '—';
@@ -244,7 +254,7 @@
     }
 
     window.CoachUI = {
-        esc, fmt, fmtWithUnit, fmtDelta,
+        esc, fmt, fmtGoal, fmtWithUnit, fmtDelta,
         alert, empty, stat, statRow, evidenceChip, finding, dataGaps, goalBar,
         richText, greeting, eventLabel, isMo3, parseTimeInput, toast, T, ICON,
         EVENT_LABELS,

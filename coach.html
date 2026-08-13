@@ -237,7 +237,9 @@
                 <div class="coach-step" data-step="import">
                     <p class="coach-eyebrow" data-i18n="coach.eyebrow.import">Step 3 · Your solves</p>
                     <h2 class="coach-h1" data-i18n="coach.import.title">Upload your solve history.</h2>
-                    <p class="coach-sub" style="margin-top:10px;max-width:60ch" data-i18n="coach.import.body">
+                    <!-- data-i18n-html, not data-i18n: this line contains markup,
+                         and the plain variant would append the key as text. -->
+                    <p class="coach-sub" style="margin-top:10px;max-width:60ch" data-i18n-html="coach.import.body">
                         This is what makes the coaching yours rather than generic. In csTimer,
                         use <strong>Export → Export to file</strong>, then drop the file here.
                     </p>

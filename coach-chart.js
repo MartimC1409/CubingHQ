@@ -24,15 +24,28 @@
         } catch (e) { return fallback; }
     }
 
+    /**
+     * Series colours are fixed hues, not theme tokens.
+     *
+     * The tokens are the wrong tool here: the site's accent is
+     * user-switchable, and --clr-primary and --clr-accent both resolve
+     * to it, so Ao12 and Ao50 drew in the same orange and the chart was
+     * unreadable. Four lines that must be told apart need four hues
+     * chosen to be distinguishable, including for the most common form
+     * of colour blindness — so no red/green pairing carries meaning on
+     * its own, and the four differ in lightness as well as hue.
+     *
+     * Structural colours stay on tokens so light and dark themes work.
+     */
     function palette() {
         return {
             solves: cssVar('--clr-text-muted', '#5A5E7A'),
-            ao5: cssVar('--clr-info', '#3B82F6'),
-            ao12: cssVar('--clr-primary', '#6366F1'),
-            ao50: cssVar('--clr-accent', '#F97316'),
-            ao100: cssVar('--clr-success', '#10B981'),
-            goal: cssVar('--clr-accent', '#F97316'),
-            pb: cssVar('--clr-gold', '#F59E0B'),
+            ao5: '#38BDF8',    // sky
+            ao12: '#A78BFA',   // violet
+            ao50: '#FB923C',   // orange
+            ao100: '#34D399',  // emerald
+            goal: '#F43F5E',   // rose, dashed — never confused with a series
+            pb: '#FCD34D',     // gold dots, not a line
             grid: cssVar('--clr-border', 'rgba(255,255,255,0.06)'),
             text: cssVar('--clr-text-secondary', '#8B8FA8'),
         };

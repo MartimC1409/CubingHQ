@@ -166,7 +166,7 @@
         }
 
         const progress = snap.metrics.goal;
-        const label = `${UI().T('coach.goal.sub', 'Sub')}-${UI().fmt(goal.targetMs)} ${UI().eventLabel(snap.event)}`;
+        const label = `${UI().T('coach.goal.sub', 'Sub')}-${UI().fmtGoal(goal.targetMs)} ${UI().eventLabel(snap.event)}`;
 
         let deadline = '';
         if (progress && isFinite(progress.daysRemaining)) {
@@ -176,12 +176,26 @@
                 : `<p class="coach-sub" style="font-size:12.5px;margin-top:10px">${d} ${UI().esc(UI().T('coach.goal.daysLeft', 'days to your target date'))}</p>`;
         }
 
+        // Three distinct states, and they must not be conflated: no
+        // baseline yet, a baseline that is currently a DNF average, or a
+        // real number to show progress against.
+        let body;
+        if (progress && progress.reason === 'not_enough_solves') {
+            body = UI().alert('info', '',
+                `${UI().T('coach.goal.needSolves', 'Not enough solves yet to measure your')} ` +
+                `${goal.metric.toUpperCase()} — ${progress.solveCount}/${progress.solvesNeeded}.`);
+        } else if (progress && progress.reason === 'dnf_average') {
+            body = UI().alert('warn', '',
+                `${UI().T('coach.goal.dnfAverage', 'Your')} ${goal.metric.toUpperCase()} ` +
+                UI().T('coach.goal.dnfAverage2', 'is currently a DNF — there are too many DNFs in that window to produce an average. Fix or delete the mis-recorded ones and it will come back.'));
+        } else {
+            body = UI().goalBar(progress);
+        }
+
         host.innerHTML = `
             <div class="coach-eyebrow">${UI().esc(UI().T('coach.goal.heading', 'Your goal'))}</div>
             <h2 class="coach-h2" style="margin-bottom:14px">${UI().esc(label)}</h2>
-            ${progress && progress.reason === 'not_enough_solves'
-                ? UI().alert('info', '', `${UI().T('coach.goal.needSolves', 'Not enough solves yet to measure your')} ${goal.metric.toUpperCase()}.`)
-                : UI().goalBar(progress)}
+            ${body}
             ${deadline}`;
     }
 
@@ -265,9 +279,19 @@
 
         const canvas = $('#coach-chart');
         if (!canvas) return;
+        const wrap = canvas.parentElement;
+
         if (!snap.solves.length) {
-            const wrap = canvas.parentElement;
             if (wrap) wrap.innerHTML = UI().empty(UI().T('coach.chart.none', 'No solves yet. Import a session to see your trend.'));
+            return;
+        }
+        // Chart.js comes from a CDN, which a firewall or an offline session
+        // can block. Say so instead of leaving an unexplained empty box —
+        // the numbers below are unaffected and still worth reading.
+        if (!window.Chart) {
+            if (wrap) wrap.innerHTML = UI().alert('warn',
+                UI().T('coach.chart.unavailableTitle', 'The chart could not load'),
+                UI().T('coach.chart.unavailable', 'The charting library did not load — check your connection or any blocker. Your numbers below are unaffected.'));
             return;
         }
 
@@ -276,7 +300,7 @@
             window: chartWindow,
             mo3: snap.mo3,
             goalMs: goal ? goal.targetMs : undefined,
-            goalLabel: goal ? `${UI().T('coach.goal.target', 'Target')} ${UI().fmt(goal.targetMs)}` : undefined,
+            goalLabel: goal ? `${UI().T('coach.goal.target', 'Target')} ${UI().fmtGoal(goal.targetMs)}` : undefined,
         });
     }
 

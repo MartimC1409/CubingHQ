@@ -183,6 +183,7 @@
 
     // ---------- goal ----------------------------------------------
     const GOAL_METRICS = ['single', 'ao5', 'ao12', 'ao50', 'ao100'];
+    const SOLVES_FOR_METRIC = { single: 1, ao5: 5, ao12: 12, ao50: 50, ao100: 100 };
 
     function metricValue(solves, metric, mo3 = false) {
         switch (metric) {
@@ -209,10 +210,18 @@
 
         const current = metricValue(solves, goal.metric, mo3);
         if (!isReal(current) || current === Infinity) {
+            // These are different problems and must not share a message.
+            // "Not enough solves" tells someone with 140 solves and two
+            // DNFs to go and do more solving, which is useless advice —
+            // what they need to know is that their average is a DNF.
+            const needed = SOLVES_FOR_METRIC[goal.metric] || 1;
+            const reason = solves.length < needed ? 'not_enough_solves' : 'dnf_average';
             return {
                 metric: goal.metric, targetMs: goal.targetMs,
                 currentMs: null, gapMs: null, pct: 0, reached: false,
-                reason: 'not_enough_solves',
+                reason,
+                solvesNeeded: needed,
+                solveCount: solves.length,
             };
         }
 
@@ -365,6 +374,7 @@
         linearRegression, analyseTrend, analyseConsistency, analyseSpread,
         goalProgress, metricValue, computeStreak, detectMilestones,
         computeMetrics, fmtMs,
-        GOAL_METRICS, MIN_SOLVES_FOR_TREND, SOLVE_MILESTONES, STREAK_MILESTONES,
+        GOAL_METRICS, SOLVES_FOR_METRIC, MIN_SOLVES_FOR_TREND,
+        SOLVE_MILESTONES, STREAK_MILESTONES,
     };
 });
