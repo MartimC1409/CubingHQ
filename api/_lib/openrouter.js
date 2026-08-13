@@ -33,7 +33,18 @@ const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 // No default model: OpenRouter's catalogue changes constantly and free
 // slugs come and go, so guessing one here would produce a confusing
 // runtime failure months from now. Better to say plainly what is missing.
-const MODEL = process.env.COACH_MODEL || '';
+//
+// COACH_MODEL accepts a comma-separated list. The first entry is the
+// model of record; the rest are handed to OpenRouter's `models` routing
+// so a saturated free endpoint reroutes instead of failing. That matters
+// here more than it would elsewhere: `:free` endpoints are shared and
+// regularly at capacity, which is a 429 rather than an outage.
+const MODEL_LIST = (process.env.COACH_MODEL || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+const MODEL = MODEL_LIST[0] || '';
+// Only sent when the operator actually named alternatives — a single
+// model must keep producing the exact request it did before.
+const FALLBACK_MODELS = MODEL_LIST.length > 1 ? MODEL_LIST : null;
 const EFFORT = process.env.COACH_EFFORT || 'high';
 const MAX_TOKENS = parseInt(process.env.COACH_MAX_TOKENS || '16000', 10);
 
@@ -64,7 +75,8 @@ function assertConfigured() {
             'The Coach is not configured on this deployment yet.', 503);
     }
     if (!MODEL) {
-        console.error('[openrouter] COACH_MODEL is not set — pick a slug from https://openrouter.ai/models');
+        console.error('[openrouter] COACH_MODEL is not set — pick a slug from https://openrouter.ai/models '
+            + '(comma-separate several to enable fallback routing)');
         throw new ModelError('not_configured',
             'The Coach has no model selected on this deployment yet.', 503);
     }
@@ -94,41 +106,72 @@ function classifyFailure(status, message) {
     return 'unknown';
 }
 
+// What the operator should actually do about each kind. Attached to the
+// log line rather than the user-facing message, which stays plain.
+const HINTS = {
+    bad_model: 'check COACH_MODEL against https://openrouter.ai/models',
+    auth: 'check OPENROUTER_API_KEY',
+    no_credit: 'add credit at https://openrouter.ai/credits, or point COACH_MODEL at a different model',
+    rate_limited: 'free endpoints are shared and capped per account — list fallback models in COACH_MODEL, comma-separated',
+};
+
+/**
+ * Every failure is logged here, in one place.
+ *
+ * The previous shape logged per-branch and quietly missed `rate_limited`,
+ * which meant the single most common free-tier failure left no trace in
+ * Vercel at all — the one case where the logs were the only way to tell
+ * what had happened.
+ */
+function logFailure(kind, status, message) {
+    const hint = HINTS[kind];
+    const line = `[openrouter] ${MODEL || '(no model)'} → ${kind}`
+        + (status ? ` (HTTP ${status})` : '')
+        + `: ${String(message || '').slice(0, 300)}`
+        + (hint ? ` — ${hint}` : '');
+    // A saturated free endpoint is ordinary operation, not a fault.
+    if (kind === 'rate_limited' || kind === 'no_schema_support') console.warn(line);
+    else console.error(line);
+}
+
 function toModelError(kind, message) {
     switch (kind) {
         case 'bad_model':
-            console.error(`[openrouter] model rejected: ${message} — check COACH_MODEL against https://openrouter.ai/models`);
             return new ModelError('not_configured',
                 'The Coach is pointed at a model that does not exist. Check the model name.', 503);
         case 'auth':
-            console.error('[openrouter] auth rejected — check OPENROUTER_API_KEY');
             return new ModelError('not_configured', 'The Coach is not configured correctly.', 503);
         case 'no_credit':
-            console.error(`[openrouter] out of credit / quota: ${message}`);
-            return new ModelError('rate_limited',
-                "The Coach has used up its allowance for now. Try again later.", 429);
+            // Distinct from rate_limited on purpose. "Wait a moment" is the
+            // wrong instruction when the allowance is gone — waiting will
+            // never fix it, and the two were indistinguishable in the UI.
+            return new ModelError('no_credit',
+                "The Coach has used up its allowance for now.", 429);
         case 'rate_limited':
             return new ModelError('rate_limited',
                 'The Coach is busy right now. Try again in a moment.', 429);
         case 'upstream':
             return new ModelError('upstream', 'The Coach had a problem. Try again shortly.', 502);
         case 'no_schema_support':
-            // Expected and handled by structured(), which retries in JSON
-            // mode. Logged there, once, with the model name — not here, or
-            // every fallback would read as a crash in the logs.
+            // Expected and handled by structured(), which retries in JSON mode.
             return new ModelError('upstream',
                 'The Coach could not use the requested response format.', 502);
         default:
-            console.error('[openrouter] unexpected error', message);
             return new ModelError('unknown', 'Something went wrong reaching the Coach.', 502);
     }
 }
 
+/** Builds the error, logs it, and tags it so callers can branch on cause. */
+function fail(kind, status, message) {
+    logFailure(kind, status, message);
+    const err = toModelError(kind, message);
+    err.kind = kind;
+    return err;
+}
+
 /* ---- transport --------------------------------------------------- */
 
-async function post(body) {
-    assertConfigured();
-
+async function attemptPost(body) {
     let res;
     try {
         res = await fetch(API_URL, {
@@ -144,10 +187,15 @@ async function post(body) {
         });
     } catch (e) {
         if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
-            throw new ModelError('timeout',
+            // Never retried: we are already near the function's budget, and
+            // a second full timeout would spend it entirely.
+            const err = new ModelError('timeout',
                 'The Coach took too long to respond. Try again.', 504);
+            err.kind = 'timeout';
+            logFailure('timeout', 0, `no response within ${REQUEST_TIMEOUT_MS}ms`);
+            throw err;
         }
-        throw new ModelError('upstream', 'Could not reach the Coach. Try again shortly.', 502);
+        throw fail('network', 0, (e && e.message) || 'fetch failed');
     }
 
     if (!res.ok) {
@@ -158,15 +206,45 @@ async function post(body) {
         } catch (e) {
             try { detail = await res.text(); } catch (e2) { detail = `HTTP ${res.status}`; }
         }
-        const kind = classifyFailure(res.status, detail);
-        // Signalled rather than thrown: structured() decides whether a
-        // missing-schema-support failure is worth retrying differently.
-        const err = toModelError(kind, detail);
-        err.kind = kind;
-        throw err;
+        // Tagged rather than plain: structured() branches on `kind` to
+        // decide whether a missing-schema failure is worth retrying
+        // differently, and post() branches on it to decide whether to
+        // retry at all.
+        throw fail(classifyFailure(res.status, detail), res.status, detail);
     }
 
     return res;
+}
+
+// Retried because they are transient by nature. Everything else —
+// no_credit, auth, bad_model, no_schema_support — is a standing
+// condition that a second identical request cannot change.
+const RETRY_KINDS = new Set(['rate_limited', 'upstream', 'network']);
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = parseInt(process.env.COACH_RETRY_DELAY_MS || '1200', 10);
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * One request, with a single retry for the transient cases.
+ *
+ * Deliberately one retry and not a backoff ladder: this runs inside a
+ * user-facing request with a function budget to respect, and a free
+ * endpoint that is still saturated a second later is better reported
+ * than waited on.
+ */
+async function post(body) {
+    assertConfigured();
+
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await attemptPost(body);
+        } catch (err) {
+            if (attempt >= MAX_ATTEMPTS || !RETRY_KINDS.has(err.kind)) throw err;
+            console.warn(`[openrouter] ${err.kind} on attempt ${attempt}, retrying once in ${RETRY_DELAY_MS}ms`);
+            await sleep(RETRY_DELAY_MS);
+        }
+    }
 }
 
 /**
@@ -208,10 +286,11 @@ async function readStream(res, onDelta) {
                 try { frame = JSON.parse(payload); } catch (e) { continue; }
 
                 if (frame.error) {
+                    // A 200 that turns into a failure partway through —
+                    // routine when an upstream provider drops the request.
                     const message = frame.error.message || 'stream error';
-                    const err = toModelError(classifyFailure(frame.error.code || 502, message), message);
-                    err.kind = classifyFailure(frame.error.code || 502, message);
-                    throw err;
+                    const status = Number(frame.error.code) || 502;
+                    throw fail(classifyFailure(status, message), status, message);
                 }
 
                 const choice = (frame.choices || [])[0];
@@ -294,6 +373,10 @@ function baseBody(messages, extra) {
         stream: true,
         ...extra,
     };
+    // OpenRouter tries these in order when the primary cannot serve the
+    // request, which is what turns a saturated free endpoint into a
+    // reroute rather than an error the user sees.
+    if (FALLBACK_MODELS) body.models = FALLBACK_MODELS;
     if (REASONING_EFFORT) body.reasoning = { effort: REASONING_EFFORT };
     return body;
 }
@@ -341,7 +424,7 @@ async function structured({ system, user, schema, effort = EFFORT, onActivity, _
         raw = await runStructured({ system, user, schema, name, onActivity, useSchema: true });
     } catch (e) {
         if (e && e.kind === 'no_schema_support') {
-            console.warn(`[openrouter] ${MODEL} has no endpoint supporting json_schema — falling back to JSON mode`);
+            console.warn('[openrouter] falling back to JSON mode; output will be validated instead of constrained');
             constrained = false;
             raw = await runStructured({ system, user, schema, name, onActivity, useSchema: false });
         } else {

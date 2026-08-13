@@ -7,6 +7,7 @@
 // Read at module load in openrouter.js, so they must be set first.
 process.env.OPENROUTER_API_KEY = 'sk-or-test';
 process.env.COACH_MODEL = 'test/model:free';
+process.env.COACH_RETRY_DELAY_MS = '1';   // keep the retry path instant
 
 const { validate, prune } = require('../api/_lib/validate.js');
 const { COACH_ASSESSMENT_SCHEMA } = require('../api/_lib/schemas.js');
@@ -283,13 +284,71 @@ eq('empty yields null', extractJson('   '), null);
     check('bad model does not fall back', queue.length === 0 && threw);
     eq('bad model reported as config', threw && threw.code, 'not_configured');
 
+    /* ---- transient failures are retried once ------------------- */
+
+    // A saturated free endpoint usually recovers immediately, so the user
+    // should never see the first 429.
+    requests = [];
+    queue.push(errorResponse(429, 'Rate limit exceeded'));
+    queue.push(sse([delta(JSON.stringify(assessment)), '[DONE]']));
+    got = await or.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA });
+    eq('retry recovers from a transient 429', got.priority, 'Consistency');
+    eq('retry took two requests', requests.length, 2);
+
+    requests = [];
+    queue.push(errorResponse(503, 'upstream provider unavailable'));
+    queue.push(sse([delta(JSON.stringify(assessment)), '[DONE]']));
+    got = await or.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA });
+    eq('retry recovers from a 5xx', got.priority, 'Consistency');
+
+    // Chat inherits the retry, since it lives in post().
+    requests = [];
+    queue.push(errorResponse(429, 'Rate limit exceeded'));
+    queue.push(sse([delta('sure'), '[DONE]']));
+    eq('chat retries too', await or.CoachModel.chat({
+        system: 's', messages: [{ role: 'user', content: 'hi' }],
+    }), 'sure');
+    eq('chat retry took two requests', requests.length, 2);
+
+    // Still limited after the retry — report rather than keep waiting.
+    requests = [];
+    queue.push(errorResponse(429, 'Rate limit exceeded'));
     queue.push(errorResponse(429, 'Rate limit exceeded'));
     threw = null;
     try {
         await or.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA });
     } catch (e) { threw = e; }
-    eq('rate limit surfaces as rate_limited', threw && threw.code, 'rate_limited');
+    eq('persistent rate limit surfaces', threw && threw.code, 'rate_limited');
     eq('rate limit keeps its status', threw && threw.status, 429);
+    eq('retries exactly once, not forever', requests.length, 2);
+
+    /* ---- standing conditions are NOT retried ------------------- */
+
+    // Retrying these is pure latency: the answer cannot change.
+    requests = [];
+    queue.push(errorResponse(402, 'Insufficient credits'));
+    threw = null;
+    try {
+        await or.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA });
+    } catch (e) { threw = e; }
+    eq('out of credit is its own code', threw && threw.code, 'no_credit');
+    eq('out of credit is not retried', requests.length, 1);
+    check('no_credit no longer masquerades as rate_limited', threw.code !== 'rate_limited');
+
+    requests = [];
+    queue.push(errorResponse(401, 'invalid key'));
+    threw = null;
+    try { await or.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA }); }
+    catch (e) { threw = e; }
+    eq('auth failure is not retried', requests.length, 1);
+    eq('auth failure is a config problem', threw && threw.code, 'not_configured');
+
+    requests = [];
+    queue.push(errorResponse(400, 'test/model:free is not a valid model ID'));
+    threw = null;
+    try { await or.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA }); }
+    catch (e) { threw = e; }
+    eq('bad model is not retried', requests.length, 1);
 
     queue.push(sse([delta('I am afraid I cannot do that.'), '[DONE]']));
     threw = null;
@@ -331,6 +390,44 @@ eq('empty yields null', extractJson('   '), null);
         onDelta: null,
     });
     eq('block content flattened to text', requests[0].body.messages[1].content, 'hi');
+
+    /* ================= model list / fallback routing ============ */
+
+    // COACH_MODEL is read at module load, so each case needs a fresh one.
+    function freshOpenRouter(model) {
+        process.env.COACH_MODEL = model;
+        delete require.cache[require.resolve('../api/_lib/openrouter.js')];
+        return require('../api/_lib/openrouter.js');
+    }
+
+    const multi = freshOpenRouter('a/b:free, c/d:free , e/f:free');
+    requests = [];
+    queue.push(sse([delta('ok'), '[DONE]']));
+    await multi.CoachModel.chat({ system: 's', messages: [{ role: 'user', content: 'hi' }] });
+    eq('primary model is the first entry', requests[0].body.model, 'a/b:free');
+    eq('whitespace around slugs is trimmed',
+        JSON.stringify(requests[0].body.models),
+        JSON.stringify(['a/b:free', 'c/d:free', 'e/f:free']));
+    // Persisted on every assessment record, so it must be the real slug
+    // rather than the raw env string.
+    eq('id reports the primary, not the list', multi.CoachModel.id, 'a/b:free');
+
+    // Existing single-model deploys must keep sending exactly what they did.
+    const single = freshOpenRouter('solo/model');
+    requests = [];
+    queue.push(sse([delta('ok'), '[DONE]']));
+    await single.CoachModel.chat({ system: 's', messages: [{ role: 'user', content: 'hi' }] });
+    eq('single model still works', requests[0].body.model, 'solo/model');
+    check('no models array when there is nothing to fall back to',
+        requests[0].body.models === undefined);
+
+    // A trailing comma is an easy thing to leave in an env var.
+    const trailing = freshOpenRouter('solo/model,');
+    requests = [];
+    queue.push(sse([delta('ok'), '[DONE]']));
+    await trailing.CoachModel.chat({ system: 's', messages: [{ role: 'user', content: 'hi' }] });
+    check('trailing comma does not create a phantom fallback',
+        requests[0].body.models === undefined);
 
     /* ================= configuration ============================ */
 

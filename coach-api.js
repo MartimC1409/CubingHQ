@@ -30,6 +30,10 @@
         offline: "You're offline. The Coach needs a connection for this — your data is safe on this device.",
         timeout: 'The Coach took too long to answer. Try again.',
         rate_limited: 'The Coach is busy right now. Give it a moment and try again.',
+        // Separate from rate_limited because the remedy is different, and
+        // "give it a moment" is actively wrong here — waiting never fixes
+        // a spent allowance.
+        no_credit: 'The Coach has reached its usage limit for now. It should be back later today.',
         not_configured: 'The Coach is not switched on for this deployment yet.',
         sync_unavailable: 'Cloud sync is off, so your coaching data is saved on this device only.',
         no_token: 'Sign in with your WCA account to sync across devices.',
