@@ -124,6 +124,12 @@
         const errorHost = $('#coach-import-error');
         errorHost.innerHTML = '';
 
+        // Clear the input's value so re-picking the SAME filename fires
+        // change again. Without this, a user who hits an error, fixes the
+        // export and re-selects it sees nothing happen at all.
+        const input = $('#coach-file');
+        if (input) input.value = '';
+
         if (!file) return;
         // 25MB is far beyond any real export and stops the tab dying on
         // an accidental video or archive.
