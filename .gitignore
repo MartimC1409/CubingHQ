@@ -14,6 +14,12 @@ http.log
 .env.*
 !.env.example
 
-# Never belonged in the repo: there is no package.json, and a static host
-# serves whatever is committed.
+# There is a package.json now, but only so Vercel can install dependencies
+# for the /api serverless functions. The site itself is still static with no
+# build step, and a static host serves whatever is committed — so installed
+# packages must never be.
 node_modules/
+
+# Written and removed by scripts/test_coach_api.js to stand in for the
+# Anthropic SDK when testing server logic in a bare checkout.
+scripts/_stub_anthropic.js
