@@ -2235,3 +2235,78 @@ select.form-select {
     .bt-an-moves { font-size: 0.76rem; }
     .bt-an-meta { margin-left: 0; width: 100%; }
 }
+
+/* ============================================================
+   AI Coach positioning on the homepage
+   ------------------------------------------------------------
+   The journey strip under the hero, and the one-line role each
+   existing feature plays now that the Coach is the product.
+   ============================================================ */
+
+.lu-journey {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 26px auto 0;
+    padding: 0;
+    list-style: none;
+    max-width: 720px;
+}
+
+.lu-journey li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--clr-text-secondary);
+    white-space: nowrap;
+}
+
+.lu-journey-num {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--clr-primary-glow);
+    color: var(--clr-primary-hover);
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.lu-journey-arrow {
+    color: var(--clr-text-muted);
+    font-size: 14px;
+}
+
+/* The role each tool plays in the coaching loop. Sits above the card
+   title as a quiet eyebrow so it frames rather than competes. */
+.bento-role {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+    margin-bottom: 4px;
+}
+
+/* Give the Coach the strongest presence in the nav — it is the
+   product now, not one tool among nine. */
+.nav-btn--coach {
+    color: var(--clr-text);
+    font-weight: 650;
+}
+.nav-btn--coach svg { color: var(--clr-primary); }
+.nav-btn--coach.active svg { color: currentColor; }
+
+@media (max-width: 640px) {
+    .lu-journey { gap: 6px 10px; margin-top: 20px; }
+    .lu-journey li { font-size: 12.5px; }
+    /* Arrows wrap badly at this width and carry no information the
+       numbered order doesn't already give. */
+    .lu-journey-arrow { display: none; }
+}

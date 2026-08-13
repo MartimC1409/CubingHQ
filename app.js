@@ -659,6 +659,16 @@
             timerNav._scBound = true;
         }
 
+        // The AI Coach lives on its own page, like the timer.
+        const coachNav = $('#nav-coach-btn');
+        if (coachNav && !coachNav._scBound) {
+            coachNav.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.href = 'coach.html';
+            });
+            coachNav._scBound = true;
+        }
+
         $('#nav-records-btn').addEventListener('click', () => {
             switchView('records');
             loadWorldRecords();

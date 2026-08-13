@@ -16,7 +16,7 @@ require('fs').writeFileSync(__dirname + '/_stub_anthropic.js',
 
 const { _internal: assessInternal } = require('../api/coach/assess.js');
 const { _internal: planInternal } = require('../api/coach/plan.js');
-const { UNKNOWABLE_FROM_TIMES } = require('../api/_lib/prompts.js');
+const { UNKNOWABLE_TOPICS } = require('../api/_lib/prompts.js');
 const { COACH_ASSESSMENT_SCHEMA, TRAINING_PLAN_SCHEMA, PLAN_REVISION_SCHEMA } = require('../api/_lib/schemas.js');
 
 let pass = 0, fail = 0;
@@ -34,8 +34,8 @@ const timingOnly = assessInternal.buildEvidence({ metrics, profile: null, observ
 eq('timing-only has no observed', timingOnly.observed, null);
 eq('timing-only flags no move data', timingOnly.dataQuality.hasMoveLevelData, false);
 check('timing-only marks everything unknown',
-    timingOnly.unknown.length === UNKNOWABLE_FROM_TIMES.length,
-    `unknown=${timingOnly.unknown.length} of ${UNKNOWABLE_FROM_TIMES.length}`);
+    timingOnly.unknown.length === UNKNOWABLE_TOPICS.length,
+    `unknown=${timingOnly.unknown.length} of ${UNKNOWABLE_TOPICS.length}`);
 check('timing-only lists PLL as unknown',
     timingOnly.unknown.some(u => /PLL/i.test(u)));
 check('timing-only lists pauses as unknown',
@@ -65,6 +65,34 @@ check('pauses no longer unknown', !withMoves.unknown.some(u => /pause/i.test(u))
 check('rotations no longer unknown', !withMoves.unknown.some(u => /rotation/i.test(u)));
 // Things the cube still cannot see stay unknown.
 check('PLL recognition still unknown', withMoves.unknown.some(u => /PLL/i.test(u)));
+
+// The line that matters most: knowing how long PLL took to EXECUTE says
+// nothing about whether RECOGNITION was slow. An earlier substring match
+// conflated the two, which is exactly the unfounded leap this mechanism
+// exists to prevent.
+const pllExec = assessInternal.buildEvidence({
+    metrics, profile: null,
+    observations: [{ category: 'pll_execution', observation: 'PLL took 1.8s', confidence: 1 }],
+});
+check('PLL execution does not clear PLL recognition',
+    pllExec.unknown.some(u => /PLL recognition/i.test(u)));
+
+// An unrecognised category must not widen what may be claimed.
+const unknownCat = assessInternal.buildEvidence({
+    metrics, profile: null,
+    observations: [{ category: 'something_new', observation: 'x' }],
+});
+eq('unknown category clears nothing', unknownCat.unknown.length, UNKNOWABLE_TOPICS.length);
+
+// phase_timing covers execution but leaves lookahead and recognition open.
+const phaseTiming = assessInternal.buildEvidence({
+    metrics, profile: null,
+    observations: [{ category: 'phase_timing', observation: 'cross 1.9s, F2L 6.2s' }],
+});
+check('phase timing clears algorithm execution',
+    !phaseTiming.unknown.some(u => /algorithm choice/i.test(u)));
+check('phase timing leaves F2L lookahead unknown',
+    phaseTiming.unknown.some(u => /F2L lookahead/i.test(u)));
 
 // A flood of observations is capped rather than blowing up the prompt.
 const many = assessInternal.buildEvidence({

@@ -17,7 +17,7 @@
 const { requireUser, AuthError } = require('../_lib/auth.js');
 const rtdb = require('../_lib/rtdb.js');
 const { CoachModel } = require('../_lib/claude.js');
-const { assessmentPrompt, UNKNOWABLE_FROM_TIMES } = require('../_lib/prompts.js');
+const { assessmentPrompt, UNKNOWABLE_TOPICS, CATEGORY_COVERS } = require('../_lib/prompts.js');
 const { sendError, methodGuard, readBody, openStream } = require('../_lib/http.js');
 
 function badRequest(message) {
@@ -36,15 +36,20 @@ function badRequest(message) {
  */
 function buildEvidence({ metrics, profile, observations }) {
     const observed = Array.isArray(observations) ? observations.slice(0, 60) : [];
-    const covered = new Set(observed.map(o => String(o.category || '').toLowerCase()));
 
-    const unknown = UNKNOWABLE_FROM_TIMES.filter(topic => {
-        const key = topic.toLowerCase();
-        for (const c of covered) {
-            if (c && (key.includes(c) || c.includes(key.split(' ')[0]))) return false;
-        }
-        return true;
-    });
+    // A topic leaves `unknown` only when an observation category explicitly
+    // establishes it. Anything not named in CATEGORY_COVERS stays unknown,
+    // so an unfamiliar category can never quietly widen what the Coach is
+    // allowed to assert.
+    const covered = new Set();
+    for (const o of observed) {
+        const cat = String((o && o.category) || '').toLowerCase();
+        for (const topic of (CATEGORY_COVERS[cat] || [])) covered.add(topic);
+    }
+
+    const unknown = UNKNOWABLE_TOPICS
+        .filter(t => !covered.has(t.key))
+        .map(t => t.label);
 
     return {
         known: {

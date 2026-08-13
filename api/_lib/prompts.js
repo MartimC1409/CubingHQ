@@ -11,19 +11,43 @@
 // how long a solve took; it says nothing about what the hands and eyes
 // were doing. Listing these explicitly is more reliable than asking for
 // general caution.
-const UNKNOWABLE_FROM_TIMES = [
-    'PLL recognition quality',
-    'OLL recognition quality',
-    'F2L lookahead quality',
-    'where pauses occur within a solve',
-    'finger tricks and grip',
-    'regrips',
-    'cube rotations',
-    'inspection behaviour',
-    'turning quality or smoothness',
-    'TPS (turns per second)',
-    'algorithm choice or execution',
+//
+// Keyed rather than free text so evidence can clear a topic by an exact
+// match. Substring matching was tried and is wrong: an observation about
+// PLL *execution* would have cleared PLL *recognition*, which is exactly
+// the unfounded leap this whole mechanism exists to prevent.
+const UNKNOWABLE_TOPICS = [
+    { key: 'pll_recognition', label: 'PLL recognition quality' },
+    { key: 'oll_recognition', label: 'OLL recognition quality' },
+    { key: 'f2l_lookahead', label: 'F2L lookahead quality' },
+    { key: 'pause_location', label: 'where pauses occur within a solve' },
+    { key: 'finger_tricks', label: 'finger tricks and grip' },
+    { key: 'regrips', label: 'regrips' },
+    { key: 'rotations', label: 'cube rotations' },
+    { key: 'inspection', label: 'inspection behaviour' },
+    { key: 'turning_quality', label: 'turning quality or smoothness' },
+    { key: 'tps', label: 'TPS (turns per second)' },
+    { key: 'algorithm_execution', label: 'algorithm choice and execution' },
 ];
+
+const UNKNOWABLE_FROM_TIMES = UNKNOWABLE_TOPICS.map(t => t.label);
+
+/**
+ * Which topics a given observation category actually establishes.
+ *
+ * Deliberately narrow. Smart-cube move data measures when moves happened,
+ * so it settles where pauses fall and what the turn rate was. It does not
+ * settle whether a pause was recognition, indecision or a lockup — that
+ * stays a hypothesis the Coach must label "inferred".
+ */
+const CATEGORY_COVERS = {
+    pauses: ['pause_location'],
+    tps: ['tps'],
+    phase_timing: ['algorithm_execution'],
+    wasted_moves: ['algorithm_execution'],
+    rotations: ['rotations'],
+    inspection: ['inspection'],
+};
 
 const EVIDENCE_RULE = `
 ## What you may and may not claim
@@ -186,5 +210,6 @@ it rather than guessing.`;
 
 module.exports = {
     assessmentPrompt, planPrompt, revisionPrompt, chatPrompt,
-    UNKNOWABLE_FROM_TIMES, EVIDENCE_RULE, PERSONA,
+    UNKNOWABLE_TOPICS, UNKNOWABLE_FROM_TIMES, CATEGORY_COVERS,
+    EVIDENCE_RULE, PERSONA,
 };
