@@ -18,6 +18,13 @@ const { CoachModel } = require('../_lib/model.js');
 const { planPrompt } = require('../_lib/prompts.js');
 const { sendError, methodGuard, readBody, openStream } = require('../_lib/http.js');
 
+// Same formatter the browser and the timer use — see revise.js.
+const { fmtMs } = require('../../coach-analytics.js');
+const dur = (ms) => {
+    const t = fmtMs(ms);
+    return t === '—' ? null : (t.includes(':') ? t : t + 's');
+};
+
 function badRequest(message) {
     const e = new Error(message);
     e.status = 400; e.code = 'bad_request';
@@ -39,6 +46,14 @@ function sanitisePhases(plan, currentMs, goalMs, goalMetric) {
 
     plan.phases = plan.phases.map((p, i) => {
         let target = Number(p.targetMs);
+
+        // Everything the model reads is now in seconds, so a phase target
+        // asked for in milliseconds is the one place it can plausibly mix
+        // units — and "11.82" would clamp silently to the goal, making
+        // every phase identical. Two orders of magnitude below the goal is
+        // not a plausible target for this metric, so read it as seconds.
+        if (isFinite(target) && target > 0 && target * 100 < lo) target *= 1000;
+
         if (!isFinite(target)) {
             // Evenly spaced fallback only when the model gave us nothing usable.
             target = hi - ((hi - lo) * (i + 1)) / plan.phases.length;
@@ -95,12 +110,15 @@ async function handler(req, res) {
         const context = {
             known: {
                 statistics: metrics,
+                // Formatted, like everything else the model reads. These
+                // used to be raw milliseconds and were a second source of
+                // "your Ao100 is 11820" in generated plans.
                 goal: {
                     metric: goal.metric,
-                    targetMs: goal.targetMs,
+                    target: dur(goal.targetMs),
                     targetDate: goal.targetDate || null,
-                    currentOnThatMetric: metrics.goal ? metrics.goal.currentMs : null,
-                    gapMs: metrics.goal ? metrics.goal.gapMs : null,
+                    currentOnThatMetric: metrics.goal ? metrics.goal.current : null,
+                    gap: metrics.goal ? metrics.goal.gap : null,
                 },
                 event: profile.primaryEvent || metrics.event,
                 method: profile.method || null,
@@ -112,14 +130,14 @@ async function handler(req, res) {
 
         stream.progress('planning', 'Building your roadmap…');
         let plan = await CoachModel.generatePlan({
-            system: planPrompt(),
+            system: planPrompt(metrics && metrics.event),
             context,
             onActivity: () => stream.progress('drills', "Choosing today's training…"),
         });
 
         plan = sanitisePhases(
             plan,
-            metrics.goal ? metrics.goal.currentMs : null,
+            body.compute ? body.compute.currentMs : null,
             goal.targetMs,
             goal.metric
         );

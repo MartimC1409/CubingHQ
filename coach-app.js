@@ -58,6 +58,37 @@
         if (hash && $(`.coach-panel[data-panel="${CSS.escape(hash)}"]`)) activatePanel(hash);
     }
 
+    /* ---------- reactive re-render -------------------------------- */
+
+    /**
+     * Redraws the dashboard whenever the store changes.
+     *
+     * coach-store.js has emitted `coach-changed` on every mutation since
+     * it was written, and until now nothing listened to it: renderAll()
+     * was called only at a handful of explicit points, so deleting a
+     * session removed it from the store and left it on screen until the
+     * page was reloaded. Subscribing once fixes deletion and every other
+     * mutation together, rather than patching each call site as it is
+     * noticed.
+     *
+     * Debounced because a single user action can write several times, and
+     * renderTrend destroys and rebuilds the Chart.js instance — a burst
+     * should cost one redraw, not one per write.
+     */
+    function wireReactiveRender() {
+        let pending = null;
+        document.addEventListener('coach-changed', () => {
+            // Onboarding owns the screen until it hands over; redrawing a
+            // dashboard that is still hidden would be wasted work.
+            if ($('#coach-app') && $('#coach-app').hidden) return;
+            clearTimeout(pending);
+            pending = setTimeout(() => {
+                try { window.CoachDashboard.renderAll(); }
+                catch (e) { console.warn('[Coach] re-render failed', e); }
+            }, 80);
+        });
+    }
+
     /* ---------- sync badge --------------------------------------- */
 
     function updateSyncBadge() {
@@ -258,6 +289,8 @@
     async function boot() {
         wireTabs();
         wireDataActions();
+
+        wireReactiveRender();
 
         document.addEventListener('coach-sync', updateSyncBadge);
         document.addEventListener('coach-storage-full', () => {

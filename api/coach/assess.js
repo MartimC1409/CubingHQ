@@ -17,7 +17,7 @@
 const { requireUser, AuthError } = require('../_lib/auth.js');
 const rtdb = require('../_lib/rtdb.js');
 const { CoachModel } = require('../_lib/model.js');
-const { assessmentPrompt, UNKNOWABLE_TOPICS, CATEGORY_COVERS } = require('../_lib/prompts.js');
+const { assessmentPrompt, topicsForEvent, CATEGORY_COVERS } = require('../_lib/prompts.js');
 const { sendError, methodGuard, readBody, openStream } = require('../_lib/http.js');
 
 function badRequest(message) {
@@ -34,6 +34,17 @@ function badRequest(message) {
  * `unknown` — so the Coach genuinely says more when it knows more,
  * rather than being permanently hedged.
  */
+const SOURCE_LABELS = {
+    video: 'an uploaded solve video',
+    cube: "Bluetooth smart cube move data, analysed per solve",
+};
+
+/** Where these observations actually came from. */
+function describeSources(observed) {
+    const kinds = new Set(observed.map(o => (o && o.source) === 'video' ? 'video' : 'cube'));
+    return Array.from(kinds).map(k => SOURCE_LABELS[k]).join(' and ') + '.';
+}
+
 function buildEvidence({ metrics, profile, observations }) {
     const observed = Array.isArray(observations) ? observations.slice(0, 60) : [];
 
@@ -47,7 +58,9 @@ function buildEvidence({ metrics, profile, observations }) {
         for (const topic of (CATEGORY_COVERS[cat] || [])) covered.add(topic);
     }
 
-    const unknown = UNKNOWABLE_TOPICS
+    // Blind spots are per-event: a Clock solver has no F2L to look ahead
+    // into, and listing one would make the honest entries look careless.
+    const unknown = topicsForEvent(metrics && metrics.event)
         .filter(t => !covered.has(t.key))
         .map(t => t.label);
 
@@ -62,8 +75,12 @@ function buildEvidence({ metrics, profile, observations }) {
                 note: 'Self-reported. Treat as context, not as measurement.',
             } : null,
         },
+        // Named accurately rather than assumed. "I saw it in your video"
+        // and "your cube's move log recorded it" are different claims,
+        // and the athlete is entitled to know which one they are being
+        // given — especially now both are possible at once.
         observed: observed.length ? {
-            source: 'Bluetooth smart cube move data, analysed per solve.',
+            source: describeSources(observed),
             items: observed,
         } : null,
         unknown,
@@ -117,7 +134,7 @@ async function handler(req, res) {
         stream.progress('bottleneck', 'Working out what is holding you back…');
 
         const assessment = await CoachModel.analyseSession({
-            system: assessmentPrompt(),
+            system: assessmentPrompt(body.metrics && body.metrics.event),
             evidence,
             onActivity: () => stream.progress('writing', 'Writing your assessment…'),
         });

@@ -99,7 +99,7 @@ module.exports = async function handler(req, res) {
 
         let started = false;
         await CoachModel.chat({
-            system: chatPrompt(),
+            system: chatPrompt(context && context.metrics && context.metrics.event),
             messages,
             onDelta: (text) => {
                 if (!started) { started = true; stream.progress('answering', ''); }

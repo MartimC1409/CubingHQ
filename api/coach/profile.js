@@ -19,7 +19,11 @@ const { sendJson, sendError, methodGuard, readBody } = require('../_lib/http.js'
 
 // Only these may be written. Anything else in the body is ignored, so a
 // crafted request cannot stash arbitrary data under a user's node.
-const WRITABLE = ['profile', 'sessions', 'assessments', 'plan', 'training', 'progress'];
+// `videos` holds what was seen in an uploaded clip, never the clip
+// itself. It is listed here so the athlete can delete that separately
+// from the rest — of everything the Coach stores, analysis of footage of
+// them is the thing they are most likely to want gone on its own.
+const WRITABLE = ['profile', 'sessions', 'assessments', 'plan', 'training', 'progress', 'videos'];
 
 module.exports = async function handler(req, res) {
     if (!methodGuard(req, res, ['GET', 'PUT', 'DELETE'])) return;

@@ -30,6 +30,13 @@
         offline: "You're offline. The Coach needs a connection for this — your data is safe on this device.",
         timeout: 'The Coach took too long to answer. Try again.',
         rate_limited: 'The Coach is busy right now. Give it a moment and try again.',
+        // Separate from rate_limited because the remedy is different, and
+        // "give it a moment" is actively wrong here — waiting never fixes
+        // a spent allowance.
+        no_credit: 'The Coach has reached its usage limit for now. It should be back later today.',
+        video_unavailable: 'Video analysis is not switched on for this site yet.',
+        video_failed: "That video couldn't be read. Try a different file or format.",
+        too_large: 'That video is too large. A single solve is all I need.',
         not_configured: 'The Coach is not switched on for this deployment yet.',
         sync_unavailable: 'Cloud sync is off, so your coaching data is saved on this device only.',
         no_token: 'Sign in with your WCA account to sync across devices.',
@@ -100,7 +107,42 @@
      *   onDelta(text)            — a chunk of the answer
      * @returns {Promise<object>} the `result` payload
      */
-    async function stream(path, body, handlers = {}) {
+    /**
+     * Formats every duration in the payload before it leaves the browser.
+     *
+     * Done here rather than at each call site because this is the single
+     * point every request passes through, so no future endpoint can
+     * forget. Callers keep their raw millisecond metrics — onboarding
+     * reads `metrics.goal.currentMs` for its own logic — and only the
+     * outbound copy is presented.
+     */
+    function present(body) {
+        const A = window.CoachAnalytics;
+        if (!body || !A || typeof A.formatMetricsForModel !== 'function') return body;
+
+        const out = { ...body };
+
+        // Raw figures the SERVER still needs for arithmetic — clamping plan
+        // phases between where the athlete is and where they are going.
+        // Kept under its own key rather than left inside `metrics`, because
+        // anything inside `metrics` is shown to the model and the whole
+        // point is that it sees no millisecond values to misquote.
+        if (body.metrics && body.metrics.goal) {
+            out.compute = {
+                currentMs: body.metrics.goal.currentMs,
+                targetMs: body.metrics.goal.targetMs,
+            };
+        }
+
+        if (out.metrics) out.metrics = A.formatMetricsForModel(out.metrics);
+        if (out.context && out.context.metrics) {
+            out.context = { ...out.context, metrics: A.formatMetricsForModel(out.context.metrics) };
+        }
+        return out;
+    }
+
+    async function stream(path, rawBody, handlers = {}) {
+        const body = present(rawBody);
         if (!navigator.onLine) throw new CoachError('offline', FRIENDLY.offline);
 
         let res;
@@ -168,6 +210,20 @@
         return result;
     }
 
+    /* ---- video --------------------------------------------------- */
+
+    // Returns { uploadUrl, headers } — the browser sends the bytes to
+    // Google itself, so no video ever passes through CubingHQ.
+    function startVideoUpload({ mimeType, sizeBytes }) {
+        return requestJSON('/api/coach/video/upload', {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ mimeType, sizeBytes }),
+        });
+    }
+
+    const analyseVideo = (payload, handlers) =>
+        stream('/api/coach/video/analyse', payload, handlers);
+
     const assess = (payload, handlers) => stream('/api/coach/assess', payload, handlers);
     const plan = (payload, handlers) => stream('/api/coach/plan', payload, handlers);
     const revise = (payload, handlers) => stream('/api/coach/revise', payload, handlers);
@@ -176,6 +232,7 @@
     window.CoachAPI = {
         loadProfile, saveProfile, deleteProfile,
         assess, plan, revise, chat,
+        startVideoUpload, analyseVideo,
         CoachError, friendly,
     };
 })();
