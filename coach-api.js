@@ -104,7 +104,42 @@
      *   onDelta(text)            — a chunk of the answer
      * @returns {Promise<object>} the `result` payload
      */
-    async function stream(path, body, handlers = {}) {
+    /**
+     * Formats every duration in the payload before it leaves the browser.
+     *
+     * Done here rather than at each call site because this is the single
+     * point every request passes through, so no future endpoint can
+     * forget. Callers keep their raw millisecond metrics — onboarding
+     * reads `metrics.goal.currentMs` for its own logic — and only the
+     * outbound copy is presented.
+     */
+    function present(body) {
+        const A = window.CoachAnalytics;
+        if (!body || !A || typeof A.formatMetricsForModel !== 'function') return body;
+
+        const out = { ...body };
+
+        // Raw figures the SERVER still needs for arithmetic — clamping plan
+        // phases between where the athlete is and where they are going.
+        // Kept under its own key rather than left inside `metrics`, because
+        // anything inside `metrics` is shown to the model and the whole
+        // point is that it sees no millisecond values to misquote.
+        if (body.metrics && body.metrics.goal) {
+            out.compute = {
+                currentMs: body.metrics.goal.currentMs,
+                targetMs: body.metrics.goal.targetMs,
+            };
+        }
+
+        if (out.metrics) out.metrics = A.formatMetricsForModel(out.metrics);
+        if (out.context && out.context.metrics) {
+            out.context = { ...out.context, metrics: A.formatMetricsForModel(out.context.metrics) };
+        }
+        return out;
+    }
+
+    async function stream(path, rawBody, handlers = {}) {
+        const body = present(rawBody);
         if (!navigator.onLine) throw new CoachError('offline', FRIENDLY.offline);
 
         let res;

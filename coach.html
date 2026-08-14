@@ -187,14 +187,12 @@
                     </p>
                     <div class="coach-card" style="margin-top:20px">
                         <div class="coach-grid-2">
-                            <label class="coach-field">
+                            <!-- Options are filled from the chosen event, so a
+                                 Megaminx solver is not offered CFOP. Hidden
+                                 entirely for events with no method axis. -->
+                            <label class="coach-field" id="coach-method-field">
                                 <span data-i18n="coach.level.method">Method</span>
-                                <select class="coach-select" id="coach-method">
-                                    <option value="">Not sure / other</option>
-                                    <option>CFOP</option><option>Roux</option><option>ZZ</option>
-                                    <option>Petrus</option><option>Beginner / LBL</option>
-                                    <option>Ortega</option><option>CLL</option><option>EG</option>
-                                </select>
+                                <select class="coach-select" id="coach-method"></select>
                             </label>
                             <label class="coach-field">
                                 <span data-i18n="coach.level.experience">How long have you been cubing?</span>

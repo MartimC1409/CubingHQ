@@ -17,7 +17,7 @@
 const { requireUser, AuthError } = require('../_lib/auth.js');
 const rtdb = require('../_lib/rtdb.js');
 const { CoachModel } = require('../_lib/model.js');
-const { assessmentPrompt, UNKNOWABLE_TOPICS, CATEGORY_COVERS } = require('../_lib/prompts.js');
+const { assessmentPrompt, topicsForEvent, CATEGORY_COVERS } = require('../_lib/prompts.js');
 const { sendError, methodGuard, readBody, openStream } = require('../_lib/http.js');
 
 function badRequest(message) {
@@ -47,7 +47,9 @@ function buildEvidence({ metrics, profile, observations }) {
         for (const topic of (CATEGORY_COVERS[cat] || [])) covered.add(topic);
     }
 
-    const unknown = UNKNOWABLE_TOPICS
+    // Blind spots are per-event: a Clock solver has no F2L to look ahead
+    // into, and listing one would make the honest entries look careless.
+    const unknown = topicsForEvent(metrics && metrics.event)
         .filter(t => !covered.has(t.key))
         .map(t => t.label);
 
@@ -117,7 +119,7 @@ async function handler(req, res) {
         stream.progress('bottleneck', 'Working out what is holding you back…');
 
         const assessment = await CoachModel.analyseSession({
-            system: assessmentPrompt(),
+            system: assessmentPrompt(body.metrics && body.metrics.event),
             evidence,
             onActivity: () => stream.progress('writing', 'Writing your assessment…'),
         });

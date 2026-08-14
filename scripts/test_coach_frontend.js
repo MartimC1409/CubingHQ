@@ -176,6 +176,28 @@ for (const [mod, members] of Object.entries(CONTRACT)) {
     }
 }
 
+// Every event the onboarding offers must be answerable. A method picker
+// that silently has nothing for Megaminx is how the Coach ended up
+// 3x3-shaped in the first place.
+const onboarding = win.CoachOnboarding && win.CoachOnboarding._internal;
+if (onboarding) {
+    // Clock is the one deliberate omission: it has no method axis, and the
+    // field is hidden rather than showing an empty dropdown.
+    const NO_METHOD = ['clock'];
+    for (const ev of onboarding.EVENTS) {
+        const has = Array.isArray(onboarding.METHODS[ev]) && onboarding.METHODS[ev].length > 0;
+        check(`methods offered for ${ev}`, has === !NO_METHOD.includes(ev),
+            `METHODS[${ev}] = ${JSON.stringify(onboarding.METHODS[ev])}`);
+        check(`goal ladder for ${ev}`, Array.isArray(onboarding.GOAL_LADDER[ev]));
+    }
+    check('no method list for an event that has no methods',
+        onboarding.METHODS.clock === undefined);
+    check('3x3 offers the main methods',
+        ['CFOP', 'Roux', 'ZZ'].every(m => onboarding.METHODS['333'].includes(m)));
+    check('2x2 is not offered CFOP', !onboarding.METHODS['222'].includes('CFOP'));
+    check('skewb is not offered CFOP', !onboarding.METHODS['skewb'].includes('CFOP'));
+}
+
 // coach-app.js's exports are what the dashboard's buttons call.
 const appSrc = fs.readFileSync(path.join(ROOT, 'coach-app.js'), 'utf8');
 for (const m of ['enterApp', 'enterOnboarding', 'activatePanel', 'reassess',

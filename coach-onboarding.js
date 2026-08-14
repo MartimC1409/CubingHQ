@@ -58,6 +58,57 @@
         'clock': [30, 20, 15, 10, 8, 6],
     };
 
+    /**
+     * Methods actually used for each event.
+     *
+     * The picker used to offer one fixed CFOP/Roux/2x2 list regardless of
+     * event, which asked a Megaminx solver whether they use ZZ. Keyed by
+     * EVENT_INFO key so every event the timer supports is covered.
+     *
+     * Clock is deliberately absent: it has no method axis worth asking
+     * about, and offering an empty dropdown is worse than not asking.
+     */
+    const METHODS = {
+        '333': ['CFOP', 'Roux', 'ZZ', 'Petrus', 'Mehta', 'Beginner / LBL'],
+        '333oh': ['CFOP', 'Roux', 'ZZ', 'Petrus', 'Beginner / LBL'],
+        '222': ['Ortega / Varasano', 'CLL', 'EG-1', 'EG-2', 'Beginner / LBL'],
+        '444': ['Reduction (Yau)', 'Reduction (standard)', 'Hoya', 'Meyer'],
+        '555': ['Reduction (Yau5)', 'Reduction (standard)'],
+        '666': ['Reduction (Yau)', 'Reduction (standard)'],
+        '777': ['Reduction (Yau)', 'Reduction (standard)'],
+        'pyram': ['L4E', 'Oka', 'Nutella', 'WO', 'Keyhole / beginner'],
+        'skewb': ["Sarah's Advanced", "Sarah's Intermediate", 'Hedgehog', 'Beginner / LBL'],
+        'sq1': ['Vandenbergh', 'Lin', 'Beginner / layer-by-layer'],
+        'minx': ['Westlund', 'LBL with 2-look last layer', 'LBL with 4-look last layer'],
+    };
+
+    /**
+     * Fills the method dropdown for the chosen event, or hides the field
+     * when the event has no method to speak of.
+     */
+    function renderMethodOptions() {
+        const field = $('#coach-method-field');
+        const select = $('#coach-method');
+        if (!select) return;
+
+        const options = METHODS[draft.primaryEvent];
+        if (!options) {
+            if (field) field.hidden = true;
+            draft.method = '';
+            return;
+        }
+        if (field) field.hidden = false;
+
+        const other = UI().T('coach.level.methodOther', 'Not sure / other');
+        select.innerHTML = `<option value="">${UI().esc(other)}</option>`
+            + options.map(m => `<option${m === draft.method ? ' selected' : ''}>${UI().esc(m)}</option>`).join('');
+
+        // Switching event can invalidate an earlier pick — CFOP is not on
+        // offer for Skewb — so drop it rather than submitting a method the
+        // athlete does not actually use.
+        if (draft.method && !options.includes(draft.method)) draft.method = '';
+    }
+
     /* ---------- step machinery -------------------------------- */
 
     function renderDots() {
@@ -84,6 +135,7 @@
         // Keep the top of the step in view on mobile, where the previous
         // step may have scrolled well down the page.
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (STEPS[index] === 'level') renderMethodOptions();
         if (STEPS[index] === 'goal') refreshGoalStep();
     }
 
@@ -584,5 +636,10 @@
         show(0);
     }
 
-    window.CoachOnboarding = { init, show, get draft() { return draft; } };
+    window.CoachOnboarding = {
+        init, show, get draft() { return draft; },
+        // Exposed so a test can assert every event the timer supports is
+        // either covered or deliberately excluded.
+        _internal: { METHODS, EVENTS, GOAL_LADDER },
+    };
 })();

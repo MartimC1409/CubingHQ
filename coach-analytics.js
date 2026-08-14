@@ -369,11 +369,111 @@
         return `${m}:${s < 10 ? '0' : ''}${s.toFixed(2)}`;
     }
 
+    /**
+     * The metrics object as the model should receive it.
+     *
+     * computeMetrics returns raw milliseconds, which is right for app
+     * code and wrong for a language model: handed `11820` it has to
+     * decide for itself that this means 11.82 seconds, and it does not
+     * reliably do so — hence assessments quoting milliseconds, and a
+     * coefficient of variation reported as a bare `0.076`.
+     *
+     * So every duration is converted here and the raw value is dropped
+     * rather than kept alongside. Sending both would leave the model a
+     * choice about which to quote, and the whole point is that it has
+     * none. This is the §25 split doing its job: app code computes,
+     * the model only explains.
+     */
+    function formatMetricsForModel(m) {
+        if (!m) return null;
+
+        const dur = (ms) => {
+            const t = fmtMs(ms);
+            // fmtMs already renders m:ss.xx above a minute, where a
+            // trailing "s" would read wrong.
+            return t === '—' ? null : (t.includes(':') ? t : t + 's');
+        };
+        const pct = (r) => isReal(r) ? `${(r * 100).toFixed(1)}%` : null;
+        const day = (t) => isReal(t) ? new Date(t).toISOString().slice(0, 10) : null;
+        const round = (n, dp = 2) => isReal(n) ? Number(n.toFixed(dp)) : null;
+
+        const t = m.trend || {};
+        const c = m.consistency || {};
+        const s = m.spread;
+        const g = m.goal;
+
+        return {
+            note: 'All durations below are already formatted for display. Quote them exactly as written; do not convert, rescale or recompute them.',
+
+            event: m.event,
+            solveCount: m.solveCount,
+            dnfCount: m.dnfCount,
+            plusTwoCount: m.plusTwoCount,
+            successRate: pct(m.successRate),
+
+            best: {
+                single: dur(m.best.single), ao5: dur(m.best.ao5),
+                ao12: dur(m.best.ao12), ao100: dur(m.best.ao100),
+            },
+            current: {
+                mean: dur(m.current.mean), ao5: dur(m.current.ao5),
+                ao12: dur(m.current.ao12), ao50: dur(m.current.ao50),
+                ao100: dur(m.current.ao100), stdDev: dur(m.current.stdDev),
+            },
+
+            trend: {
+                direction: t.direction,
+                solvesAnalysed: t.solvesAnalysed,
+                solvesNeeded: t.solvesNeeded,
+                // Signed milliseconds are the easiest thing in this whole
+                // payload to misread, so the direction is spelled out.
+                changeOverWindow: isReal(t.changeMs)
+                    ? (t.changeMs <= 0 ? `${dur(-t.changeMs)} faster` : `${dur(t.changeMs)} slower`)
+                    : null,
+                changePct: pct(t.changePct),
+                fitQuality: round(t.r2),
+            },
+
+            consistency: {
+                direction: c.direction,
+                // A ratio the model would otherwise quote as "0.076".
+                variability: pct(c.cv),
+                variabilityEarlier: pct(c.earlierCv),
+                variabilityLater: pct(c.laterCv),
+                explanation: 'Variability is the spread of solve times relative to the average. Lower is more consistent.',
+            },
+
+            spread: s ? {
+                fastest10Pct: dur(s.p10), median: dur(s.p50), slowest10Pct: dur(s.p90),
+                spread: dur(s.spreadMs),
+                spreadPct: pct(s.spreadPct),
+                upsidePct: pct(s.upsidePct),
+                explanation: 'Upside is how much faster the best solves are than the median — how much speed is already there but not yet repeatable.',
+            } : null,
+
+            goal: g ? {
+                metric: g.metric,
+                target: dur(g.targetMs),
+                current: dur(g.currentMs),
+                gap: dur(g.gapMs),
+                progressPct: pct(g.pct),
+                reached: g.reached,
+                reason: g.reason || null,
+                solvesNeeded: g.solvesNeeded,
+                solveCount: g.solveCount,
+            } : null,
+
+            span: m.span
+                ? { firstSolve: day(m.span.firstSolveAt), lastSolve: day(m.span.lastSolveAt) }
+                : null,
+        };
+    }
+
     return {
         rollingAverage, pbMarkers, sessionBoundaries,
         linearRegression, analyseTrend, analyseConsistency, analyseSpread,
         goalProgress, metricValue, computeStreak, detectMilestones,
-        computeMetrics, fmtMs,
+        computeMetrics, fmtMs, formatMetricsForModel,
         GOAL_METRICS, SOLVES_FOR_METRIC, MIN_SOLVES_FOR_TREND,
         SOLVE_MILESTONES, STREAK_MILESTONES,
     };
