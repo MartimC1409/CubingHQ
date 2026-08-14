@@ -87,7 +87,31 @@ global.fetch = async (url, opts = {}) => {
 };
 
 const G = require('../api/_lib/gemini.js');
-const { classifyFailure, toGeminiSchema, extractJson, readStream } = G._internal;
+const { classifyFailure, toGeminiSchema, extractJson, readStream,
+    extractSuggestedModel, checkModel } = G._internal;
+
+/* ================= retired model names ========================== */
+
+// The real message that took production down, verbatim from Google.
+const RETIRED = 'This model models/gemini-2.5-flash is no longer available to new users. '
+    + 'Please update your code to use models/gemini-3.6-flash for the latest features and improvements.';
+
+eq('lifts the replacement out of a retirement notice',
+    extractSuggestedModel(RETIRED), 'gemini-3.6-flash');
+// The message names the OLD model first; echoing that back would send
+// the operator round in a circle.
+check('does not echo the retired name back',
+    extractSuggestedModel(RETIRED) !== 'gemini-2.5-flash');
+
+eq('works without the models/ prefix',
+    extractSuggestedModel('Please use gemini-9.9-pro instead.'), 'gemini-9.9-pro');
+eq('no suggestion when none is offered',
+    extractSuggestedModel('models/foo is not found for API version v1beta'), null);
+eq('tolerates an empty message', extractSuggestedModel(''), null);
+eq('tolerates a missing message', extractSuggestedModel(null), null);
+
+// A retirement is still a bad_model, so the fallback logic is unchanged.
+eq('a retired model classifies as bad_model', classifyFailure(404, RETIRED), 'bad_model');
 
 /* ================= schema translation =========================== */
 
@@ -377,6 +401,38 @@ eq('garbage yields null', extractJson('nope'), null);
     catch (e) { threw = e; }
     eq('path traversal refused', threw && threw.code, 'bad_request');
     eq('traversal never reaches Google', requests.length, 0);
+
+    /* ================= live model check ========================== */
+
+    // The check that would have caught the retirement before a user did:
+    // "set" and "valid" are different things, and only this knows which.
+    requests = [];
+    queue.push(jsonResponse(200, { name: 'models/gemini-test' }));
+    let live = await checkModel();
+    eq('a usable model checks out', live.ok, true);
+    check('checks the model directly, without generating',
+        /\/models\/gemini-test\?/.test(requests[0].url), requests[0].url);
+    eq('it is a plain GET', requests[0].method, 'GET');
+
+    queue.push(errorResponse(404, RETIRED));
+    live = await checkModel();
+    eq('a retired model fails the check', live.ok, false);
+    eq('and the replacement comes back with it', live.suggested, 'gemini-3.6-flash');
+    check('the reason quotes the provider', /no longer available/.test(live.reason), live.reason);
+
+    queue.push(errorResponse(400, 'API key not valid. Please pass a valid API key.'));
+    live = await checkModel();
+    eq('a bad key fails the check', live.ok, false);
+    check('and says so plainly', /key was rejected/i.test(live.reason), live.reason);
+    // The distinction that matters: a rejected key is not a wrong model,
+    // and telling someone to change the model would waste their time.
+    check('a bad key suggests no model', !live.suggested);
+
+    queue.push(new Error('network down'));
+    live = await checkModel();
+    eq('an unreachable API is not a valid config', live.ok, false);
+    check('but is flagged as unreachable rather than misconfigured', live.unreachable === true);
+    check('and is reported as unreachable', /reach/i.test(live.reason), live.reason);
 
     /* ================= configuration ============================= */
 
