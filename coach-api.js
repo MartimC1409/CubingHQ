@@ -34,6 +34,9 @@
         // "give it a moment" is actively wrong here — waiting never fixes
         // a spent allowance.
         no_credit: 'The Coach has reached its usage limit for now. It should be back later today.',
+        video_unavailable: 'Video analysis is not switched on for this site yet.',
+        video_failed: "That video couldn't be read. Try a different file or format.",
+        too_large: 'That video is too large. A single solve is all I need.',
         not_configured: 'The Coach is not switched on for this deployment yet.',
         sync_unavailable: 'Cloud sync is off, so your coaching data is saved on this device only.',
         no_token: 'Sign in with your WCA account to sync across devices.',
@@ -207,6 +210,20 @@
         return result;
     }
 
+    /* ---- video --------------------------------------------------- */
+
+    // Returns { uploadUrl, headers } — the browser sends the bytes to
+    // Google itself, so no video ever passes through CubingHQ.
+    function startVideoUpload({ mimeType, sizeBytes }) {
+        return requestJSON('/api/coach/video/upload', {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ mimeType, sizeBytes }),
+        });
+    }
+
+    const analyseVideo = (payload, handlers) =>
+        stream('/api/coach/video/analyse', payload, handlers);
+
     const assess = (payload, handlers) => stream('/api/coach/assess', payload, handlers);
     const plan = (payload, handlers) => stream('/api/coach/plan', payload, handlers);
     const revise = (payload, handlers) => stream('/api/coach/revise', payload, handlers);
@@ -215,6 +232,7 @@
     window.CoachAPI = {
         loadProfile, saveProfile, deleteProfile,
         assess, plan, revise, chat,
+        startVideoUpload, analyseVideo,
         CoachError, friendly,
     };
 })();

@@ -34,6 +34,17 @@ function badRequest(message) {
  * `unknown` — so the Coach genuinely says more when it knows more,
  * rather than being permanently hedged.
  */
+const SOURCE_LABELS = {
+    video: 'an uploaded solve video',
+    cube: "Bluetooth smart cube move data, analysed per solve",
+};
+
+/** Where these observations actually came from. */
+function describeSources(observed) {
+    const kinds = new Set(observed.map(o => (o && o.source) === 'video' ? 'video' : 'cube'));
+    return Array.from(kinds).map(k => SOURCE_LABELS[k]).join(' and ') + '.';
+}
+
 function buildEvidence({ metrics, profile, observations }) {
     const observed = Array.isArray(observations) ? observations.slice(0, 60) : [];
 
@@ -64,8 +75,12 @@ function buildEvidence({ metrics, profile, observations }) {
                 note: 'Self-reported. Treat as context, not as measurement.',
             } : null,
         },
+        // Named accurately rather than assumed. "I saw it in your video"
+        // and "your cube's move log recorded it" are different claims,
+        // and the athlete is entitled to know which one they are being
+        // given — especially now both are possible at once.
         observed: observed.length ? {
-            source: 'Bluetooth smart cube move data, analysed per solve.',
+            source: describeSources(observed),
             items: observed,
         } : null,
         unknown,

@@ -352,6 +352,7 @@
                     <button class="coach-tab" role="tab" aria-selected="false" data-panel="progress" data-i18n="coach.tab.progress">Progress</button>
                     <button class="coach-tab" role="tab" aria-selected="false" data-panel="plan" data-i18n="coach.tab.plan">Roadmap</button>
                     <button class="coach-tab" role="tab" aria-selected="false" data-panel="chat" data-i18n="coach.tab.chat">Ask the Coach</button>
+                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="video" data-i18n="coach.tab.video">Solve video</button>
                     <button class="coach-tab" role="tab" aria-selected="false" data-panel="data" data-i18n="coach.tab.data">Your data</button>
                 </div>
 
@@ -402,6 +403,33 @@
                     </div>
                 </div>
 
+                <div class="coach-panel" data-panel="video" role="tabpanel">
+                    <div class="coach-card">
+                        <h2 class="coach-h2" data-i18n="coach.video.title">Upload a solve</h2>
+                        <p class="coach-sub" style="margin-top:8px;max-width:62ch"
+                           data-i18n="coach.video.body">
+                            Your times show how long a solve took, not what your hands did.
+                            A short clip lets me see pauses, regrips, rotations and turning —
+                            the things I otherwise have to tell you I can't assess.
+                        </p>
+                        <p class="coach-muted coach-small" style="margin-top:12px;max-width:62ch"
+                           data-i18n="coach.video.privacy">
+                            The video goes straight from this device to the analysis service.
+                            It is never stored on CubingHQ, and only what I saw is kept.
+                        </p>
+
+                        <div style="margin-top:20px">
+                            <input type="file" id="coach-video-file" accept="video/*" hidden>
+                            <button class="coach-btn coach-btn--primary" id="coach-video-pick"
+                                    data-i18n="coach.video.pick">Choose a video</button>
+                        </div>
+
+                        <p class="coach-video-status" id="coach-video-status" hidden></p>
+                    </div>
+
+                    <div id="coach-video-result" style="margin-top:20px" hidden></div>
+                </div>
+
                 <div class="coach-panel" data-panel="data" role="tabpanel">
                     <div class="coach-card" style="margin-bottom:20px">
                         <h2 class="coach-h2" data-i18n="coach.data.sessions">Imported sessions</h2>
@@ -448,6 +476,7 @@
     <script src="coach-onboarding.js?v=1"></script>
     <script src="coach-training.js?v=1"></script>
     <script src="coach-chat.js?v=1"></script>
+    <script src="coach-video.js?v=1"></script>
     <script src="coach-dashboard.js?v=1"></script>
     <script src="coach-app.js?v=1"></script>
 

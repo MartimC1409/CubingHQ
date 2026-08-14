@@ -129,6 +129,44 @@
         return out;
     }
 
+    /**
+     * Stores what an analysed solve video showed.
+     *
+     * Kept in the same buffer as smart-cube observations, because from
+     * the assessment's point of view they are the same kind of thing: a
+     * measured fact about a specific solve rather than a statistic. The
+     * `source` tag survives so the Coach can say where it saw something —
+     * "in your video" and "from your cube's move log" are different
+     * claims and a reader is entitled to know which one they are getting.
+     */
+    function recordVideo(observations) {
+        if (!Array.isArray(observations) || !observations.length) return 0;
+
+        const at = new Date().toISOString();
+        const items = observations
+            // A model that ignored the schema and labelled a guess about
+            // recognition as "observed" must not have it treated as fact.
+            .filter(o => o && o.category && o.observation)
+            .map(o => ({
+                category: String(o.category),
+                observation: String(o.observation),
+                confidence: typeof o.confidence === 'number' ? o.confidence : 0.8,
+                evidence: o.evidence || 'Seen in an uploaded solve video.',
+                evidenceType: o.evidenceType === 'observed' ? 'observed' : 'inferred',
+                source: 'video',
+                at,
+            }));
+        if (!items.length) return 0;
+
+        buffer.push({ at: Date.now(), source: 'video', complete: true, items });
+        if (buffer.length > MAX_SOLVES) buffer = buffer.slice(-MAX_SOLVES);
+        persist();
+        document.dispatchEvent(new CustomEvent('coach-evidence-added', {
+            detail: { count: buffer.length, source: 'video' },
+        }));
+        return items.length;
+    }
+
     function record(result) {
         const items = observationsFor(result);
         if (!items.length) return;
@@ -159,16 +197,28 @@
         }
 
         const out = [];
-        const pauses = byCategory.get('pauses') || [];
-        if (pauses.length) {
-            const solvesWithPause = solves.filter(s => s.items.some(i => i.category === 'pauses')).length;
+
+        // The "in N of the last M solves" summary only makes sense for
+        // smart-cube data, where every solve was tracked the same way and
+        // the denominator means something. A video is one clip: counting
+        // it into that ratio would state a frequency nobody measured, and
+        // attributing it to a move log would credit hardware the athlete
+        // may not even own.
+        const cubeSolves = solves.filter(s => s.source !== 'video');
+        const cubePauses = cubeSolves.filter(s => s.items.some(i => i.category === 'pauses')).length;
+        if (cubePauses) {
             out.push({
                 category: 'pauses',
-                observation: `Gaps over ${PAUSE_MS}ms between moves appeared in ${solvesWithPause} of the last ${solves.length} tracked solves.`,
+                observation: `Gaps over ${PAUSE_MS}ms between moves appeared in ${cubePauses} of the last ${cubeSolves.length} tracked solves.`,
                 confidence: 1,
                 evidence: 'Aggregated from smart-cube move logs.',
+                evidenceType: 'observed',
+                source: 'cube',
             });
         }
+
+        // Everything else passes through carrying its own source and
+        // evidenceType, so the server can attribute each claim correctly.
         for (const [, items] of byCategory) out.push(...items.slice(-6));
 
         return out.slice(0, limit);
@@ -190,7 +240,7 @@
     });
 
     window.CoachEvidence = {
-        getObservations, count, hasData, clear,
+        getObservations, count, hasData, clear, recordVideo,
         _internal: { observationsFor, PAUSE_MS },
     };
 })();

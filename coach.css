@@ -574,3 +574,68 @@
     .coach-thinking-bar i { animation-duration: 3s; }
     .coach-goal-fill { transition: none; }
 }
+
+/* ============================================================
+   Solve video
+   ------------------------------------------------------------
+   Observations are a list of moments rather than a prose block, so
+   the timestamp reads as the anchor: the athlete can scrub to it and
+   check the claim themselves. That is the point of showing a time at
+   all — a finding you can verify is worth more than one you can't.
+   ============================================================ */
+
+.coach-video-status {
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--clr-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.coach-video-status.is-error { color: var(--clr-danger); }
+.coach-video-status.is-warn { color: var(--clr-accent); }
+
+.coach-video-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.coach-video-obs {
+    background: var(--clr-bg-card);
+    border: 1px solid var(--clr-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.coach-video-obs p { margin: 6px 0 0; font-size: 14.5px; line-height: 1.55; }
+
+.coach-video-obs-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.coach-video-time {
+    font-family: var(--font-mono, monospace);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--clr-accent);
+    background: var(--clr-bg-elevated);
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-variant-numeric: tabular-nums;
+}
+
+.coach-video-cat {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+}
+
+@media (max-width: 560px) {
+    .coach-video-obs { padding: 12px 13px; }
+    .coach-video-obs p { font-size: 14px; }
+}

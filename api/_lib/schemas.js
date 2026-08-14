@@ -189,9 +189,79 @@ const PLAN_REVISION_SCHEMA = {
     required: ['verdict', 'assessment', 'changeFocus', 'newPhaseId', 'today'],
 };
 
+/* ---- video ------------------------------------------------------- */
+
+// What a camera can actually establish about a solve. Deliberately a
+// closed list: an open category field would let the model invent
+// "recognition_speed" and then report it as something it saw.
+const VIDEO_CATEGORIES = [
+    'rotations', 'regrips', 'pauses', 'inspection',
+    'turning_quality', 'finger_tricks', 'other',
+];
+
+const videoObservation = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        timestamp: {
+            type: 'string',
+            description: 'Where in the video this happens, as m:ss. Must be a real point in the clip.',
+        },
+        category: { type: 'string', enum: VIDEO_CATEGORIES },
+        observation: {
+            type: 'string',
+            description: 'What is visible, in one sentence. Describe what happened, not what it means.',
+        },
+        evidenceType: {
+            type: 'string',
+            // No "known" here: that tag is reserved for figures the app
+            // computed. A camera produces observations, never statistics.
+            enum: ['observed', 'inferred'],
+            description: '"observed" only for something plainly visible in the frame. Anything about what the solver knew, recognised or intended is "inferred" — thinking is not visible.',
+        },
+        basis: {
+            type: 'string',
+            description: 'What in the video supports this. For an inferred item, name what would confirm it.',
+        },
+        confidence: {
+            type: 'number',
+            description: '0 to 1. Lower it when the camera angle, focus or frame rate makes this hard to be sure of.',
+        },
+    },
+    required: ['timestamp', 'category', 'observation', 'evidenceType', 'basis', 'confidence'],
+};
+
+const VIDEO_ANALYSIS_SCHEMA = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        solveDetected: {
+            type: 'boolean',
+            description: 'False if the clip does not actually show someone solving a puzzle. Say so rather than inventing an analysis.',
+        },
+        whatWasSeen: {
+            type: 'string',
+            description: 'Plainly what the clip contains — how many solves, roughly how long, which puzzle.',
+        },
+        observations: { type: 'array', items: videoObservation },
+        summary: {
+            type: 'string',
+            description: 'Two or three sentences on what the video shows about this solve. Only what was visible.',
+        },
+        notVisible: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Things this particular clip could not show — hands out of frame, cube obscured, too low a frame rate to judge turning, inspection not filmed. Be specific to this video.',
+        },
+    },
+    required: ['solveDetected', 'whatWasSeen', 'observations', 'summary', 'notVisible'],
+};
+
 module.exports = {
     COACH_ASSESSMENT_SCHEMA,
     TRAINING_PLAN_SCHEMA,
     PLAN_REVISION_SCHEMA,
+    VIDEO_ANALYSIS_SCHEMA,
+    VIDEO_CATEGORIES,
     EVIDENCE_TYPES,
 };

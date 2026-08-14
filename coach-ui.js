@@ -96,11 +96,18 @@
      * deliberately styled as an outline rather than a solid chip, and
      * labelled so nobody can mistake a hypothesis for a measurement.
      */
-    function evidenceChip(type) {
+    /**
+     * @param {string} type known | observed | inferred
+     * @param {string} [sourceTip] overrides the "observed" tooltip. Video
+     *   and smart-cube data both produce observed findings, and the
+     *   tooltip should say which one this came from rather than always
+     *   claiming the move log.
+     */
+    function evidenceChip(type, sourceTip) {
         const t = String(type || '').toLowerCase();
         if (t === 'observed') {
             return `<span class="coach-evidence coach-evidence--observed"
-                title="${esc(T('coach.evidence.observedTip', 'Seen directly in your smart-cube move data.'))}">${esc(T('coach.evidence.observed', 'Observed'))}</span>`;
+                title="${esc(sourceTip || T('coach.evidence.observedTip', 'Seen directly in your smart-cube move data.'))}">${esc(T('coach.evidence.observed', 'Observed'))}</span>`;
         }
         if (t === 'inferred') {
             return `<span class="coach-evidence coach-evidence--inferred"

@@ -103,6 +103,20 @@ const CATEGORY_COVERS = {
     wasted_moves: ['algorithm_execution'],
     rotations: ['rotations'],
     inspection: ['inspection'],
+
+    // Video-only categories. A camera sees the hands, which a smart cube
+    // cannot: regrips, grip and turning quality are genuinely observable
+    // on film and genuinely unknowable from a move log.
+    //
+    // Recognition is deliberately absent from this map, and stays in the
+    // unknown list even for a video that has been analysed. A long pause
+    // before the last layer is strong evidence ABOUT recognition; it is
+    // not a measurement of it, and the solver might simply have been
+    // resting. Holding that line is what makes everything video does
+    // unlock worth believing.
+    regrips: ['regrips'],
+    turning_quality: ['turning_quality'],
+    finger_tricks: ['finger_tricks'],
 };
 
 const EVIDENCE_RULE = `
@@ -464,8 +478,68 @@ If they ask something the data cannot answer, say which data would answer
 it rather than guessing.`;
 }
 
+/**
+ * Watching a solve video.
+ *
+ * The framing here is the opposite of the other prompts. Everywhere else
+ * the job is to stop the model claiming things it cannot see. Here it
+ * genuinely CAN see hands, regrips and rotations — so the prompt says so
+ * plainly, and spends its caution on the one thing a camera still cannot
+ * reach: what the solver was thinking.
+ */
+function videoPrompt(event) {
+    const guide = EVENT_GUIDES[event] || EVENT_GUIDES['333'];
+    return `${PERSONA}
+
+## This task
+
+You are watching a video of one or more solves. Report what is visible.
+
+### What a camera does establish
+
+You can see, and may report as "observed":
+
+- cube rotations, and where in the solve they happen
+- regrips — moving the hand or thumb to a different face
+- pauses: the hands stopping, and roughly where in the solve
+- inspection: how it was used, if it is in frame
+- turning quality: lockups, over-turning, corner cutting, hesitant turns
+- finger tricks and grip: pushes versus whole-hand turns
+
+Give a timestamp for each. Timestamps must be real points in this clip.
+
+### What a camera does not establish
+
+You cannot see what the solver knew, recognised, planned or intended.
+Recognition speed in particular is not visible. A long pause before the
+last layer is evidence ABOUT recognition — it is not a measurement of
+it, and the solver may simply have been resting or distracted.
+
+So: anything about knowledge, recognition or intent is "inferred", never
+"observed", and must be phrased as a possibility with the confirming
+evidence named in "basis". This holds even though you watched the video.
+
+### Honesty about this particular clip
+
+- If the clip does not show someone solving, set solveDetected false and
+  say so. Do not invent an analysis of a video you were not given.
+- Put what THIS clip could not show in notVisible — hands leaving frame,
+  the cube obscured, inspection not filmed, a frame rate too low to
+  judge turning. Be specific to this video rather than generic.
+- Lower confidence when the angle or focus makes something hard to be
+  sure of. A hedged observation is worth more than a confident guess.
+- Do not estimate solve times or turn rates from the video. The app
+  measures those; you would only be guessing at them.
+
+${contextFor(event).split('### This athlete\'s event')[0].trim()}
+
+### This athlete's event
+
+${guide.replace(/\s*\n\s*/g, ' ').trim()}`;
+}
+
 module.exports = {
-    assessmentPrompt, planPrompt, revisionPrompt, chatPrompt,
+    assessmentPrompt, planPrompt, revisionPrompt, chatPrompt, videoPrompt,
     UNKNOWABLE_TOPICS, UNKNOWABLE_FROM_TIMES, CATEGORY_COVERS,
     topicsForEvent, EVENT_TOPICS, UNIVERSAL_TOPICS,
     EVIDENCE_RULE, PERSONA,

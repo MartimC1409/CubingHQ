@@ -126,7 +126,7 @@ const FILES = [
     'cube-stats.js', 'coach-cstimer.js', 'coach-analytics.js',
     'coach-evidence.js', 'coach-api.js', 'coach-store.js',
     'coach-chart.js', 'coach-ui.js', 'coach-onboarding.js',
-    'coach-training.js', 'coach-chat.js', 'coach-dashboard.js',
+    'coach-training.js', 'coach-chat.js', 'coach-video.js', 'coach-dashboard.js',
 ];
 for (const f of FILES) {
     if (load(win, f)) { pass++; }
@@ -138,7 +138,7 @@ for (const f of FILES) {
 
 const MODULES = ['CubeStats', 'CoachImport', 'CoachAnalytics', 'CoachEvidence',
     'CoachAPI', 'CoachStore', 'CoachChart', 'CoachUI', 'CoachOnboarding',
-    'CoachTraining', 'CoachChat', 'CoachDashboard'];
+    'CoachTraining', 'CoachChat', 'CoachVideo', 'CoachDashboard'];
 for (const m of MODULES) check(`${m} attached to window`, typeof win[m] === 'object' && win[m] !== null);
 
 /* ---------- the exports other modules actually call -------------- */
@@ -148,8 +148,9 @@ const CONTRACT = {
     CoachImport: ['parse', 'dedupe', 'parseTimeToken', 'eventFromScrType'],
     CoachAnalytics: ['rollingAverage', 'pbMarkers', 'sessionBoundaries', 'metricValue',
         'computeMetrics', 'computeStreak', 'detectMilestones', 'fmtMs', 'goalProgress'],
-    CoachEvidence: ['getObservations', 'count', 'hasData', 'clear'],
-    CoachAPI: ['loadProfile', 'saveProfile', 'deleteProfile', 'assess', 'plan', 'revise', 'chat'],
+    CoachEvidence: ['getObservations', 'count', 'hasData', 'clear', 'recordVideo'],
+    CoachAPI: ['loadProfile', 'saveProfile', 'deleteProfile', 'assess', 'plan', 'revise', 'chat',
+        'startVideoUpload', 'analyseVideo'],
     CoachStore: ['get', 'getProfile', 'getPlan', 'hasOnboarded', 'latestAssessment',
         'listSessions', 'solvesForEvent', 'getTraining', 'todayKey', 'setProfile',
         'setGoal', 'addSession', 'removeSession', 'addAssessment', 'setPlan',
@@ -164,6 +165,7 @@ const CONTRACT = {
     CoachTraining: ['today', 'start', 'collectResult', 'checkMilestones',
         'shouldRevise', 'revise'],
     CoachChat: ['init', 'send', 'clear', 'render'],
+    CoachVideo: ['init', 'analyse', 'renderAnalysis'],
     CoachDashboard: ['renderAll', 'snapshot', 'renderTrend'],
 };
 
@@ -174,6 +176,34 @@ for (const [mod, members] of Object.entries(CONTRACT)) {
         check(`${mod}.${m} exists`, typeof target[m] === 'function' || typeof target[m] === 'object',
             `got ${typeof target[m]}`);
     }
+}
+
+// Video observations have to survive the round trip into evidence, or
+// the analysis is a page the athlete reads once and nothing more.
+if (win.CoachEvidence) {
+    win.CoachEvidence.clear();
+    const added = win.CoachEvidence.recordVideo([
+        { category: 'regrips', observation: 'Three regrips during F2L (at 0:05)', basis: 'visible', confidence: 0.9, evidenceType: 'observed' },
+        { category: 'pauses', observation: 'Half-second stop before the last layer (at 0:09)', basis: 'visible', confidence: 0.8, evidenceType: 'observed' },
+    ]);
+    eq('video observations are stored', added, 2);
+    check('and reach the assessment payload',
+        win.CoachEvidence.getObservations().some(o => o.category === 'regrips'));
+    check('tagged as coming from video',
+        win.CoachEvidence.getObservations().every(o => o.category !== 'regrips' || o.source === 'video'));
+
+    // A model that ignored the schema must not get its guess promoted to
+    // fact just because it arrived through the video path.
+    win.CoachEvidence.clear();
+    win.CoachEvidence.recordVideo([
+        { category: 'pauses', observation: 'They clearly did not know the case', basis: 'a hunch', evidenceType: 'certain' },
+    ]);
+    eq('an unknown evidenceType falls back to inferred',
+        win.CoachEvidence.getObservations().find(o => o.category === 'pauses').evidenceType, 'inferred');
+
+    win.CoachEvidence.clear();
+    eq('empty input records nothing', win.CoachEvidence.recordVideo([]), 0);
+    eq('malformed input records nothing', win.CoachEvidence.recordVideo([{ nope: 1 }]), 0);
 }
 
 // Every event the onboarding offers must be answerable. A method picker
