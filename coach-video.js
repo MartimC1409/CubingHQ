@@ -26,17 +26,91 @@
 
     /* ---------- upload ------------------------------------------- */
 
+    // A large clip over a slow connection is legitimately slow, but a
+    // stalled request with no timeout hangs forever behind a spinner.
+    const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000;
+
     /**
-     * PUTs the file to the resumable URL, reporting progress.
+     * Builds the failure, having first looked at what actually happened.
+     *
+     * `xhr.onerror` carries no status and no body, so the temptation is
+     * to call everything "interrupted, check your connection". That was
+     * the previous behaviour and it is a guess dressed as a diagnosis:
+     * a request blocked by an extension, a corporate filter, or an
+     * expired upload session all reached the user as advice to check a
+     * connection that was working fine.
+     *
+     * Google permits reading X-Goog-Upload-Status cross-origin
+     * (it is in the endpoint's access-control-expose-headers), so when
+     * Google rejected the upload it can say so in its own words.
+     */
+    function uploadError(xhr, kind) {
+        let googleStatus = null;
+        try { googleStatus = xhr.getResponseHeader('X-Goog-Upload-Status'); } catch (e) { }
+
+        const detail = {
+            kind,
+            status: xhr.status,
+            statusText: xhr.statusText || null,
+            googleUploadStatus: googleStatus,
+            online: typeof navigator !== 'undefined' ? navigator.onLine : null,
+            body: String(xhr.responseText || '').slice(0, 300) || null,
+        };
+        // The console gets everything; the page gets one clear sentence.
+        console.error('[Coach] video upload failed', detail);
+
+        const T = (k, fallback) => UI().T(k, fallback);
+        let message;
+
+        if (kind === 'timeout') {
+            message = T('coach.video.errTimeout',
+                'The upload timed out. A shorter clip, or a stronger connection, should go through.');
+        } else if (kind === 'empty' || kind === 'unreadable') {
+            // A 2xx that we could not make sense of. Reporting a status
+            // code here would be misleading — the transfer succeeded.
+            message = T('coach.video.errReply',
+                'The upload finished but the reply could not be read. Try again.');
+        } else if (xhr.status === 0) {
+            // Status 0 means no response was readable at all. Whether the
+            // network is down or something blocked the request are
+            // different problems with different fixes.
+            message = detail.online === false
+                ? T('coach.video.errOffline',
+                    'You appear to be offline. Reconnect and try again.')
+                : T('coach.video.errBlocked',
+                    'The upload was blocked before it reached the analysis service. '
+                    + 'A browser extension, VPN or network filter is the usual cause — '
+                    + 'try another network or a private window.');
+        } else if (xhr.status === 403 || xhr.status === 404 || xhr.status === 410) {
+            // Resumable sessions expire. Retrying the same one never works.
+            message = T('coach.video.errExpired',
+                'That upload link expired. Choose the video again to start over.');
+        } else if (xhr.status === 413) {
+            message = T('coach.video.errTooLarge', 'That video is too large.');
+        } else {
+            message = `${T('coach.video.errRejected', 'The analysis service rejected the upload')} `
+                + `(${xhr.status}${googleStatus ? ', ' + googleStatus : ''}).`;
+        }
+
+        const err = new Error(message);
+        err.detail = detail;
+        return err;
+    }
+
+    /**
+     * Sends the file to the resumable URL, reporting progress.
      * Resolves with Google's file record: { uri, name, state }.
      */
     function putFile(url, file, headers, onProgress) {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('POST', url, true);
+            xhr.timeout = UPLOAD_TIMEOUT_MS;
+
             for (const [k, v] of Object.entries(headers || {})) {
-                // Content-Length is set by the browser and assigning it
-                // throws; the rest are the upload protocol's own headers.
+                // Content-Length is a forbidden header — the browser sets
+                // it and assigning it throws. The rest are the upload
+                // protocol's own, and are on Google's allowed list.
                 if (k.toLowerCase() === 'content-length') continue;
                 xhr.setRequestHeader(k, v);
             }
@@ -48,17 +122,18 @@
             };
             xhr.onload = () => {
                 if (xhr.status < 200 || xhr.status >= 300) {
-                    return reject(new Error(`Upload failed (${xhr.status}).`));
+                    return reject(uploadError(xhr, 'http'));
                 }
                 try {
                     const body = JSON.parse(xhr.responseText);
                     const f = body.file || body;
-                    if (!f || !f.name) return reject(new Error('Upload finished but returned nothing usable.'));
+                    if (!f || !f.name) return reject(uploadError(xhr, 'empty'));
                     resolve(f);
-                } catch (e) { reject(new Error('Upload finished but the reply was unreadable.')); }
+                } catch (e) { reject(uploadError(xhr, 'unreadable')); }
             };
-            xhr.onerror = () => reject(new Error('The upload was interrupted. Check your connection and try again.'));
-            xhr.onabort = () => reject(new Error('Upload cancelled.'));
+            xhr.onerror = () => reject(uploadError(xhr, 'error'));
+            xhr.ontimeout = () => reject(uploadError(xhr, 'timeout'));
+            xhr.onabort = () => reject(new Error(UI().T('coach.video.cancelled', 'Upload cancelled.')));
             xhr.send(file);
         });
     }
@@ -157,6 +232,11 @@
 
         try {
             setStatus(UI().T('coach.video.preparing', 'Preparing the upload…'));
+
+            // Android browsers routinely report an empty file.type. The
+            // upload session is opened with whatever type we declare, so
+            // the same value has to be used on both sides — the server
+            // echoes it back rather than letting the two drift apart.
             const ticket = await window.CoachAPI.startVideoUpload({
                 mimeType: file.type || 'video/mp4',
                 sizeBytes: file.size,
