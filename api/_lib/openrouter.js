@@ -71,6 +71,9 @@ class ModelError extends Error {
 
 function assertConfigured() {
     if (!process.env.OPENROUTER_API_KEY) {
+        console.error('[openrouter] OPENROUTER_API_KEY is not set on this deployment '
+            + '— add it in the Vercel project settings and redeploy '
+            + '(env vars are read at boot, so an existing deployment will not pick it up)');
         throw new ModelError('not_configured',
             'The Coach is not configured on this deployment yet.', 503);
     }

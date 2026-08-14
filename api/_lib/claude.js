@@ -40,6 +40,13 @@ class ModelError extends Error {
 let _client = null;
 function client() {
     if (!process.env.ANTHROPIC_API_KEY) {
+        // Worth naming loudly: with no COACH_PROVIDER and no keys at all,
+        // provider selection falls back to this one, so an operator who
+        // configured Gemini and mistyped the provider name lands here and
+        // sees a message about a provider they never chose.
+        console.error('[claude] ANTHROPIC_API_KEY is not set on this deployment. '
+            + 'If you meant to use a different provider, set COACH_PROVIDER '
+            + '(anthropic | openrouter | gemini) and redeploy.');
         throw new ModelError('not_configured',
             'The Coach is not configured on this deployment yet.', 503);
     }

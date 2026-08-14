@@ -54,6 +54,12 @@ class ModelError extends Error {
 function apiKey() {
     const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!key) {
+        // Named explicitly: this failure and "the key is set but wrong"
+        // reach the user as the same sentence, and without a log line
+        // there is nothing to tell them apart.
+        console.error('[gemini] GEMINI_API_KEY is not set on this deployment '
+            + '— add it in the Vercel project settings and redeploy '
+            + '(env vars are read at boot, so an existing deployment will not pick it up)');
         throw new ModelError('not_configured',
             'The Coach is not configured on this deployment yet.', 503);
     }

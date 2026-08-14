@@ -59,6 +59,31 @@ function load(provider) {
 }
 const impl = load(PROVIDER);
 
+/** Which environment variable this provider's key lives in. */
+const KEY_VAR = {
+    gemini: 'GEMINI_API_KEY',
+    openrouter: 'OPENROUTER_API_KEY',
+    anthropic: 'ANTHROPIC_API_KEY',
+};
+
+/**
+ * Whether the selected provider has a key — presence only.
+ *
+ * Deliberately returns a boolean and never any part of the value, so it
+ * is safe to expose from the health endpoint.
+ */
+function hasKey() {
+    if (PROVIDER === 'gemini') {
+        return !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+    }
+    return !!process.env[KEY_VAR[PROVIDER]];
+}
+
+// One line per cold start, so every later log line is interpretable.
+// Without it nothing in the logs says which provider is even active, and
+// the same user-facing message can come from any of the three.
+console.log(`[model] provider=${PROVIDER} model=${impl.MODEL || '(unset)'} key=${hasKey() ? 'present' : 'MISSING'}`);
+
 module.exports = {
     CoachModel: impl.CoachModel,
     ModelError: impl.ModelError,
@@ -67,4 +92,6 @@ module.exports = {
     MODEL: impl.MODEL,
     EFFORT: impl.EFFORT,
     PROVIDER,
+    hasKey,
+    KEY_VAR: KEY_VAR[PROVIDER],
 };
