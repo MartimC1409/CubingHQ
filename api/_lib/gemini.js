@@ -30,7 +30,17 @@ const BASE = 'https://generativelanguage.googleapis.com';
 const API = `${BASE}/v1beta`;
 const UPLOAD = `${BASE}/upload/v1beta/files`;
 
-const MODEL = process.env.COACH_MODEL || 'gemini-2.5-flash';
+// Google retires model names on its own schedule — gemini-2.5-flash went
+// "no longer available to new users" while this was being written, which
+// is exactly the failure I argued against when I refused to hardcode a
+// default for OpenRouter, and then did here anyway.
+//
+// A default is kept because it makes a fresh deploy work, but the
+// staleness is now self-diagnosing rather than mysterious: the 404 names
+// the replacement Google wants, extractSuggestedModel lifts it into the
+// log, and /api/coach/health?live=1 checks the model before a user ever
+// hits it.
+const MODEL = process.env.COACH_MODEL || 'gemini-3.6-flash';
 // Video is the expensive path and may deserve a different model than
 // chat; falls back to the same one when unset.
 const VIDEO_MODEL = process.env.COACH_VIDEO_MODEL || MODEL;
@@ -88,8 +98,29 @@ function classifyFailure(status, message) {
     return 'unknown';
 }
 
+/**
+ * Pulls the replacement model out of a retirement notice.
+ *
+ * When Google retires a name it says so in the error and names the
+ * successor: "This model models/gemini-2.5-flash is no longer available
+ * to new users. Please update your code to use models/gemini-3.6-flash".
+ * Surfacing that turns a documentation lookup into a copy-paste, and it
+ * keeps working for whatever the next replacement turns out to be —
+ * which a hardcoded list of model names would not.
+ *
+ * Anchored on "use" because the message names the OLD model first, and
+ * echoing that back would send the operator in a circle.
+ */
+function extractSuggestedModel(message) {
+    const m = /\buse\s+(?:models\/)?([A-Za-z0-9][\w.-]*)/i.exec(String(message || ''));
+    return m ? m[1] : null;
+}
+
 function logFailure(kind, status, message) {
-    const hint = HINTS[kind];
+    const suggested = kind === 'bad_model' ? extractSuggestedModel(message) : null;
+    const hint = suggested
+        ? `set COACH_MODEL=${suggested} and redeploy`
+        : HINTS[kind];
     const line = `[gemini] ${MODEL} → ${kind}`
         + (status ? ` (HTTP ${status})` : '')
         + `: ${String(message || '').slice(0, 300)}`
@@ -449,6 +480,48 @@ async function startVideoUpload({ displayName, mimeType, sizeBytes }) {
     return { uploadUrl };
 }
 
+/**
+ * Asks Google whether the configured key and model actually work.
+ *
+ * One cheap GET, no generation. This is the check that would have caught
+ * a retired model name before anyone tried to use the Coach, rather than
+ * after — the configuration looked complete right up until the first
+ * real request, because "set" and "valid" are different things.
+ *
+ * @returns {{ok: boolean, reason?: string, suggested?: string|null}}
+ */
+async function checkModel() {
+    let key;
+    try { key = apiKey(); }
+    catch (e) { return { ok: false, reason: 'No API key is set.' }; }
+
+    if (!MODEL) return { ok: false, reason: 'No model is set.' };
+
+    let res;
+    try {
+        res = await fetch(
+            `${API}/models/${encodeURIComponent(MODEL)}?key=${encodeURIComponent(key)}`,
+            { signal: AbortSignal.timeout(15000) });
+    } catch (e) {
+        // Distinct from a bad config: we learned nothing either way, and
+        // reporting "not usable" would send the operator changing
+        // settings that were never the problem.
+        return { ok: false, unreachable: true, reason: 'Could not reach the model API.' };
+    }
+
+    if (res.ok) return { ok: true };
+
+    const detail = await readError(res);
+    const kind = classifyFailure(res.status, detail);
+    return {
+        ok: false,
+        reason: kind === 'auth'
+            ? 'The API key was rejected.'
+            : String(detail).slice(0, 300),
+        suggested: extractSuggestedModel(detail),
+    };
+}
+
 /** Current state of an uploaded file: PROCESSING, ACTIVE or FAILED. */
 async function getVideoState(fileName) {
     const clean = String(fileName || '').replace(/^files\//, '');
@@ -525,6 +598,7 @@ const CoachModel = {
     analyseVideo,
     startVideoUpload,
     getVideoState,
+    checkModel,
 };
 
 /** Identical wording to the other providers, so switching does not
@@ -541,6 +615,7 @@ module.exports = {
     EFFORT: null,
     _internal: {
         classifyFailure, toGeminiSchema, extractJson, readStream,
-        startVideoUpload, getVideoState, MAX_VIDEO_BYTES,
+        startVideoUpload, getVideoState, checkModel, extractSuggestedModel,
+        MAX_VIDEO_BYTES,
     },
 };

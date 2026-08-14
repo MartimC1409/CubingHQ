@@ -22,7 +22,7 @@ const rtdb = require('../_lib/rtdb.js');
 const { CoachModel, PROVIDER, MODEL, hasKey, KEY_VAR } = require('../_lib/model.js');
 const { sendJson, methodGuard } = require('../_lib/http.js');
 
-module.exports = function handler(req, res) {
+module.exports = async function handler(req, res) {
     if (!methodGuard(req, res, ['GET'])) return;
 
     const keyPresent = hasKey();
@@ -43,7 +43,7 @@ module.exports = function handler(req, res) {
             + `check the Vercel logs for "[${PROVIDER}]".`;
     }
 
-    return sendJson(res, 200, {
+    const body = {
         ok: keyPresent && modelSet,
         provider: PROVIDER,
         model: MODEL || null,
@@ -52,5 +52,53 @@ module.exports = function handler(req, res) {
         hasStorage: rtdb.isConfigured(),
         videoCapable: typeof CoachModel.analyseVideo === 'function',
         diagnosis,
-    });
+    };
+
+    // ?live=1 asks the provider whether the key and model actually work.
+    //
+    // Everything above is presence, and presence is not validity: a
+    // retired model name looks perfectly configured right up until the
+    // first real request. One cheap GET closes that gap, and it stays
+    // opt-in so the default answer is instant and costs nothing.
+    const wantsLive = req.query
+        ? (req.query.live === '1' || req.query.live === 'true')
+        : /[?&]live=(1|true)\b/.test(req.url || '');
+
+    if (wantsLive && keyPresent && modelSet && typeof CoachModel.checkModel === 'function') {
+        try {
+            const live = await CoachModel.checkModel();
+
+            if (live.unreachable) {
+                // We learned nothing. Saying the configuration is wrong
+                // would be a guess, and an expensive one to act on.
+                body.live = { ok: null, reason: live.reason };
+                return sendJson(res, 200, body);
+            }
+
+            body.live = { ok: live.ok };
+            if (!live.ok) {
+                body.ok = false;
+                body.live.reason = live.reason;
+                body.diagnosis = live.suggested
+                    ? `The model "${MODEL}" is not usable: ${live.reason} `
+                      + `Set COACH_MODEL=${live.suggested} and redeploy.`
+                    : `The model "${MODEL}" is not usable: ${live.reason}`;
+            } else {
+                body.diagnosis = 'Key and model both verified against the provider. '
+                    + 'The Coach should work.';
+            }
+        } catch (e) {
+            // A failed check is not a failed configuration; say which it is.
+            body.live = { ok: null, reason: 'The live check could not complete.' };
+        }
+    } else if (wantsLive) {
+        body.live = {
+            ok: null,
+            reason: !keyPresent || !modelSet
+                ? 'Skipped — configuration is incomplete, see diagnosis.'
+                : `Skipped — provider "${PROVIDER}" has no live check.`,
+        };
+    }
+
+    return sendJson(res, 200, body);
 };
