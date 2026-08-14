@@ -1,0 +1,394 @@
+/* Tests the Gemini adapter: schema translation, SSE parsing, error
+   classification, the repair loop and the video upload handshake.
+   No network — global fetch is stubbed with a queue of canned responses.
+   Run: node scripts/test_gemini.js */
+
+'use strict';
+
+// Read at module load in gemini.js, so they must be set first.
+process.env.GEMINI_API_KEY = 'test-key';
+process.env.COACH_MODEL = 'gemini-test';
+process.env.COACH_MAX_VIDEO_BYTES = String(50 * 1024 * 1024);
+
+const { COACH_ASSESSMENT_SCHEMA } = require('../api/_lib/schemas.js');
+
+let pass = 0, fail = 0;
+function check(label, cond, extra) {
+    if (cond) pass++; else { fail++; console.error(`FAIL ${label}` + (extra ? ` — ${extra}` : '')); }
+}
+function eq(label, got, want) {
+    check(label, Object.is(got, want), `got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
+}
+
+/* ================= fetch stub =================================== */
+
+const queue = [];
+let requests = [];
+
+function sse(frames, { chunkSize = 0 } = {}) {
+    const text = frames.map(f => `data: ${JSON.stringify(f)}\n\n`).join('');
+    const bytes = Buffer.from(text, 'utf8');
+    const chunks = [];
+    const step = chunkSize || bytes.length;
+    for (let i = 0; i < bytes.length; i += step) chunks.push(bytes.subarray(i, i + step));
+
+    let i = 0;
+    return {
+        ok: true, status: 200,
+        body: {
+            getReader: () => ({
+                read: async () => i < chunks.length
+                    ? { done: false, value: new Uint8Array(chunks[i++]) }
+                    : { done: true, value: undefined },
+                cancel: async () => { },
+            }),
+        },
+    };
+}
+
+function errorResponse(status, message) {
+    return {
+        ok: false, status,
+        json: async () => ({ error: { code: status, message } }),
+        text: async () => message,
+    };
+}
+
+function jsonResponse(status, body, headers = {}) {
+    const lower = {};
+    for (const [k, v] of Object.entries(headers)) lower[k.toLowerCase()] = v;
+    return {
+        ok: status >= 200 && status < 300,
+        status,
+        headers: { get: (k) => lower[String(k).toLowerCase()] || null },
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+    };
+}
+
+/** A Gemini SSE frame carrying text. */
+function part(text, finish) {
+    const c = { content: { role: 'model', parts: text ? [{ text }] : [] } };
+    if (finish) c.finishReason = finish;
+    return { candidates: [c] };
+}
+
+global.fetch = async (url, opts = {}) => {
+    requests.push({
+        url: String(url),
+        method: opts.method || 'GET',
+        headers: opts.headers || {},
+        body: opts.body ? JSON.parse(opts.body) : null,
+    });
+    if (!queue.length) throw new Error('test: no queued response');
+    const next = queue.shift();
+    if (next instanceof Error) throw next;
+    return next;
+};
+
+const G = require('../api/_lib/gemini.js');
+const { classifyFailure, toGeminiSchema, extractJson, readStream } = G._internal;
+
+/* ================= schema translation =========================== */
+
+const translated = toGeminiSchema(COACH_ASSESSMENT_SCHEMA);
+
+// The whole reason this function exists: Gemini rejects the request
+// outright if additionalProperties is present, and schemas.js sets it on
+// every object.
+function hasAdditionalProperties(node) {
+    if (!node || typeof node !== 'object') return false;
+    if ('additionalProperties' in node) return true;
+    return Object.values(node).some(hasAdditionalProperties);
+}
+check('additionalProperties is stripped everywhere', !hasAdditionalProperties(translated));
+
+eq('object types are uppercased', translated.type, 'OBJECT');
+eq('string types are uppercased', translated.properties.summary.type, 'STRING');
+eq('array types are uppercased', translated.properties.strengths.type, 'ARRAY');
+eq('number types are uppercased', translated.properties.confidence.type, 'NUMBER');
+eq('nested item objects translate', translated.properties.strengths.items.type, 'OBJECT');
+
+// The evidence contract rides on this enum surviving translation.
+const evidenceType = translated.properties.strengths.items.properties.evidenceType;
+eq('enum survives', JSON.stringify(evidenceType.enum),
+    JSON.stringify(['known', 'observed', 'inferred']));
+check('required survives', translated.required.includes('bottleneck'));
+check('nested required survives',
+    translated.properties.strengths.items.required.includes('evidenceType'));
+check('descriptions survive', typeof translated.properties.summary.description === 'string');
+
+// Gemini emits fields in the order given, and the schemas put the summary
+// first deliberately.
+check('propertyOrdering is set', Array.isArray(translated.propertyOrdering));
+eq('propertyOrdering leads with summary', translated.propertyOrdering[0], 'summary');
+
+eq('non-objects pass through', toGeminiSchema(null), null);
+
+/* ================= classifyFailure ============================== */
+
+eq('invalid key', classifyFailure(400, 'API key not valid. Please pass a valid API key.'), 'auth');
+eq('permission denied', classifyFailure(403, 'Permission denied'), 'auth');
+eq('missing model', classifyFailure(404, 'models/foo is not found for API version v1beta'), 'bad_model');
+eq('404 defaults to bad model', classifyFailure(404, 'nope'), 'bad_model');
+eq('quota exhausted', classifyFailure(429, 'You exceeded your current quota'), 'no_credit');
+eq('plain rate limit', classifyFailure(429, 'Resource has been exhausted'), 'rate_limited');
+eq('upstream', classifyFailure(503, 'The model is overloaded'), 'upstream');
+
+// A quota problem and a rate limit need opposite responses from the
+// operator, so they must not collapse into one another.
+check('quota is not a plain rate limit',
+    classifyFailure(429, 'exceeded your current quota') !== 'rate_limited');
+
+/* ================= extractJson ================================== */
+
+eq('bare json', extractJson('{"a":1}').a, 1);
+eq('fenced json', extractJson('```json\n{"a":2}\n```').a, 2);
+eq('prose around json', extractJson('Here:\n{"a":3}\ndone').a, 3);
+eq('garbage yields null', extractJson('nope'), null);
+
+/* ================= readStream =================================== */
+
+(async () => {
+    let out = '';
+    let r = await readStream(sse([part('He'), part('llo'), part('', 'STOP')]), t => { out += t; });
+    eq('stream concatenates', r.text, 'Hello');
+    eq('deltas forwarded', out, 'Hello');
+    eq('finishReason captured', r.finish, 'STOP');
+
+    // Byte-level chunking must not split a frame's meaning.
+    r = await readStream(sse([part('one'), part('two'), part('three')], { chunkSize: 9 }));
+    eq('partial lines are buffered', r.text, 'onetwothree');
+
+    // Several parts in one candidate.
+    r = await readStream({
+        ok: true, status: 200,
+        body: {
+            getReader: () => {
+                let done = false;
+                return {
+                    read: async () => done ? { done: true } : (done = true, {
+                        done: false,
+                        value: new Uint8Array(Buffer.from(
+                            `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: 'a' }, { text: 'b' }] } }] })}\n\n`)),
+                    }),
+                    cancel: async () => { },
+                };
+            },
+        },
+    });
+    eq('multiple parts concatenate', r.text, 'ab');
+
+    let threw = null;
+    try { await readStream(sse([{ error: { code: 429, message: 'Resource has been exhausted' } }])); }
+    catch (e) { threw = e; }
+    eq('mid-stream error throws', threw && threw.code, 'rate_limited');
+
+    /* ================= structured ================================ */
+
+    const assessment = {
+        summary: 'Ao100 is 11.82s.',
+        strengths: [], weaknesses: [],
+        bottleneck: {
+            title: 'Consistency', detail: 'Spread is wide.',
+            evidenceType: 'inferred', basis: 'Ao100 11.82s vs best single 9.42s',
+        },
+        rationale: 'Because.', priority: 'Consistency', confidence: 0.7,
+        dataGaps: ['PLL recognition quality'], recommendedActions: [],
+    };
+
+    requests = [];
+    queue.push(sse([part(JSON.stringify(assessment), 'STOP')]));
+    let got = await G.structured({ system: 'sys', user: 'usr', schema: COACH_ASSESSMENT_SCHEMA });
+    eq('structured returns the object', got.summary, 'Ao100 is 11.82s.');
+    eq('one request on the happy path', requests.length, 1);
+    check('streams over SSE', /streamGenerateContent\?alt=sse/.test(requests[0].url));
+    check('key is on the query string', /key=test-key/.test(requests[0].url));
+    eq('system goes in systemInstruction', requests[0].body.systemInstruction.parts[0].text, 'sys');
+    eq('user turn has role user', requests[0].body.contents[0].role, 'user');
+    eq('asks for JSON', requests[0].body.generationConfig.responseMimeType, 'application/json');
+    eq('sends a translated schema', requests[0].body.generationConfig.responseSchema.type, 'OBJECT');
+    check('sends no additionalProperties',
+        !hasAdditionalProperties(requests[0].body.generationConfig.responseSchema));
+
+    let fired = 0;
+    queue.push(sse([part(JSON.stringify(assessment), 'STOP')]));
+    await G.structured({
+        system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA,
+        onActivity: () => { fired++; },
+    });
+    eq('onActivity fires once', fired, 1);
+
+    // Extra fields are expected here: additionalProperties could not be
+    // sent, so the model was never forbidden from adding them.
+    queue.push(sse([part(JSON.stringify({ ...assessment, invented: 'x' }), 'STOP')]));
+    got = await G.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA });
+    eq('extra fields are pruned, not rejected', got.invented, undefined);
+    eq('real fields survive pruning', got.priority, 'Consistency');
+
+    /* ================= repair loop =============================== */
+
+    const broken = { ...assessment };
+    delete broken.confidence;
+
+    requests = [];
+    queue.push(sse([part(JSON.stringify(broken), 'STOP')]));
+    queue.push(sse([part(JSON.stringify(assessment), 'STOP')]));
+    got = await G.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA });
+    eq('repair recovers', got.confidence, 0.7);
+    eq('repair took two requests', requests.length, 2);
+    eq('repair replays as a model turn', requests[1].body.contents[1].role, 'model');
+    check('repair names the missing field',
+        /confidence/.test(JSON.stringify(requests[1].body.contents)));
+    check('repair forbids inventing findings',
+        /do not invent findings/i.test(JSON.stringify(requests[1].body.contents)));
+
+    // The evidence contract surviving a model that ignored the enum.
+    const badEnum = {
+        ...assessment,
+        bottleneck: { ...assessment.bottleneck, evidenceType: 'vibes' },
+    };
+    queue.push(sse([part(JSON.stringify(badEnum), 'STOP')]));
+    queue.push(sse([part(JSON.stringify(assessment), 'STOP')]));
+    got = await G.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA });
+    eq('bogus evidenceType is repaired', got.bottleneck.evidenceType, 'inferred');
+
+    // Two failures is a failure, not a loop.
+    queue.push(sse([part(JSON.stringify(broken), 'STOP')]));
+    queue.push(sse([part(JSON.stringify(broken), 'STOP')]));
+    threw = null;
+    try { await G.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA }); }
+    catch (e) { threw = e; }
+    eq('gives up after one repair', threw && threw.code, 'malformed');
+    eq('queue drained — no third attempt', queue.length, 0);
+
+    /* ================= finishReason handling ===================== */
+
+    queue.push(sse([part('{"summary":"x"}', 'MAX_TOKENS')]));
+    threw = null;
+    try { await G.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA }); }
+    catch (e) { threw = e; }
+    eq('truncation is not silently accepted', threw && threw.code, 'truncated');
+
+    queue.push(sse([part('', 'SAFETY')]));
+    threw = null;
+    try { await G.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA }); }
+    catch (e) { threw = e; }
+    eq('safety stop is a refusal', threw && threw.code, 'refused');
+
+    queue.push(sse([part('partial', 'RECITATION')]));
+    threw = null;
+    try { await G.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA }); }
+    catch (e) { threw = e; }
+    eq('recitation stop is a refusal', threw && threw.code, 'refused');
+
+    /* ================= conversation ============================== */
+
+    requests = [];
+    let streamed = '';
+    queue.push(sse([part('You '), part('are '), part('close.', 'STOP')]));
+    const text = await G.CoachModel.chat({
+        system: 'coach system',
+        messages: [
+            { role: 'user', content: 'am I ready for full OLL?' },
+            { role: 'assistant', content: 'Not yet.' },
+            { role: 'user', content: 'why?' },
+        ],
+        onDelta: t => { streamed += t; },
+    });
+    eq('chat returns full text', text, 'You are close.');
+    eq('chat streams deltas', streamed, 'You are close.');
+    eq('system is not a message turn', requests[0].body.contents.length, 3);
+    eq('system goes to systemInstruction', requests[0].body.systemInstruction.parts[0].text, 'coach system');
+    // Gemini calls the assistant "model"; sending "assistant" is rejected.
+    eq('assistant is renamed to model', requests[0].body.contents[1].role, 'model');
+    eq('user turns keep their role', requests[0].body.contents[0].role, 'user');
+    check('chat sends no responseSchema',
+        requests[0].body.generationConfig.responseSchema === undefined);
+
+    // Anthropic-style block content must not leak through as [object Object].
+    requests = [];
+    queue.push(sse([part('ok', 'STOP')]));
+    await G.CoachModel.chat({
+        system: 's',
+        messages: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
+    });
+    eq('block content flattened', requests[0].body.contents[0].parts[0].text, 'hi');
+
+    /* ================= video upload handshake ==================== */
+
+    requests = [];
+    queue.push(jsonResponse(200, {}, { 'X-Goog-Upload-URL': 'https://upload.example/session/abc' }));
+    const started = await G.CoachModel.startVideoUpload({
+        displayName: 'solve', mimeType: 'video/mp4', sizeBytes: 4 * 1024 * 1024,
+    });
+    eq('returns the resumable URL', started.uploadUrl, 'https://upload.example/session/abc');
+    check('uses the resumable protocol',
+        requests[0].headers['X-Goog-Upload-Protocol'] === 'resumable');
+    eq('starts the upload', requests[0].headers['X-Goog-Upload-Command'], 'start');
+    eq('declares the size up front',
+        requests[0].headers['X-Goog-Upload-Header-Content-Length'], String(4 * 1024 * 1024));
+    eq('declares the type', requests[0].headers['X-Goog-Upload-Header-Content-Type'], 'video/mp4');
+    // The bytes must never come through this server.
+    check('no file content is sent from here',
+        !/data|content|bytes/i.test(JSON.stringify(requests[0].body).replace(/display_name/g, '')));
+
+    // Oversize is refused before Google is contacted at all.
+    requests = [];
+    threw = null;
+    try {
+        await G.CoachModel.startVideoUpload({ mimeType: 'video/mp4', sizeBytes: 900 * 1024 * 1024 });
+    } catch (e) { threw = e; }
+    eq('oversize video refused', threw && threw.code, 'too_large');
+    eq('oversize never reaches Google', requests.length, 0);
+    check('the limit is stated in the message', /MB/.test(threw.message), threw.message);
+
+    threw = null;
+    try { await G.CoachModel.startVideoUpload({ mimeType: 'video/mp4', sizeBytes: 0 }); }
+    catch (e) { threw = e; }
+    eq('empty file refused', threw && threw.code, 'bad_request');
+
+    // A start that succeeds but returns no URL must not look like success.
+    queue.push(jsonResponse(200, {}, {}));
+    threw = null;
+    try { await G.CoachModel.startVideoUpload({ mimeType: 'video/mp4', sizeBytes: 1000 }); }
+    catch (e) { threw = e; }
+    check('missing upload URL is an error', threw && threw.kind === 'upstream');
+
+    /* ================= file state ================================ */
+
+    requests = [];
+    queue.push(jsonResponse(200, {
+        state: 'ACTIVE', uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc',
+        mimeType: 'video/mp4', name: 'files/abc',
+    }));
+    const state = await G.CoachModel.getVideoState('files/abc');
+    eq('reports ACTIVE', state.state, 'ACTIVE');
+    check('strips the files/ prefix when building the URL',
+        /\/files\/abc\?/.test(requests[0].url), requests[0].url);
+
+    queue.push(jsonResponse(200, { state: 'PROCESSING', name: 'files/abc' }));
+    eq('reports PROCESSING', (await G.CoachModel.getVideoState('abc')).state, 'PROCESSING');
+
+    // A path segment is interpolated into a URL, so it is guarded.
+    requests = [];
+    threw = null;
+    try { await G.CoachModel.getVideoState('../../models/gemini-test'); }
+    catch (e) { threw = e; }
+    eq('path traversal refused', threw && threw.code, 'bad_request');
+    eq('traversal never reaches Google', requests.length, 0);
+
+    /* ================= configuration ============================= */
+
+    const key = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    threw = null;
+    try { await G.structured({ system: 's', user: 'u', schema: COACH_ASSESSMENT_SCHEMA }); }
+    catch (e) { threw = e; }
+    eq('missing key is not_configured', threw && threw.code, 'not_configured');
+    eq('missing key is a 503', threw && threw.status, 503);
+    process.env.GEMINI_API_KEY = key;
+
+    console.log(`\n${pass} passed, ${fail} failed`);
+    process.exit(fail ? 1 : 0);
+})();

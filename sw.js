@@ -13,7 +13,7 @@
    Bump CACHE_VERSION to retire every previous cache.
    ============================================================ */
 
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v13';
 const CACHE_NAME = `cubinghq-${CACHE_VERSION}`;
 
 // Enough to boot the app offline on a first visit. Runtime caching picks up
@@ -22,6 +22,7 @@ const CACHE_NAME = `cubinghq-${CACHE_VERSION}`;
 const PRECACHE_URLS = [
     '/index.html',
     '/timer.html',
+    '/coach.html',
     // The static content pages. Small, rarely change, and the footer links to
     // them from every page — so a visitor offline on the timer can still open
     // the privacy policy.
@@ -41,7 +42,11 @@ const PRECACHE_URLS = [
 // shell; /_vercel/ is Vercel's own analytics endpoint, which is same-origin and
 // would otherwise be cached stale-while-revalidate — an analytics script served
 // from cache is pointless at best and misleading at worst.
-const EXCLUDED = [/\/admin\.html$/, /\/admin_records\.html$/, /^\/_vercel\//];
+//
+// /api/ is the same: the Coach's endpoints are same-origin, so without this
+// they would be served stale-while-revalidate and a user could be shown a
+// previous assessment as if it were the answer to their latest question.
+const EXCLUDED = [/\/admin\.html$/, /\/admin_records\.html$/, /^\/_vercel\//, /^\/api\//];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(

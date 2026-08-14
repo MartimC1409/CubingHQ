@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AI Coach — CubingHQ</title>
+    <meta name="description" content="Your personal AI speedcubing coach. Upload your solves, set a goal, and get a training plan built around your actual performance.">
+    <link rel="canonical" href="https://cubinghq.online/coach.html">
+    <meta property="og:title" content="AI Coach — CubingHQ">
+    <meta property="og:description" content="Upload your solves, set your goal and get a personalised training plan built around your actual performance.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://cubinghq.online/coach.html">
+    <meta property="og:site_name" content="CubingHQ">
+    <meta property="og:image" content="https://cubinghq.online/icons/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://cubinghq.online/icons/og-image.png">
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#09090b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CubingHQ">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+
+    <!-- Apply the saved theme before first paint (see index.html). -->
+    <script>
+        (function () {
+            try {
+                var m = localStorage.getItem('sc-theme');
+                var a = localStorage.getItem('sc-accent');
+                document.documentElement.setAttribute('data-theme',
+                    (m === 'light' || m === 'dark') ? m : 'dark');
+                document.documentElement.setAttribute('data-accent',
+                    ['orange', 'green', 'blue', 'red'].indexOf(a) !== -1 ? a : 'orange');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-accent', 'orange');
+            }
+        })();
+    </script>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3Crect x='12' y='2' width='8' height='8' rx='1.5' fill='%23F7C948'/%3E%3Crect x='22' y='2' width='8' height='8' rx='1.5' fill='%232ECC71'/%3E%3Crect x='2' y='12' width='8' height='8' rx='1.5' fill='%23E74C3C'/%3E%3Crect x='12' y='12' width='8' height='8' rx='1.5' fill='%236366F1'/%3E%3Crect x='22' y='12' width='8' height='8' rx='1.5' fill='%233498DB'/%3E%3Crect x='2' y='22' width='8' height='8' rx='1.5' fill='%239B59B6'/%3E%3Crect x='12' y='22' width='8' height='8' rx='1.5' fill='%231ABC9C'/%3E%3Crect x='22' y='22' width='8' height='8' rx='1.5' fill='%23FF6B35'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="launch-ui.css?v=6">
+    <link rel="stylesheet" href="coach.css?v=1">
+
+    <!-- Pinned to a major version: an unpinned CDN tag would let a
+         breaking release land on the live site without a deploy. -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+    <style>
+        body { overflow: auto; min-height: 100vh; }
+        .cs-navbar-spacer { height: 64px; }
+    </style>
+
+    <script src="analytics.js?v=1"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body class="coach-page">
+    <div class="cs-fixed-navbar">
+    <header id="site-header">
+        <nav class="navbar">
+            <div class="nav-brand" id="nav-logo" style="cursor: pointer;">
+                <div class="brand-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <rect x="2" y="2" width="8" height="8" rx="1.5" fill="#FF6B35"/>
+                        <rect x="12" y="2" width="8" height="8" rx="1.5" fill="#F7C948"/>
+                        <rect x="22" y="2" width="8" height="8" rx="1.5" fill="#2ECC71"/>
+                        <rect x="2" y="12" width="8" height="8" rx="1.5" fill="#E74C3C"/>
+                        <rect x="12" y="12" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.15"/>
+                        <rect x="22" y="12" width="8" height="8" rx="1.5" fill="#3498DB"/>
+                        <rect x="2" y="22" width="8" height="8" rx="1.5" fill="#9B59B6"/>
+                        <rect x="12" y="22" width="8" height="8" rx="1.5" fill="#1ABC9C"/>
+                        <rect x="22" y="22" width="8" height="8" rx="1.5" fill="#FF6B35"/>
+                    </svg>
+                </div>
+                <span class="brand-name">Cubing<span class="brand-accent">HQ</span></span>
+            </div>
+        </nav>
+    </header>
+
+    <div class="nav-links" id="nav-links" role="navigation" aria-label="Primary navigation" data-i18n-aria="aria.primaryNav">
+        <button class="nav-btn nav-btn--coach active" id="nav-coach-btn" title="AI Coach" data-i18n="nav.coach" data-i18n-title="nav.coach">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v1a4 4 0 0 0-1 7.87V17a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-1.13A4 4 0 0 0 17 8V7a5 5 0 0 0-5-5z"/><path d="M9 22h6"/></svg>
+            Coach
+        </button>
+        <button class="nav-btn" id="nav-home-btn" title="Home" data-i18n="nav.home" data-i18n-title="nav.home">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Home
+        </button>
+        <button class="nav-btn" id="nav-timer-btn" title="Timer" data-i18n="nav.timer" data-i18n-title="nav.timer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Timer
+        </button>
+        <button class="nav-btn" id="nav-simulation-btn" title="Comp Simulation" data-i18n="nav.compsim" data-i18n-title="home.card.sim">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            Comp Sim
+        </button>
+        <button class="nav-btn" id="nav-records-btn" title="Records &amp; Rankings" data-i18n="nav.records" data-i18n-title="title.records">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+            Records
+        </button>
+        <button class="nav-btn" id="nav-competitions-btn" title="Competitions" data-i18n="nav.competitions" data-i18n-title="common.competitions">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Competitions
+        </button>
+        <button class="nav-btn" id="nav-algorithms-btn" title="Algorithms &amp; Drills" data-i18n="nav.algorithms" data-i18n-title="title.algs">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Algorithms
+        </button>
+        <button class="nav-btn" id="nav-history-btn" title="History" data-i18n="nav.history" data-i18n-title="nav.history">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 14"/></svg>
+            History
+        </button>
+        <button class="nav-btn nav-btn--battle" id="nav-battle-btn" title="Battle" data-i18n="nav.battle" data-i18n-title="nav.battle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+            Battle
+        </button>
+        <button class="nav-btn" id="nav-login-btn" title="Login" data-i18n="nav.login" data-i18n-title="nav.login">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            Login
+        </button>
+        <div class="theme-toggle" id="theme-toggle" title="Toggle theme" role="button" tabindex="0" aria-label="Toggle light/dark theme" data-i18n-title="title.toggleTheme" data-i18n-aria="aria.toggleTheme">
+            <svg class="theme-icon sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="theme-icon moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+    </div>
+    </div>
+    <div class="cs-navbar-spacer"></div>
+
+    <main id="app-main">
+        <div class="coach-shell">
+
+            <!-- Shown while the store decides between onboarding and the
+                 dashboard, so neither flashes before we know which. -->
+            <div id="coach-boot" class="coach-empty">
+                <div class="coach-thinking-bar"><i></i></div>
+                <p class="coach-sub" data-i18n="coach.boot">Loading your coaching profile…</p>
+            </div>
+
+            <!-- ============ ONBOARDING ============ -->
+            <section id="coach-onboarding" hidden>
+                <div class="coach-steps" id="coach-step-dots" aria-hidden="true"></div>
+
+                <!-- 1. Welcome -->
+                <div class="coach-step is-active" data-step="welcome">
+                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.intro">CubingHQ AI Coach</p>
+                    <h1 class="coach-h1" data-i18n="coach.welcome.title">Meet your CubingHQ Coach.</h1>
+                    <p class="coach-sub" style="margin-top:14px;max-width:56ch" data-i18n="coach.welcome.body">
+                        I'll analyse your current level, understand your goals and build your
+                        training around what will actually help you improve.
+                    </p>
+                    <div class="coach-step-actions">
+                        <button class="coach-btn coach-btn--primary coach-btn--lg" data-next data-i18n="coach.welcome.cta">
+                            Start my coaching journey
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Event -->
+                <div class="coach-step" data-step="event">
+                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.event">Step 1 · Event</p>
+                    <h2 class="coach-h1" data-i18n="coach.event.title">What do you want to get faster at?</h2>
+                    <p class="coach-sub" style="margin-top:10px" data-i18n="coach.event.body">
+                        Pick your main event. Training is built around this one; you can add others later.
+                    </p>
+                    <div class="coach-chips" id="coach-event-chips" style="margin-top:20px"></div>
+                    <div class="coach-step-actions">
+                        <button class="coach-btn coach-btn--quiet" data-back data-i18n="coach.back">Back</button>
+                        <div class="coach-spacer"></div>
+                        <button class="coach-btn coach-btn--primary" data-next disabled data-i18n="coach.continue">Continue</button>
+                    </div>
+                </div>
+
+                <!-- 3. Current level -->
+                <div class="coach-step" data-step="level">
+                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.level">Step 2 · Where you are</p>
+                    <h2 class="coach-h1" data-i18n="coach.level.title">Tell me roughly where you're at.</h2>
+                    <p class="coach-sub" style="margin-top:10px;max-width:58ch" data-i18n="coach.level.body">
+                        All optional — if you upload your solves next, I'll measure this properly
+                        rather than relying on what you remember.
+                    </p>
+                    <div class="coach-card" style="margin-top:20px">
+                        <div class="coach-grid-2">
+                            <!-- Options are filled from the chosen event, so a
+                                 Megaminx solver is not offered CFOP. Hidden
+                                 entirely for events with no method axis. -->
+                            <label class="coach-field" id="coach-method-field">
+                                <span data-i18n="coach.level.method">Method</span>
+                                <select class="coach-select" id="coach-method"></select>
+                            </label>
+                            <label class="coach-field">
+                                <span data-i18n="coach.level.experience">How long have you been cubing?</span>
+                                <select class="coach-select" id="coach-experience">
+                                    <option value="">Prefer not to say</option>
+                                    <option value="under-6-months">Under 6 months</option>
+                                    <option value="6-12-months">6–12 months</option>
+                                    <option value="1-3-years">1–3 years</option>
+                                    <option value="3-plus-years">3+ years</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="coach-grid-2">
+                            <label class="coach-field">
+                                <span data-i18n="coach.level.frequency">How often do you practise?</span>
+                                <select class="coach-select" id="coach-frequency">
+                                    <option value="">Prefer not to say</option>
+                                    <option value="daily">Most days</option>
+                                    <option value="few-times-week">A few times a week</option>
+                                    <option value="weekly">About once a week</option>
+                                    <option value="occasionally">Now and then</option>
+                                </select>
+                            </label>
+                            <label class="coach-field">
+                                <span data-i18n="coach.level.average">Current average, if you know it</span>
+                                <input class="coach-input" id="coach-current-avg" inputmode="decimal"
+                                       placeholder="e.g. 14.5 or 1:02.3" autocomplete="off">
+                                <small data-i18n="coach.level.averageHint">Seconds, or mm:ss for longer events.</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="coach-step-actions">
+                        <button class="coach-btn coach-btn--quiet" data-back data-i18n="coach.back">Back</button>
+                        <div class="coach-spacer"></div>
+                        <button class="coach-btn coach-btn--primary" data-next data-i18n="coach.continue">Continue</button>
+                    </div>
+                </div>
+
+                <!-- 4. Import -->
+                <div class="coach-step" data-step="import">
+                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.import">Step 3 · Your solves</p>
+                    <h2 class="coach-h1" data-i18n="coach.import.title">Upload your solve history.</h2>
+                    <!-- data-i18n-html, not data-i18n: this line contains markup,
+                         and the plain variant would append the key as text. -->
+                    <p class="coach-sub" style="margin-top:10px;max-width:60ch" data-i18n-html="coach.import.body">
+                        This is what makes the coaching yours rather than generic. In csTimer,
+                        use <strong>Export → Export to file</strong>, then drop the file here.
+                    </p>
+
+                    <div id="coach-import-idle" style="margin-top:20px">
+                        <div class="coach-drop" id="coach-drop" role="button" tabindex="0"
+                             aria-label="Choose a solve history file to upload">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <p style="font-weight:600" data-i18n="coach.import.drop">Drop your export here, or choose a file</p>
+                            <p class="coach-sub" style="font-size:13px;margin-top:5px" data-i18n="coach.import.formats">
+                                csTimer JSON, a CubingHQ backup, CSV, or a plain list of times
+                            </p>
+                            <input type="file" id="coach-file" accept=".json,.csv,.txt,application/json,text/csv,text/plain" hidden>
+                        </div>
+                        <div id="coach-import-error" style="margin-top:14px"></div>
+                        <p style="margin-top:16px">
+                            <button class="coach-btn coach-btn--quiet" id="coach-import-from-timer" data-i18n="coach.import.fromTimer">
+                                Use my CubingHQ timer sessions instead
+                            </button>
+                        </p>
+                    </div>
+
+                    <!-- The preview is the safeguard: nothing is saved until
+                         the user confirms these numbers look right. -->
+                    <div id="coach-import-preview" hidden style="margin-top:20px"></div>
+
+                    <div class="coach-step-actions">
+                        <button class="coach-btn coach-btn--quiet" data-back data-i18n="coach.back">Back</button>
+                        <div class="coach-spacer"></div>
+                        <button class="coach-btn coach-btn--ghost" data-next data-i18n="coach.import.skip">Skip for now</button>
+                    </div>
+                </div>
+
+                <!-- 5. Goal -->
+                <div class="coach-step" data-step="goal">
+                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.goal">Step 4 · Your goal</p>
+                    <h2 class="coach-h1" data-i18n="coach.goal.title">What are you aiming for?</h2>
+                    <p class="coach-sub" style="margin-top:10px;max-width:58ch" data-i18n="coach.goal.body">
+                        Pick the number you want to hit, and what it's measured on. This is what
+                        every progress figure will be judged against.
+                    </p>
+
+                    <div class="coach-card" style="margin-top:20px">
+                        <p class="coach-eyebrow" data-i18n="coach.goal.target">Target</p>
+                        <div class="coach-chips" id="coach-goal-chips"></div>
+
+                        <div class="coach-grid-2" style="margin-top:18px">
+                            <label class="coach-field">
+                                <span data-i18n="coach.goal.custom">Custom target</span>
+                                <input class="coach-input" id="coach-goal-custom" inputmode="decimal"
+                                       placeholder="e.g. 9.5" autocomplete="off">
+                            </label>
+                            <label class="coach-field">
+                                <span data-i18n="coach.goal.metric">Measured on</span>
+                                <select class="coach-select" id="coach-goal-metric">
+                                    <option value="ao100">Average of 100</option>
+                                    <option value="ao50">Average of 50</option>
+                                    <option value="ao12">Average of 12</option>
+                                    <option value="ao5">Average of 5</option>
+                                    <option value="single">Best single</option>
+                                </select>
+                                <small data-i18n="coach.goal.metricHint">
+                                    Ao100 is the honest measure of your everyday speed. A single is one lucky solve.
+                                </small>
+                            </label>
+                        </div>
+
+                        <label class="coach-field" style="margin-bottom:0">
+                            <span data-i18n="coach.goal.date">Target date (optional)</span>
+                            <input class="coach-input" type="date" id="coach-goal-date">
+                        </label>
+                    </div>
+
+                    <div id="coach-goal-reality" style="margin-top:14px"></div>
+
+                    <div class="coach-step-actions">
+                        <button class="coach-btn coach-btn--quiet" data-back data-i18n="coach.back">Back</button>
+                        <div class="coach-spacer"></div>
+                        <button class="coach-btn coach-btn--primary coach-btn--lg" id="coach-finish" disabled data-i18n="coach.goal.cta">
+                            Build my plan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 6. Working -->
+                <div class="coach-step" data-step="analysing">
+                    <div class="coach-card">
+                        <div class="coach-thinking">
+                            <div class="coach-thinking-bar"><i></i></div>
+                            <p class="coach-thinking-stage" id="coach-stage"></p>
+                            <div class="coach-thinking-log" id="coach-stage-log"></div>
+                        </div>
+                    </div>
+                    <div id="coach-analysing-error" style="margin-top:16px"></div>
+                </div>
+            </section>
+
+            <!-- ============ MAIN APP ============ -->
+            <section id="coach-app" hidden>
+                <div class="coach-greeting">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+                        <div>
+                            <h1 class="coach-h1" id="coach-greeting-title">Welcome back.</h1>
+                            <p class="coach-sub" id="coach-greeting-sub" style="margin-top:6px"></p>
+                        </div>
+                        <span class="coach-sync" id="coach-sync" data-state="local-only"><i></i><span></span></span>
+                    </div>
+                </div>
+
+                <div class="coach-tabs" role="tablist" aria-label="Coach sections">
+                    <button class="coach-tab" role="tab" aria-selected="true" data-panel="today" data-i18n="coach.tab.today">Today</button>
+                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="progress" data-i18n="coach.tab.progress">Progress</button>
+                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="plan" data-i18n="coach.tab.plan">Roadmap</button>
+                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="chat" data-i18n="coach.tab.chat">Ask the Coach</button>
+                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="video" data-i18n="coach.tab.video">Solve video</button>
+                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="data" data-i18n="coach.tab.data">Your data</button>
+                </div>
+
+                <div class="coach-panel is-active" data-panel="today" role="tabpanel">
+                    <div class="coach-dash">
+                        <div class="coach-col">
+                            <div class="coach-card" id="coach-today-card"></div>
+                            <div class="coach-card" id="coach-insight-card"></div>
+                        </div>
+                        <div class="coach-col">
+                            <div class="coach-card" id="coach-goal-card"></div>
+                            <div class="coach-card" id="coach-streak-card"></div>
+                            <div class="coach-card" id="coach-milestones-card"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="coach-panel" data-panel="progress" role="tabpanel">
+                    <div class="coach-card coach-card--flush" style="margin-bottom:20px">
+                        <div style="padding:18px 20px 0">
+                            <h2 class="coach-h2" data-i18n="coach.trend.title">Performance trend</h2>
+                            <p class="coach-sub" style="font-size:13.5px" id="coach-trend-summary"></p>
+                        </div>
+                        <div class="coach-chart-wrap"><canvas id="coach-chart"></canvas></div>
+                        <div class="coach-chart-controls" id="coach-chart-controls"></div>
+                    </div>
+                    <div class="coach-card" id="coach-stats-card"></div>
+                </div>
+
+                <div class="coach-panel" data-panel="plan" role="tabpanel">
+                    <div class="coach-card" id="coach-roadmap-card"></div>
+                </div>
+
+                <div class="coach-panel" data-panel="chat" role="tabpanel">
+                    <div class="coach-card coach-card--flush">
+                        <div class="coach-chat">
+                            <div class="coach-chat-log" id="coach-chat-log" aria-live="polite"></div>
+                            <div class="coach-suggestions" id="coach-suggestions"></div>
+                            <form class="coach-chat-form" id="coach-chat-form">
+                                <input class="coach-input" id="coach-chat-input" autocomplete="off"
+                                       placeholder="Ask your coach anything…" data-i18n-placeholder="coach.chat.placeholder">
+                                <button class="coach-btn coach-btn--primary" type="submit" id="coach-chat-send"
+                                        aria-label="Send" data-i18n-aria="coach.chat.send">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="coach-panel" data-panel="video" role="tabpanel">
+                    <div class="coach-card">
+                        <h2 class="coach-h2" data-i18n="coach.video.title">Upload a solve</h2>
+                        <p class="coach-sub" style="margin-top:8px;max-width:62ch"
+                           data-i18n="coach.video.body">
+                            Your times show how long a solve took, not what your hands did.
+                            A short clip lets me see pauses, regrips, rotations and turning —
+                            the things I otherwise have to tell you I can't assess.
+                        </p>
+                        <p class="coach-muted coach-small" style="margin-top:12px;max-width:62ch"
+                           data-i18n="coach.video.privacy">
+                            The video goes straight from this device to the analysis service.
+                            It is never stored on CubingHQ, and only what I saw is kept.
+                        </p>
+
+                        <div style="margin-top:20px">
+                            <input type="file" id="coach-video-file" accept="video/*" hidden>
+                            <button class="coach-btn coach-btn--primary" id="coach-video-pick"
+                                    data-i18n="coach.video.pick">Choose a video</button>
+                        </div>
+
+                        <p class="coach-video-status" id="coach-video-status" hidden></p>
+                    </div>
+
+                    <div id="coach-video-result" style="margin-top:20px" hidden></div>
+                </div>
+
+                <div class="coach-panel" data-panel="data" role="tabpanel">
+                    <div class="coach-card" style="margin-bottom:20px">
+                        <h2 class="coach-h2" data-i18n="coach.data.sessions">Imported sessions</h2>
+                        <div id="coach-sessions-list" style="margin-top:12px"></div>
+                        <div style="margin-top:16px">
+                            <button class="coach-btn coach-btn--ghost" id="coach-add-session" data-i18n="coach.data.add">
+                                Import another session
+                            </button>
+                        </div>
+                    </div>
+                    <div class="coach-card">
+                        <h2 class="coach-h2" data-i18n="coach.data.privacy">Your coaching data</h2>
+                        <p class="coach-sub" style="margin-top:8px;max-width:62ch" id="coach-privacy-note"></p>
+                        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+                            <button class="coach-btn coach-btn--ghost" id="coach-delete-history" data-i18n="coach.data.deleteHistory">
+                                Delete coaching history
+                            </button>
+                            <button class="coach-btn coach-btn--danger" id="coach-reset-all" data-i18n="coach.data.resetAll">
+                                Reset everything
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Shared site scripts, in dependency order. -->
+    <script src="i18n.js?v=14"></script>
+    <script src="theme.js?v=1"></script>
+    <script src="cube-stats.js?v=1"></script>
+    <script src="scramble-engine.js?v=3"></script>
+    <script src="solve-analysis.js?v=1"></script>
+
+    <!-- Coach modules. Pure logic first, then services, then UI. -->
+    <script src="coach-cstimer.js?v=1"></script>
+    <script src="coach-analytics.js?v=1"></script>
+    <script src="coach-evidence.js?v=1"></script>
+    <script src="coach-api.js?v=1"></script>
+    <script src="coach-store.js?v=1"></script>
+    <script src="coach-chart.js?v=1"></script>
+    <script src="coach-ui.js?v=1"></script>
+    <script src="coach-onboarding.js?v=1"></script>
+    <script src="coach-training.js?v=1"></script>
+    <script src="coach-chat.js?v=1"></script>
+    <script src="coach-video.js?v=1"></script>
+    <script src="coach-dashboard.js?v=1"></script>
+    <script src="coach-app.js?v=1"></script>
+
+    <script>
+        // Wire the shared navbar on this standalone page: the Coach button
+        // is the current page, everything else goes back to the SPA.
+        (function wireCoachNavbar() {
+            const NAV_MAP = {
+                'nav-coach-btn':        null,
+                'nav-home-btn':         'index.html#home',
+                'nav-timer-btn':        'timer.html',
+                'nav-simulation-btn':   'index.html#simulation',
+                'nav-records-btn':      'index.html#records',
+                'nav-competitions-btn': 'index.html#competitions',
+                'nav-algorithms-btn':   'index.html#algorithms',
+                'nav-history-btn':      'index.html#history',
+                'nav-battle-btn':       'index.html#battle',
+                'nav-login-btn':        'index.html#home',
+            };
+            for (const [id, href] of Object.entries(NAV_MAP)) {
+                const el = document.getElementById(id);
+                if (el && href) el.addEventListener('click', () => { window.location.href = href; });
+            }
+            const logo = document.getElementById('nav-logo');
+            if (logo) logo.addEventListener('click', () => { window.location.href = 'index.html'; });
+        })();
+    </script>
+
+    <!-- Loaded last: it moves the secondary nav buttons into the mobile
+         sheet, and the wiring above must have run first. -->
+    <script src="mobile-nav.js?v=2"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch((err) => {
+                    console.warn('Service worker registration failed:', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
