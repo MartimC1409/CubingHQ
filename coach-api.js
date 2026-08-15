@@ -16,6 +16,10 @@
 
     const WCA_TOKEN_KEY = 'wca_access_token';
 
+    // Guarded the same way every other coach module guards it, so load
+    // order cannot matter: these are only ever read at failure time.
+    const T = (key, fallback) => (window.AppI18N ? window.AppI18N.t(key, fallback) : fallback);
+
     class CoachError extends Error {
         constructor(code, message, status) {
             super(message);
@@ -42,11 +46,22 @@
         no_token: 'Sign in with your WCA account to sync across devices.',
         invalid_token: 'Your WCA sign-in expired. Sign in again to keep syncing.',
         upstream: 'The Coach had a problem at its end. Try again shortly.',
+        // Both of these were reaching the user as `unknown`, which meant
+        // the server's own English sentence was shown verbatim on a
+        // Portuguese page. They are separate faults with separate
+        // remedies, so they say separate things.
+        bad_upload: 'That upload was rejected partway through. Pick the video again.',
+        network: "The Coach couldn't reach the analysis service. Try again shortly.",
+        unknown: 'Something went wrong at the Coach\'s end. Try again shortly.',
         internal: 'Something went wrong. Try again.',
     };
 
+    // The English above is the fallback, not the string that ships: every
+    // other user-visible sentence on this page is translated, and an
+    // error is the worst place to drop back into another language.
     function friendly(code, fallback) {
-        return FRIENDLY[code] || fallback || FRIENDLY.internal;
+        if (FRIENDLY[code]) return T('coach.err.' + code, FRIENDLY[code]);
+        return fallback || T('coach.err.internal', FRIENDLY.internal);
     }
 
     function authHeaders() {
@@ -69,12 +84,12 @@
     }
 
     async function requestJSON(path, options) {
-        if (!navigator.onLine) throw new CoachError('offline', FRIENDLY.offline);
+        if (!navigator.onLine) throw new CoachError('offline', friendly('offline'));
         let res;
         try {
             res = await fetch(path, options);
         } catch (e) {
-            throw new CoachError('offline', FRIENDLY.offline);
+            throw new CoachError('offline', friendly('offline'));
         }
         if (!res.ok) throw await toError(res);
         return res.json();
@@ -143,7 +158,7 @@
 
     async function stream(path, rawBody, handlers = {}) {
         const body = present(rawBody);
-        if (!navigator.onLine) throw new CoachError('offline', FRIENDLY.offline);
+        if (!navigator.onLine) throw new CoachError('offline', friendly('offline'));
 
         let res;
         try {
@@ -155,11 +170,11 @@
             });
         } catch (e) {
             if (e && e.name === 'AbortError') throw new CoachError('aborted', 'Cancelled.');
-            throw new CoachError('offline', FRIENDLY.offline);
+            throw new CoachError('offline', friendly('offline'));
         }
 
         if (!res.ok) throw await toError(res);
-        if (!res.body) throw new CoachError('internal', FRIENDLY.internal);
+        if (!res.body) throw new CoachError('internal', friendly('internal'));
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();

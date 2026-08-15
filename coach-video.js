@@ -160,6 +160,14 @@
             ['service reachable', detail.serviceReachable],
             ['upload status', detail.googleUploadStatus],
             ['response', detail.body],
+            // The fallback's own answer. Every row above describes the
+            // DIRECT attempt; when the fallback also fails it is the one
+            // that got a real HTTP reply from our own server, and it was
+            // being dropped on the floor — so the screenshot that should
+            // have ended the investigation could not contain the answer.
+            ['fallback', detail.fallback],
+            ['fallback code', detail.fallbackCode],
+            ['fallback status', detail.fallbackStatus],
         ].filter(([, v]) => v !== null && v !== undefined && v !== '');
 
         if (!rows.length) return '';
@@ -355,7 +363,18 @@
                     const err = new Error(proxyErr && proxyErr.message
                         ? proxyErr.message
                         : UI().T('coach.video.failed', "That didn't work. Try again."));
-                    err.detail = Object.assign({}, d, { fallback: 'failed' });
+                    err.detail = Object.assign({}, d, {
+                        fallback: 'failed',
+                        // Carried explicitly. Without these the block shows
+                        // only the direct attempt, and the server-side
+                        // reason — the useful half — never reaches the page.
+                        fallbackCode: (proxyErr && proxyErr.code) || 'none',
+                        fallbackStatus: (proxyErr && proxyErr.status) || 0,
+                    });
+                    console.warn('[Coach] fallback upload failed', {
+                        code: err.detail.fallbackCode,
+                        status: err.detail.fallbackStatus,
+                    }, proxyErr);
                     throw err;
                 }
             }

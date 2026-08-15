@@ -4573,45 +4573,80 @@
     };
 
     // ----- Firebase REST helpers -----
-    async function fbGet(path) {
+    //
+    // These used to `return await r.json()` whatever the HTTP status, so a
+    // Firebase refusal — `401 {"error":"Permission denied"}` — came back
+    // looking exactly like data. Nothing logged, nothing surfaced, and the
+    // callers went on to read `.name` off an error body.
+    //
+    // The visible cost was battles: the lobby rendered "No rooms found."
+    // for a database that was actually refusing to answer, and creating a
+    // room said "try again" for a permission error that retrying can never
+    // fix. Every other unauthenticated path — records, algorithms, timer
+    // sync — failed the same silent way.
+    //
+    // The signatures are unchanged (a value, or null) so no call site has
+    // to change; the difference is that a refusal is now null instead of a
+    // plausible-looking object, and it is recorded.
+
+    // Last failure seen, for callers that want to say WHY rather than just
+    // that something went wrong. 'denied' means the rules refused us —
+    // a configuration answer, not a transient one.
+    let fbLastError = null;
+    function fbError() { return fbLastError; }
+
+    async function fbRequest(method, path, data) {
+        const opts = { method };
+        if (data !== undefined) {
+            opts.headers = { 'Content-Type': 'application/json' };
+            opts.body = JSON.stringify(data);
+        }
+
+        let r;
         try {
-            const r = await fetch(`${RTDB}${path}.json`);
-            return await r.json();
-        } catch (e) { console.error('fbGet error', e); return null; }
+            r = await fetch(`${RTDB}${path}.json`, opts);
+        } catch (e) {
+            fbLastError = 'network';
+            console.error(`[fb] ${method} ${path} → network error`, e);
+            return null;
+        }
+
+        if (!r.ok) {
+            let body = '';
+            try { body = (await r.text()).slice(0, 200); } catch (e) { /* nothing to add */ }
+            // 401/403 is the rules refusing us. Worth its own kind: it is
+            // the one failure where "try again" is actively wrong advice.
+            fbLastError = (r.status === 401 || r.status === 403) ? 'denied' : 'error';
+            console.error(`[fb] ${method} ${path} → HTTP ${r.status} ${body}`);
+            return null;
+        }
+
+        let json;
+        try { json = await r.json(); } catch (e) {
+            fbLastError = 'error';
+            console.error(`[fb] ${method} ${path} → unreadable response`, e);
+            return null;
+        }
+
+        // Belt and braces: some Firebase errors arrive with a 200. An
+        // object whose only content is a string `error` is never real data
+        // here — every node this app reads is a record or a map of them.
+        if (json && typeof json === 'object' && typeof json.error === 'string'
+            && Object.keys(json).length === 1) {
+            fbLastError = /permission/i.test(json.error) ? 'denied' : 'error';
+            console.error(`[fb] ${method} ${path} → ${json.error}`);
+            return null;
+        }
+
+        fbLastError = null;
+        return json;
     }
-    async function fbSet(path, data) {
-        try {
-            const r = await fetch(`${RTDB}${path}.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            return await r.json();
-        } catch (e) { console.error('fbSet error', e); return null; }
-    }
-    async function fbUpdate(path, data) {
-        try {
-            const r = await fetch(`${RTDB}${path}.json`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            return await r.json();
-        } catch (e) { console.error('fbUpdate error', e); return null; }
-    }
-    async function fbPush(path, data) {
-        try {
-            const r = await fetch(`${RTDB}${path}.json`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            return await r.json(); // { name: "-NxyzId" }
-        } catch (e) { console.error('fbPush error', e); return null; }
-    }
-    async function fbDelete(path) {
-        try { await fetch(`${RTDB}${path}.json`, { method: 'DELETE' }); } catch (e) {}
-    }
+
+    function fbGet(path)          { return fbRequest('GET', path); }
+    function fbSet(path, data)    { return fbRequest('PUT', path, data); }
+    function fbUpdate(path, data) { return fbRequest('PATCH', path, data); }
+    function fbPush(path, data)   { return fbRequest('POST', path, data); } // { name: "-NxyzId" }
+    function fbDelete(path)       { return fbRequest('DELETE', path); }
 
     // ----- User identity -----
     function getBattleUserId() {
@@ -4748,8 +4783,13 @@
         if (refreshIcon) refreshIcon.classList.add('spinning-icon');
         
         const data = await fbGet(BATTLE_PATH);
+        // Captured here rather than read inside the render, because the
+        // lobby is also redrawn on a language change — by which time some
+        // other request will have cleared the flag. An empty database and
+        // a refusing one both arrive as null and must not look alike.
+        battleState.lobbyError = data === null ? fbError() : null;
         renderBattleLobby(data);
-        
+
         if (refreshIcon) refreshIcon.classList.remove('spinning-icon');
     }
 
@@ -4772,6 +4812,22 @@
 
         const filter = battleState.filterEvent;
         const visible = filter === 'all' ? rooms : rooms.filter(r => r.event === filter);
+
+        // A database that refused to answer is not an empty lobby, and
+        // showing "No rooms found." for it is how this went unnoticed:
+        // the failure was indistinguishable from a quiet evening.
+        if (battleState.lobbyError) {
+            const why = battleState.lobbyError === 'denied'
+                ? i18nT('battle.roomsDenied',
+                    'The rooms database is refusing connections, so battles are unavailable right now. This is a server setting, not something you can fix — please report it.')
+                : i18nT('battle.roomsUnreachable',
+                    "Couldn't reach the rooms database. Check your connection and refresh.");
+            grid.innerHTML = `<div class="battle-empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <p>${esc(why)}</p>
+            </div>`;
+            return;
+        }
 
         if (visible.length === 0) {
             grid.innerHTML = `<div class="battle-empty-state">
@@ -4929,28 +4985,53 @@
             const userName = getBattleUserName();
             const now = Date.now();
             const initialEvent = '3x3';
-            const scramble = await generateBattleScramble(initialEvent);
 
-            const roomData = {
-                name, isPrivate,
-                password: isPrivate ? password : null,
-                host: userId, hostName: userName,
-                event: initialEvent,
-                currentScrambleIndex: 0,
-                scrambles: { 0: { scramble, event: initialEvent, createdAt: now } },
-                createdAt: now, updatedAt: now,
-                members: { [userId]: { name: userName, joinedAt: now } },
-                solves: {}
-            };
-
+            // The loading state goes up BEFORE the scramble, not after.
+            // ScrambleEngine.get never rejects, but it can take tens of
+            // seconds — two attempts per CDN, loading a WASM solver — and
+            // until now that whole wait happened with the button still
+            // idle. Clicking "Create" and watching nothing happen is
+            // indistinguishable from a button that does not work.
             const confirmLabel = $('#battle-create-confirm-label');
             $('#battle-create-confirm').disabled = true;
             confirmLabel.textContent = i18nT('battle.creating', 'Creating...');
-            const result = await fbPush(BATTLE_PATH, roomData);
-            $('#battle-create-confirm').disabled = false;
-            confirmLabel.textContent = i18nT('battle.createRoom', 'Create Room');
 
-            if (!result || !result.name) { showCreateRoomError(i18nT('toast.roomCreateFailed', 'Failed to create room. Try again.')); return; }
+            let result = null;
+            let roomData = null;
+            try {
+                const scramble = await generateBattleScramble(initialEvent);
+
+                roomData = {
+                    name, isPrivate,
+                    password: isPrivate ? password : null,
+                    host: userId, hostName: userName,
+                    event: initialEvent,
+                    currentScrambleIndex: 0,
+                    scrambles: { 0: { scramble, event: initialEvent, createdAt: now } },
+                    createdAt: now, updatedAt: now,
+                    members: { [userId]: { name: userName, joinedAt: now } },
+                    solves: {}
+                };
+
+                result = await fbPush(BATTLE_PATH, roomData);
+            } finally {
+                // In a finally so the button never stays stuck on
+                // "Creating..." if anything above throws.
+                $('#battle-create-confirm').disabled = false;
+                confirmLabel.textContent = i18nT('battle.createRoom', 'Create Room');
+            }
+
+            if (!result || !result.name) {
+                // "Try again" is the wrong advice for a permission error —
+                // retrying it never once works, and sending someone round
+                // that loop is how a server misconfiguration gets mistaken
+                // for a flaky button.
+                showCreateRoomError(fbError() === 'denied'
+                    ? i18nT('toast.roomCreateDenied',
+                        'The rooms database refused to save this room. That is a server setting on our side — please report it.')
+                    : i18nT('toast.roomCreateFailed', 'Failed to create room. Try again.'));
+                return;
+            }
             try { localStorage.setItem(BATTLE_ROOM_LAST_KEY, String(Date.now())); } catch (e) { /* private mode */ }
             $('#battle-create-modal').style.display = 'none';
             await enterBattleRoom(result.name, roomData);

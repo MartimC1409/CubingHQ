@@ -34,24 +34,52 @@ function methodGuard(req, res, allowed) {
 }
 
 /** Body as an object. Vercel usually parses it; fall back to reading it. */
+function tooLarge() {
+    const err = new Error('That upload was too large to send this way.');
+    err.status = 413; err.code = 'too_large';
+    return err;
+}
+
 /**
  * The request body as raw bytes.
  *
  * Separate from readBody because video is not JSON and base64 would
  * inflate it by a third — which matters when the whole point is fitting
  * under a platform body limit.
+ *
+ * `req.body` is checked first for the same reason readBody checks it:
+ * the platform buffers the request before the handler runs, and a body
+ * whose content type it does not recognise — `application/octet-stream`,
+ * which is exactly what a video chunk is sent as — arrives as a Buffer
+ * with the underlying stream already drained. Iterating `req` in that
+ * case yields nothing at all, so every chunk would look empty while the
+ * client had sent it perfectly well.
  */
 async function readRawBody(req, maxBytes) {
     const cap = maxBytes || MAX_BODY_BYTES;
+
+    if (Buffer.isBuffer(req.body)) {
+        if (req.body.length > cap) throw tooLarge();
+        return req.body;
+    }
+    // A string means the platform decoded the body as text, and a UTF-8
+    // decode of arbitrary bytes is lossy — re-encoding would hand Google
+    // a video that is subtly wrong rather than one that failed. Refuse
+    // instead: a corrupted upload fails later, somewhere else, for no
+    // visible reason, which is far worse than an error that says this.
+    if (typeof req.body === 'string') {
+        const err = new Error('That upload could not be read as raw bytes.');
+        err.status = 400; err.code = 'bad_body';
+        console.error('[http] raw body arrived decoded as a string — check the '
+            + 'request Content-Type is application/octet-stream');
+        throw err;
+    }
+
     const chunks = [];
     let size = 0;
     for await (const chunk of req) {
         size += chunk.length;
-        if (size > cap) {
-            const err = new Error('That upload was too large to send this way.');
-            err.status = 413; err.code = 'too_large';
-            throw err;
-        }
+        if (size > cap) throw tooLarge();
         chunks.push(chunk);
     }
     return Buffer.concat(chunks);

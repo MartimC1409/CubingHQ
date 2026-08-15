@@ -22,6 +22,21 @@ const rtdb = require('../_lib/rtdb.js');
 const { CoachModel, PROVIDER, MODEL, hasKey, KEY_VAR } = require('../_lib/model.js');
 const { sendJson, methodGuard } = require('../_lib/http.js');
 
+/**
+ * ?video=1 spends a real network round trip against Google, and this
+ * endpoint is unauthenticated on purpose. One probe per minute per
+ * instance is enough to diagnose with and too little to abuse — the
+ * alternative, requiring a WCA token, would make the check unusable from
+ * a browser address bar, which is the whole point of it.
+ */
+const VIDEO_PROBE_INTERVAL_MS = 60 * 1000;
+let lastVideoProbe = 0;
+
+function wants(req, name) {
+    if (req.query) return req.query[name] === '1' || req.query[name] === 'true';
+    return new RegExp(`[?&]${name}=(1|true)\\b`).test(req.url || '');
+}
+
 module.exports = async function handler(req, res) {
     if (!methodGuard(req, res, ['GET'])) return;
 
@@ -60,9 +75,7 @@ module.exports = async function handler(req, res) {
     // retired model name looks perfectly configured right up until the
     // first real request. One cheap GET closes that gap, and it stays
     // opt-in so the default answer is instant and costs nothing.
-    const wantsLive = req.query
-        ? (req.query.live === '1' || req.query.live === 'true')
-        : /[?&]live=(1|true)\b/.test(req.url || '');
+    const wantsLive = wants(req, 'live');
 
     if (wantsLive && keyPresent && modelSet && typeof CoachModel.checkModel === 'function') {
         try {
@@ -100,5 +113,64 @@ module.exports = async function handler(req, res) {
         };
     }
 
+    // ?video=1 runs the server-side upload path for real.
+    //
+    // The video failure has been diagnosed by screenshot for several
+    // rounds, and the browser genuinely cannot distinguish "our server
+    // could not reach Google" from "Google rejected the chunk" — both
+    // arrived as one opaque code. This runs the same resumable exchange
+    // with the browser leg removed, so whichever half is broken names
+    // itself in one request.
+    if (wants(req, 'video')) {
+        body.video = await probeVideo(keyPresent && modelSet);
+    }
+
     return sendJson(res, 200, body);
 };
+
+async function probeVideo(configured) {
+    if (!configured) {
+        return { ok: null, reason: 'Skipped — configuration is incomplete, see diagnosis.' };
+    }
+    if (typeof CoachModel.checkVideoPath !== 'function') {
+        return { ok: null, reason: `Skipped — provider "${PROVIDER}" cannot upload video.` };
+    }
+
+    const now = Date.now();
+    if (now - lastVideoProbe < VIDEO_PROBE_INTERVAL_MS) {
+        return {
+            ok: null,
+            reason: `Skipped — one probe per ${VIDEO_PROBE_INTERVAL_MS / 1000}s. Try again shortly.`,
+        };
+    }
+    lastVideoProbe = now;
+
+    try {
+        const result = await CoachModel.checkVideoPath();
+        if (result.ok) {
+            return {
+                ok: true,
+                step: result.step,
+                cleanedUp: result.cleanedUp,
+                diagnosis: 'The server-side upload path works end to end. If video still fails '
+                    + 'in the browser, the fault is between the browser and this server rather '
+                    + 'than between this server and Google.',
+            };
+        }
+        return {
+            ok: false,
+            step: result.step,
+            status: result.status,
+            reason: result.reason,
+            diagnosis: `The server-side upload failed at "${result.step}". `
+                + 'That is between this server and Google — the browser is not involved.',
+        };
+    } catch (e) {
+        // A probe that cannot report is worse than no probe, so this
+        // never becomes a 500 on a health endpoint.
+        console.error('[health] video probe threw', e);
+        return { ok: null, reason: 'The video probe could not complete.' };
+    }
+}
+
+module.exports._internal = { VIDEO_PROBE_INTERVAL_MS, probeVideo, wants };

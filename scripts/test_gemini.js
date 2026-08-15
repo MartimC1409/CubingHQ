@@ -78,7 +78,10 @@ global.fetch = async (url, opts = {}) => {
         url: String(url),
         method: opts.method || 'GET',
         headers: opts.headers || {},
-        body: opts.body ? JSON.parse(opts.body) : null,
+        // Raw bytes are a legitimate body here — a video chunk is sent as
+        // a Buffer — so only decode what is actually JSON. Parsing
+        // everything made an upload look like a network failure.
+        body: typeof opts.body === 'string' ? JSON.parse(opts.body) : (opts.body || null),
     });
     if (!queue.length) throw new Error('test: no queued response');
     const next = queue.shift();
@@ -433,6 +436,80 @@ eq('garbage yields null', extractJson('nope'), null);
     eq('an unreachable API is not a valid config', live.ok, false);
     check('but is flagged as unreachable rather than misconfigured', live.unreachable === true);
     check('and is reported as unreachable', /reach/i.test(live.reason), live.reason);
+
+    /* ================= failure kinds ============================= */
+
+    // Both of these used to land in `unknown`, which named neither the
+    // cause nor which side of the link it came from. 400 is the single
+    // most likely answer to a malformed resumable chunk, so it having no
+    // name of its own cost a whole round of diagnosis.
+    eq('400 is a bad upload, not unknown', G._internal.classifyFailure(400, 'nope'), 'bad_upload');
+    eq('429 is still rate limiting', G._internal.classifyFailure(429, 'slow down'), 'rate_limited');
+    eq('503 is still upstream', G._internal.classifyFailure(503, 'boom'), 'upstream');
+    eq('an unrecognised status is still unknown', G._internal.classifyFailure(418, 'tea'), 'unknown');
+    // A message that names the real cause must still win over the status:
+    // a 400 API_KEY_INVALID is an auth problem, not an upload problem.
+    eq('a 400 naming the key is auth',
+        G._internal.classifyFailure(400, 'API key not valid. Please pass a valid API key.'), 'auth');
+
+    queue.push(errorResponse(400, 'Invalid upload request'));
+    threw = null;
+    try {
+        await G._internal.uploadVideoChunk(
+            'https://generativelanguage.googleapis.com/upload/v1beta/files/s', Buffer.alloc(8), 0, true);
+    } catch (e) { threw = e; }
+    eq('a rejected chunk surfaces as bad_upload', threw && threw.code, 'bad_upload');
+    check('with a sentence a cuber can act on', /choose the video again/i.test(threw.message),
+        threw.message);
+
+    queue.push(new Error('getaddrinfo ENOTFOUND'));
+    threw = null;
+    try {
+        await G._internal.uploadVideoChunk(
+            'https://generativelanguage.googleapis.com/upload/v1beta/files/s', Buffer.alloc(8), 0, true);
+    } catch (e) { threw = e; }
+    eq('an unreachable Google is a network failure', threw && threw.code, 'network');
+    check('and does not claim the upload was rejected',
+        !/rejected/i.test(threw.message), threw.message);
+
+    /* ================= the video path probe ====================== */
+
+    // The whole point of this probe: it removes the browser from the
+    // picture, so "our server cannot reach Google" and "Google refused
+    // the chunk" stop being the same opaque answer.
+    requests = [];
+    queue.push(jsonResponse(200, {}, { 'x-goog-upload-url': 'https://generativelanguage.googleapis.com/upload/v1beta/files/probe' }));
+    queue.push(jsonResponse(200, { file: { name: 'files/probe1', uri: 'u', state: 'ACTIVE' } }));
+    queue.push(jsonResponse(200, {}));   // the delete
+    let probe = await G._internal.checkVideoPath();
+    eq('a working path reports ok', probe.ok, true);
+    eq('having got all the way through', probe.step, 'done');
+    eq('and tidies the file up', probe.cleanedUp, true);
+    check('the probe deletes what it uploaded',
+        requests.some(r => r.method === 'DELETE' && /files\/probe1/.test(r.url)),
+        JSON.stringify(requests.map(r => [r.method, r.url])));
+    check('and never asks the model for anything — no generation quota is spent',
+        !requests.some(r => /generateContent/.test(r.url)));
+
+    queue.push(errorResponse(403, 'permission denied'));
+    probe = await G._internal.checkVideoPath();
+    eq('a session that will not open fails at begin', probe.step, 'begin');
+    eq('and is not ok', probe.ok, false);
+
+    queue.push(jsonResponse(200, {}, { 'x-goog-upload-url': 'https://generativelanguage.googleapis.com/upload/v1beta/files/probe' }));
+    queue.push(errorResponse(400, 'Invalid upload request'));
+    probe = await G._internal.checkVideoPath();
+    eq('a refused chunk fails at chunk', probe.step, 'chunk');
+    check('and carries a reason', typeof probe.reason === 'string' && probe.reason.length > 0);
+
+    // A health endpoint that leaks the key defeats its own purpose.
+    eq('a key in a query string is redacted',
+        G._internal.redact('POST https://x/y?key=AIzaSyABCDEFGHIJKLMNOPQ failed'),
+        'POST https://x/y?key=[redacted] failed');
+    check('a bare key is redacted too',
+        !/AIzaSy/.test(G._internal.redact('token AIzaSyABCDEFGHIJKLMNOPQ here')));
+    check('and the reason is bounded',
+        G._internal.redact('x'.repeat(5000)).length <= 300);
 
     /* ================= configuration ============================= */
 

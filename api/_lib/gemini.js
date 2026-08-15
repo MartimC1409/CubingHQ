@@ -83,6 +83,9 @@ const HINTS = {
     auth: 'check GEMINI_API_KEY',
     no_credit: 'the project has exhausted its quota — enable billing or wait for the daily reset',
     rate_limited: 'Gemini free-tier limits are per project, shared by every visitor',
+    bad_upload: 'the request itself was rejected — for a resumable upload this is usually a '
+        + 'byte offset or Content-Length that disagrees with the session',
+    network: 'this server could not reach Google at all — not a key or model problem',
 };
 
 function classifyFailure(status, message) {
@@ -95,6 +98,11 @@ function classifyFailure(status, message) {
     if (status === 401 || status === 403) return 'auth';
     if (status === 404) return 'bad_model';
     if (status >= 500) return 'upstream';
+    // 400 is the single most likely answer to a malformed resumable
+    // chunk, and it used to fall through to `unknown` — which named
+    // neither the cause nor even the layer it came from, and cost a
+    // whole round to work out. It is a distinct kind now.
+    if (status === 400) return 'bad_upload';
     return 'unknown';
 }
 
@@ -143,6 +151,15 @@ function toModelError(kind) {
                 'The Coach is busy right now. Try again in a moment.', 429);
         case 'upstream':
             return new ModelError('upstream', 'The Coach had a problem. Try again shortly.', 502);
+        // Both of these used to be `unknown`, which told the user nothing
+        // and told us less. They are different faults with different
+        // remedies, so they get different codes and different sentences.
+        case 'bad_upload':
+            return new ModelError('bad_upload',
+                'That upload was rejected partway through. Choose the video again.', 502);
+        case 'network':
+            return new ModelError('network',
+                'The Coach could not reach the analysis service. Try again shortly.', 502);
         default:
             return new ModelError('unknown', 'Something went wrong reaching the Coach.', 502);
     }
@@ -645,6 +662,78 @@ async function getVideoState(fileName) {
     return { state: body.state, uri: body.uri, mimeType: body.mimeType, name: body.name };
 }
 
+/** Removes an uploaded file. Best effort: used to tidy up after a probe. */
+async function deleteVideo(fileName) {
+    const clean = String(fileName || '').replace(/^files\//, '');
+    if (!/^[A-Za-z0-9_-]+$/.test(clean)) return false;
+    try {
+        const res = await fetch(`${API}/files/${clean}?key=${encodeURIComponent(apiKey())}`,
+            { method: 'DELETE', signal: AbortSignal.timeout(15000) });
+        return res.ok;
+    } catch (e) { return false; }
+}
+
+/**
+ * Runs the server-side upload path end to end and reports where it broke.
+ *
+ * The whole resumable exchange — open a session, send one finalising
+ * chunk — with a token payload and no model call, so it costs no
+ * generation quota. The uploaded file is deleted straight after.
+ *
+ * This exists because the video failure has been diagnosed by screenshot
+ * for several rounds, and the browser cannot tell "our server could not
+ * reach Google" from "Google rejected the chunk". Running the same code
+ * server-side answers that in one request, without the browser leg in
+ * the picture at all.
+ *
+ * Never throws: a probe that fails to report is worse than no probe.
+ *
+ * @returns {{ok: boolean, step: string, status?: number, reason?: string}}
+ */
+async function checkVideoPath() {
+    // Small, fixed, and not a real video — the Files API stores bytes
+    // against a declared type and does not decode them, which is exactly
+    // what makes this cheap. Only the transport is under test.
+    const payload = Buffer.alloc(1024, 0x20);
+
+    let session;
+    try {
+        session = await startVideoUpload({
+            displayName: `healthcheck-${Date.now()}`,
+            mimeType: 'video/mp4',
+            sizeBytes: payload.length,
+        });
+    } catch (e) {
+        return { ok: false, step: 'begin', status: e && e.status, reason: redact(e && e.message) };
+    }
+
+    let file;
+    try {
+        file = await uploadVideoChunk(session.uploadUrl, payload, 0, true);
+    } catch (e) {
+        return { ok: false, step: 'chunk', status: e && e.status, reason: redact(e && e.message) };
+    }
+
+    if (!file || !file.name) {
+        return { ok: false, step: 'finalize', reason: 'The upload finished but returned no file.' };
+    }
+
+    const removed = await deleteVideo(file.name);
+    return { ok: true, step: 'done', cleanedUp: removed };
+}
+
+/**
+ * Strips anything key-shaped before a reason is returned to an
+ * unauthenticated caller. Google echoes request context in some errors,
+ * and a health endpoint that leaks the API key defeats its own purpose.
+ */
+function redact(message) {
+    return String(message || '')
+        .replace(/key=[^&\s"']+/gi, 'key=[redacted]')
+        .replace(/AIza[0-9A-Za-z_-]{10,}/g, '[redacted]')
+        .slice(0, 300);
+}
+
 /**
  * Analyses an uploaded solve video against the video observation schema.
  * The prompt comes from prompts.js; this only assembles the request.
@@ -700,7 +789,9 @@ const CoachModel = {
     uploadVideoBytes,
     uploadVideoChunk,
     getVideoState,
+    deleteVideo,
     checkModel,
+    checkVideoPath,
 };
 
 /** Identical wording to the other providers, so switching does not
@@ -718,7 +809,7 @@ module.exports = {
     _internal: {
         classifyFailure, toGeminiSchema, extractJson, readStream,
         startVideoUpload, uploadVideoBytes, uploadVideoChunk,
-        getVideoState, checkModel,
+        getVideoState, checkModel, checkVideoPath, deleteVideo, redact,
         extractSuggestedModel,
         MAX_VIDEO_BYTES,
     },
