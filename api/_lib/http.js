@@ -22,7 +22,18 @@ function sendError(res, err) {
     const code = (err && err.code) || 'internal';
     const message = (err && err.message) || 'Something went wrong.';
     if (status >= 500) console.error(`[api] ${code}:`, err);
-    sendJson(res, status, { error: { code, message } });
+
+    // `step` and `detail` are diagnostics, not prose: the client shows
+    // them in a collapsed technical block rather than as the message.
+    // They exist because problems here get reported by screenshot, and a
+    // screenshot cannot show a server log — several rounds were spent
+    // asking for a log line that this puts on the page instead. Set only
+    // where a handler chose to; `detail` is redacted at its source.
+    const error = { code, message };
+    if (err && err.step) error.step = err.step;
+    if (err && err.detail) error.detail = err.detail;
+
+    sendJson(res, status, { error });
 }
 
 /** Rejects anything but the listed methods. */

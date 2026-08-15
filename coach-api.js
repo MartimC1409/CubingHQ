@@ -51,6 +51,9 @@
         // Portuguese page. They are separate faults with separate
         // remedies, so they say separate things.
         bad_upload: 'That upload was rejected partway through. Pick the video again.',
+        // Deliberately not worded as an upload problem: this is the model
+        // refusing what the Coach asked for, and nothing was uploaded.
+        bad_request: "The Coach asked for something the model wouldn't accept. That's a bug on our side — please report it.",
         network: "The Coach couldn't reach the analysis service. Try again shortly.",
         unknown: 'Something went wrong at the Coach\'s end. Try again shortly.',
         internal: 'Something went wrong. Try again.',
@@ -76,11 +79,18 @@
         let body = null;
         try { body = await res.json(); } catch (e) { }
         const err = (body && body.error) || {};
-        return new CoachError(
+        const out = new CoachError(
             err.code || 'internal',
             friendly(err.code, err.message),
             res.status
         );
+        // Diagnostics, kept off the message. `step` says which call
+        // failed and `detail` is the upstream service's own words,
+        // redacted server-side. Callers that render a technical block
+        // show them; everything else ignores them.
+        if (err.step) out.step = err.step;
+        if (err.detail) out.detail = err.detail;
+        return out;
     }
 
     async function requestJSON(path, options) {

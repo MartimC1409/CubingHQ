@@ -258,6 +258,51 @@ function streamed(buf) {
     });
     eq('a rejected chunk surfaces as bad_upload', r.body.error.code, 'bad_upload');
     check('not as unknown', r.body.error.code !== 'unknown');
+    // The error body is what the page's technical block renders, and it
+    // is reported by screenshot. Without these, telling "the session
+    // would not open" from "Google refused a slice" meant reading the
+    // deploy logs, which is how several rounds were spent.
+    eq('the body names the failing call', r.body.error.step, 'chunk');
+    check("and carries Google's own words", /chunk refused/i.test(r.body.error.detail || ''),
+        JSON.stringify(r.body.error));
+
+    installFetch({ startStatus: 400 });
+    r = await call('../api/coach/video/begin.js', {
+        headers: AUTH,
+        body: { mimeType: 'video/mp4', sizeBytes: 1000 },
+    });
+    eq('a session that will not open says which step', r.body.error.step, 'begin');
+    check('rather than looking identical to a chunk failure',
+        r.body.error.step !== 'chunk');
+
+    // The detail reaches a signed-in browser, so it must never carry a
+    // credential — neither the API key nor the session id, which is a
+    // bearer token for that upload.
+    installFetch({ chunkStatus: 400 });
+    global.fetch = (function (inner) {
+        return async (url, opts) => {
+            const res = await inner(url, opts);
+            if (!String(url).includes('worldcubeassociation')) {
+                res.json = async () => ({
+                    error: {
+                        message: 'rejected for https://x/u?upload_id=AHxX3fSECRET'
+                            + '&key=AIzaSyLEAKEDKEYVALUE',
+                    },
+                });
+            }
+            return res;
+        };
+    })(global.fetch);
+    r = await call('../api/coach/video/chunk.js', {
+        headers: Object.assign({
+            'x-upload-token': token, 'x-upload-offset': '0', 'x-upload-final': '1',
+        }, AUTH),
+        body: payload,
+    });
+    const serialised = JSON.stringify(r.body);
+    check('no API key reaches the browser', !/AIzaSy/.test(serialised), serialised);
+    check('no upload session id either', !/AHxX3f/.test(serialised), serialised);
+    check('but something useful survives', /rejected for/.test(serialised), serialised);
 
     installFetch({ chunkStatus: 503 });
     r = await call('../api/coach/video/chunk.js', {

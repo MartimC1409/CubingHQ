@@ -439,11 +439,22 @@ eq('garbage yields null', extractJson('nope'), null);
 
     /* ================= failure kinds ============================= */
 
-    // Both of these used to land in `unknown`, which named neither the
-    // cause nor which side of the link it came from. 400 is the single
-    // most likely answer to a malformed resumable chunk, so it having no
-    // name of its own cost a whole round of diagnosis.
-    eq('400 is a bad upload, not unknown', G._internal.classifyFailure(400, 'nope'), 'bad_upload');
+    // These used to land in `unknown`, which named neither the cause nor
+    // which side of the link it came from. 400 is the single most likely
+    // answer to a malformed resumable chunk, so it having no name of its
+    // own cost a whole round of diagnosis.
+    //
+    // But Google returns 400 for two unrelated things, and the previous
+    // round called both of them an upload failure. A rejected schema is
+    // not a rejected upload, and telling a user to pick their video again
+    // when nothing was ever uploaded sends them nowhere. Only the caller
+    // knows which it is.
+    eq('a 400 from an upload call is a bad upload',
+        G._internal.classifyFailure(400, 'nope', 'upload'), 'bad_upload');
+    eq('a 400 from a model call is a bad request',
+        G._internal.classifyFailure(400, 'nope', 'model'), 'bad_request');
+    eq('and an unqualified 400 is not blamed on an upload',
+        G._internal.classifyFailure(400, 'nope'), 'bad_request');
     eq('429 is still rate limiting', G._internal.classifyFailure(429, 'slow down'), 'rate_limited');
     eq('503 is still upstream', G._internal.classifyFailure(503, 'boom'), 'upstream');
     eq('an unrecognised status is still unknown', G._internal.classifyFailure(418, 'tea'), 'unknown');
@@ -461,6 +472,21 @@ eq('garbage yields null', extractJson('nope'), null);
     eq('a rejected chunk surfaces as bad_upload', threw && threw.code, 'bad_upload');
     check('with a sentence a cuber can act on', /choose the video again/i.test(threw.message),
         threw.message);
+    // Opening the session and sending a slice produce the same code and
+    // the same sentence, so without the step the two are told apart only
+    // by reading the deploy logs — which is exactly how several rounds
+    // went. And Google's own words now travel with the error rather than
+    // living only in a log nobody can reach from a screenshot.
+    eq('and names the call it came from', threw.step, 'chunk');
+    check("carrying Google's own words", /invalid upload request/i.test(threw.detail || ''),
+        threw.detail);
+
+    queue.push(errorResponse(403, 'nope'));
+    threw = null;
+    try {
+        await G._internal.startVideoUpload({ displayName: 'x', mimeType: 'video/mp4', sizeBytes: 10 });
+    } catch (e) { threw = e; }
+    eq('a failure opening the session says so', threw && threw.step, 'begin');
 
     queue.push(new Error('getaddrinfo ENOTFOUND'));
     threw = null;
@@ -500,7 +526,13 @@ eq('garbage yields null', extractJson('nope'), null);
     queue.push(errorResponse(400, 'Invalid upload request'));
     probe = await G._internal.checkVideoPath();
     eq('a refused chunk fails at chunk', probe.step, 'chunk');
-    check('and carries a reason', typeof probe.reason === 'string' && probe.reason.length > 0);
+    // The point of the probe is Google's own description of what was
+    // wrong. Echoing our friendly sentence back at an operator tells
+    // them only what they already knew.
+    check("the reason is Google's words, not ours",
+        /invalid upload request/i.test(probe.reason || ''), probe.reason);
+    check('and not the sentence written for a cuber',
+        !/choose the video again/i.test(probe.reason || ''), probe.reason);
 
     // A health endpoint that leaks the key defeats its own purpose.
     eq('a key in a query string is redacted',
@@ -508,8 +540,28 @@ eq('garbage yields null', extractJson('nope'), null);
         'POST https://x/y?key=[redacted] failed');
     check('a bare key is redacted too',
         !/AIzaSy/.test(G._internal.redact('token AIzaSyABCDEFGHIJKLMNOPQ here')));
+    // An upload session id is a bearer credential for that session, and
+    // this text now reaches the page as well as the health endpoint.
+    check('an upload session id is redacted',
+        !/AHxX3f/.test(G._internal.redact(
+            'failed for https://x/upload?upload_id=AHxX3f-9Zk&upload_protocol=resumable')),
+        G._internal.redact('failed for https://x/upload?upload_id=AHxX3f-9Zk&upload_protocol=resumable'));
     check('and the reason is bounded',
         G._internal.redact('x'.repeat(5000)).length <= 300);
+
+    // The manual Content-Length was measured to be stripped by undici,
+    // which computes its own from the body. Writing it implied a
+    // guarantee it never provided.
+    requests = [];
+    queue.push(jsonResponse(200, { file: { name: 'files/x', uri: 'u', state: 'ACTIVE' } }));
+    await G._internal.uploadVideoChunk(
+        'https://generativelanguage.googleapis.com/upload/v1beta/files/s', Buffer.alloc(16), 0, true);
+    const sentChunk = requests[requests.length - 1];
+    check('the chunk sets no Content-Length of ours',
+        !Object.keys(sentChunk.headers).some(h => h.toLowerCase() === 'content-length'),
+        JSON.stringify(Object.keys(sentChunk.headers)));
+    eq('but still declares its offset', sentChunk.headers['X-Goog-Upload-Offset'], '0');
+    eq('and its command', sentChunk.headers['X-Goog-Upload-Command'], 'upload, finalize');
 
     /* ================= configuration ============================= */
 

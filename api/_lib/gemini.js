@@ -84,11 +84,26 @@ const HINTS = {
     no_credit: 'the project has exhausted its quota — enable billing or wait for the daily reset',
     rate_limited: 'Gemini free-tier limits are per project, shared by every visitor',
     bad_upload: 'the request itself was rejected — for a resumable upload this is usually a '
-        + 'byte offset or Content-Length that disagrees with the session',
+        + 'byte offset that disagrees with the session, or a total that does not match the '
+        + 'size declared when it was opened',
+    bad_request: 'Gemini rejected the request payload — usually the response schema or a '
+        + 'generation parameter it does not accept. Nothing was uploaded.',
     network: 'this server could not reach Google at all — not a key or model problem',
 };
 
-function classifyFailure(status, message) {
+/**
+ * @param {number} status HTTP status Google answered with
+ * @param {string} message Google's own error text
+ * @param {'upload'|'model'} [where] which call this came from
+ *
+ * `where` exists only for 400. Google returns 400 for two unrelated
+ * things: a resumable chunk that does not line up with its session, and
+ * a generation request whose schema or parameters it will not take.
+ * Mapping both to `bad_upload` — which is what shipped last round — tells
+ * a user "that upload was rejected" when nothing was ever uploaded. The
+ * status alone cannot tell them apart, so the caller says which it is.
+ */
+function classifyFailure(status, message, where) {
     const m = String(message || '').toLowerCase();
 
     if (/api key not valid|api_key_invalid|permission denied|unauthenticated/.test(m)) return 'auth';
@@ -98,11 +113,10 @@ function classifyFailure(status, message) {
     if (status === 401 || status === 403) return 'auth';
     if (status === 404) return 'bad_model';
     if (status >= 500) return 'upstream';
-    // 400 is the single most likely answer to a malformed resumable
-    // chunk, and it used to fall through to `unknown` — which named
-    // neither the cause nor even the layer it came from, and cost a
-    // whole round to work out. It is a distinct kind now.
-    if (status === 400) return 'bad_upload';
+    // 400 used to fall through to `unknown`, which named neither the
+    // cause nor the layer it came from and cost a whole round to work
+    // out. It has a name now — but which name depends on the caller.
+    if (status === 400) return where === 'upload' ? 'bad_upload' : 'bad_request';
     return 'unknown';
 }
 
@@ -157,6 +171,9 @@ function toModelError(kind) {
         case 'bad_upload':
             return new ModelError('bad_upload',
                 'That upload was rejected partway through. Choose the video again.', 502);
+        case 'bad_request':
+            return new ModelError('bad_request',
+                'The Coach asked for something the model would not accept.', 502);
         case 'network':
             return new ModelError('network',
                 'The Coach could not reach the analysis service. Try again shortly.', 502);
@@ -165,10 +182,24 @@ function toModelError(kind) {
     }
 }
 
-function fail(kind, status, message) {
+/**
+ * @param {string} [step] which call this came from — 'begin', 'chunk',
+ *   'finalize'. `begin` and `chunk` failures are otherwise identical from
+ *   the browser: proxyVideoUpload calls /begin first and lets its error
+ *   propagate exactly like a chunk error, so both produce the same code
+ *   and the same sentence, and telling them apart has meant reading the
+ *   server logs. It is on the error now.
+ *
+ * The upstream text is attached as `detail` so it can reach the page
+ * rather than only the logs. Redacted first — this is Google describing
+ * our own request, and some of its messages echo request context back.
+ */
+function fail(kind, status, message, step) {
     logFailure(kind, status, message);
     const err = toModelError(kind);
     err.kind = kind;
+    if (step) err.step = step;
+    if (message) err.detail = redact(message);
     return err;
 }
 
@@ -482,17 +513,17 @@ async function startVideoUpload({ displayName, mimeType, sizeBytes }) {
             signal: AbortSignal.timeout(30000),
         });
     } catch (e) {
-        throw fail('network', 0, (e && e.message) || 'fetch failed');
+        throw fail('network', 0, (e && e.message) || 'fetch failed', 'begin');
     }
 
     if (!res.ok) {
         const detail = await readError(res);
-        throw fail(classifyFailure(res.status, detail), res.status, detail);
+        throw fail(classifyFailure(res.status, detail, 'upload'), res.status, detail, 'begin');
     }
 
     const uploadUrl = res.headers.get('x-goog-upload-url');
     if (!uploadUrl) {
-        throw fail('upstream', 0, 'upload started but no X-Goog-Upload-URL was returned');
+        throw fail('upstream', 0, 'upload started but no X-Goog-Upload-URL was returned', 'begin');
     }
     return { uploadUrl };
 }
@@ -569,9 +600,12 @@ async function uploadVideoChunk(uploadUrl, chunk, offset, isFinal) {
     let res;
     try {
         res = await fetch(uploadUrl, {
+            // No Content-Length of ours. Undici strips a manually set one
+            // and computes its own from the body — measured against a
+            // local server, one header with the right value — so writing
+            // it here only implied a guarantee it never provided.
             method: 'POST',
             headers: {
-                'Content-Length': String(chunk.length),
                 'X-Goog-Upload-Offset': String(offset),
                 'X-Goog-Upload-Command': isFinal ? 'upload, finalize' : 'upload',
             },
@@ -583,12 +617,12 @@ async function uploadVideoChunk(uploadUrl, chunk, offset, isFinal) {
             throw new ModelError('timeout',
                 'That part of the upload timed out. Try again.', 504);
         }
-        throw fail('network', 0, (e && e.message) || 'chunk upload failed');
+        throw fail('network', 0, (e && e.message) || 'chunk upload failed', 'chunk');
     }
 
     if (!res.ok) {
         const detail = await readError(res);
-        throw fail(classifyFailure(res.status, detail), res.status, detail);
+        throw fail(classifyFailure(res.status, detail, 'upload'), res.status, detail, 'chunk');
     }
 
     // Only the finalising chunk returns a body worth reading.
@@ -597,7 +631,7 @@ async function uploadVideoChunk(uploadUrl, chunk, offset, isFinal) {
     const body = await res.json();
     const file = body.file || body;
     if (!file || !file.name) {
-        throw fail('upstream', 0, 'upload finished but returned no file record');
+        throw fail('upstream', 0, 'upload finished but returned no file record', 'finalize');
     }
     return file;
 }
@@ -610,9 +644,9 @@ async function uploadVideoBytes(buffer, mimeType, displayName) {
     let res;
     try {
         res = await fetch(uploadUrl, {
+            // See uploadVideoChunk: undici owns Content-Length.
             method: 'POST',
             headers: {
-                'Content-Length': String(buffer.length),
                 'X-Goog-Upload-Offset': '0',
                 'X-Goog-Upload-Command': 'upload, finalize',
             },
@@ -623,18 +657,18 @@ async function uploadVideoBytes(buffer, mimeType, displayName) {
         if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
             throw new ModelError('timeout', 'The upload took too long. Try a shorter clip.', 504);
         }
-        throw fail('network', 0, (e && e.message) || 'upload failed');
+        throw fail('network', 0, (e && e.message) || 'upload failed', 'chunk');
     }
 
     if (!res.ok) {
         const detail = await readError(res);
-        throw fail(classifyFailure(res.status, detail), res.status, detail);
+        throw fail(classifyFailure(res.status, detail, 'upload'), res.status, detail, 'chunk');
     }
 
     const body = await res.json();
     const file = body.file || body;
     if (!file || !file.name) {
-        throw fail('upstream', 0, 'upload finished but returned no file record');
+        throw fail('upstream', 0, 'upload finished but returned no file record', 'finalize');
     }
     return file;
 }
@@ -651,11 +685,13 @@ async function getVideoState(fileName) {
         res = await fetch(`${API}/files/${clean}?key=${encodeURIComponent(apiKey())}`,
             { signal: AbortSignal.timeout(20000) });
     } catch (e) {
-        throw fail('network', 0, (e && e.message) || 'fetch failed');
+        throw fail('network', 0, (e && e.message) || 'fetch failed', 'state');
     }
     if (!res.ok) {
         const detail = await readError(res);
-        throw fail(classifyFailure(res.status, detail), res.status, detail);
+        // Deliberately not 'upload': nothing is being uploaded here, so a
+        // 400 means the file reference was wrong, not that a chunk was.
+        throw fail(classifyFailure(res.status, detail), res.status, detail, 'state');
     }
 
     const body = await res.json();
@@ -690,6 +726,25 @@ async function deleteVideo(fileName) {
  *
  * @returns {{ok: boolean, step: string, status?: number, reason?: string}}
  */
+/**
+ * Turns a thrown ModelError into a probe result.
+ *
+ * `reason` prefers `detail` — the upstream service's own words — over
+ * `message`, which is the sentence written for a cuber. Reporting the
+ * friendly sentence back to an operator was pointless: "That upload was
+ * rejected partway through. Choose the video again." is exactly what
+ * they already know, and Google's description of what was wrong with the
+ * request is the entire reason to run this.
+ */
+function probeFailure(fallbackStep, e) {
+    return {
+        ok: false,
+        step: (e && e.step) || fallbackStep,
+        status: e && e.status,
+        reason: (e && e.detail) || redact(e && e.message),
+    };
+}
+
 async function checkVideoPath() {
     // Small, fixed, and not a real video — the Files API stores bytes
     // against a declared type and does not decode them, which is exactly
@@ -704,14 +759,14 @@ async function checkVideoPath() {
             sizeBytes: payload.length,
         });
     } catch (e) {
-        return { ok: false, step: 'begin', status: e && e.status, reason: redact(e && e.message) };
+        return probeFailure('begin', e);
     }
 
     let file;
     try {
         file = await uploadVideoChunk(session.uploadUrl, payload, 0, true);
     } catch (e) {
-        return { ok: false, step: 'chunk', status: e && e.status, reason: redact(e && e.message) };
+        return probeFailure('chunk', e);
     }
 
     if (!file || !file.name) {
@@ -723,14 +778,18 @@ async function checkVideoPath() {
 }
 
 /**
- * Strips anything key-shaped before a reason is returned to an
- * unauthenticated caller. Google echoes request context in some errors,
- * and a health endpoint that leaks the API key defeats its own purpose.
+ * Strips anything credential-shaped before a reason leaves the server.
+ *
+ * Google echoes request context in some errors, and both the health
+ * endpoint (unauthenticated) and the video error detail (shown on the
+ * page) carry this text. An upload session id is a bearer credential for
+ * that session, so it goes the same way as the API key.
  */
 function redact(message) {
     return String(message || '')
         .replace(/key=[^&\s"']+/gi, 'key=[redacted]')
         .replace(/AIza[0-9A-Za-z_-]{10,}/g, '[redacted]')
+        .replace(/upload_id=[^&\s"']+/gi, 'upload_id=[redacted]')
         .slice(0, 300);
 }
 
