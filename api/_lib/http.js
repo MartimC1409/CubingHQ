@@ -34,6 +34,29 @@ function methodGuard(req, res, allowed) {
 }
 
 /** Body as an object. Vercel usually parses it; fall back to reading it. */
+/**
+ * The request body as raw bytes.
+ *
+ * Separate from readBody because video is not JSON and base64 would
+ * inflate it by a third — which matters when the whole point is fitting
+ * under a platform body limit.
+ */
+async function readRawBody(req, maxBytes) {
+    const cap = maxBytes || MAX_BODY_BYTES;
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of req) {
+        size += chunk.length;
+        if (size > cap) {
+            const err = new Error('That upload was too large to send this way.');
+            err.status = 413; err.code = 'too_large';
+            throw err;
+        }
+        chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+}
+
 async function readBody(req) {
     if (req.body && typeof req.body === 'object') return req.body;
     if (typeof req.body === 'string') {
@@ -101,4 +124,4 @@ function openStream(res) {
     };
 }
 
-module.exports = { sendJson, sendError, methodGuard, readBody, openStream };
+module.exports = { sendJson, sendError, methodGuard, readBody, readRawBody, openStream };

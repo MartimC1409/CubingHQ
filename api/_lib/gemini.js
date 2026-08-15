@@ -522,6 +522,57 @@ async function checkModel() {
     };
 }
 
+/**
+ * Uploads video bytes from the server.
+ *
+ * The browser sending straight to Google is the better path — no bytes
+ * through us, nothing stored, no platform body limit — but it depends on
+ * Google accepting a cross-origin request carrying X-Goog-Upload-*
+ * headers against a session URL, and in practice that has been refused
+ * for at least one real browser. This is the fallback for when it is:
+ * same two-step resumable exchange, run server-side where CORS does not
+ * apply at all.
+ *
+ * Bounded by the caller to whatever the platform will accept as a
+ * request body, so it is only ever a path for short clips.
+ */
+async function uploadVideoBytes(buffer, mimeType, displayName) {
+    const { uploadUrl } = await startVideoUpload({
+        displayName, mimeType, sizeBytes: buffer.length,
+    });
+
+    let res;
+    try {
+        res = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Length': String(buffer.length),
+                'X-Goog-Upload-Offset': '0',
+                'X-Goog-Upload-Command': 'upload, finalize',
+            },
+            body: buffer,
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+    } catch (e) {
+        if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+            throw new ModelError('timeout', 'The upload took too long. Try a shorter clip.', 504);
+        }
+        throw fail('network', 0, (e && e.message) || 'upload failed');
+    }
+
+    if (!res.ok) {
+        const detail = await readError(res);
+        throw fail(classifyFailure(res.status, detail), res.status, detail);
+    }
+
+    const body = await res.json();
+    const file = body.file || body;
+    if (!file || !file.name) {
+        throw fail('upstream', 0, 'upload finished but returned no file record');
+    }
+    return file;
+}
+
 /** Current state of an uploaded file: PROCESSING, ACTIVE or FAILED. */
 async function getVideoState(fileName) {
     const clean = String(fileName || '').replace(/^files\//, '');
@@ -597,6 +648,7 @@ const CoachModel = {
 
     analyseVideo,
     startVideoUpload,
+    uploadVideoBytes,
     getVideoState,
     checkModel,
 };
@@ -615,7 +667,8 @@ module.exports = {
     EFFORT: null,
     _internal: {
         classifyFailure, toGeminiSchema, extractJson, readStream,
-        startVideoUpload, getVideoState, checkModel, extractSuggestedModel,
+        startVideoUpload, uploadVideoBytes, getVideoState, checkModel,
+        extractSuggestedModel,
         MAX_VIDEO_BYTES,
     },
 };
