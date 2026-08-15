@@ -13,7 +13,7 @@
    Bump CACHE_VERSION to retire every previous cache.
    ============================================================ */
 
-const CACHE_VERSION = 'v14';
+const CACHE_VERSION = 'v15';
 const CACHE_NAME = `cubinghq-${CACHE_VERSION}`;
 
 // Enough to boot the app offline on a first visit. Runtime caching picks up
@@ -92,10 +92,44 @@ async function handleNavigation(request) {
     }
 }
 
-// Serve what we have immediately and refresh it in the background. Falls back
-// to an ignoreSearch match so a precached /app.js still answers /app.js?v=10.
-async function handleStatic(request) {
+// A URL carrying an explicit ?v= is versioned by hand: the version is
+// bumped precisely because the bytes changed. Serving such a request
+// from cache buys nothing — the whole point of the new URL is that it is
+// new — and it cost real time here. Every asset on this site is
+// versioned that way, so a change reached users a full page-load late:
+// stale-while-revalidate answered from the old copy first and only then
+// refreshed. Debugging by screenshot against code one revision behind is
+// a very expensive way to find nothing.
+function isVersioned(url) {
+    return url.searchParams.has('v');
+}
+
+/**
+ * Static assets.
+ *
+ * Versioned URLs go to the network first and fall back to cache only
+ * when offline. Everything else keeps stale-while-revalidate, which is
+ * the right trade for a URL that never changes its name.
+ */
+async function handleStatic(request, url) {
     const cache = await caches.open(CACHE_NAME);
+
+    if (isVersioned(url)) {
+        try {
+            const fresh = await fetch(request);
+            if (isCacheableResponse(fresh)) cache.put(request, fresh.clone());
+            return fresh;
+        } catch (err) {
+            // Offline. An exact match only: an ignoreSearch match here
+            // would hand back a DIFFERENT version of the file, which is
+            // the bug this function exists to avoid.
+            return (await cache.match(request)) || Response.error();
+        }
+    }
+
+    // Unversioned: serve what we have and refresh behind it. The
+    // ignoreSearch fallback stays for this path only — it is what lets a
+    // precached bare /app.js answer a request that picked up a query.
     const cached = (await cache.match(request))
         || (await cache.match(request, { ignoreSearch: true }));
 
@@ -127,7 +161,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    event.respondWith(handleStatic(request));
+    event.respondWith(handleStatic(request, url));
 });
 
 // Lets a page ask a waiting worker to take over immediately.
