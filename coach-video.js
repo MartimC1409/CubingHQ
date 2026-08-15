@@ -10,10 +10,11 @@
 
    When that direct route is refused — measured, not assumed: the
    reachability probe has shown Google up while the upload itself got no
-   response — the file goes through our own API instead. That path is
-   capped by what a serverless request body can carry, so it rescues the
-   short clip a solve actually is and says so plainly for anything
-   larger. Even then nothing is stored; the bytes pass through.
+   response — the file goes through our own API instead, in slices. A
+   serverless request body caps out a few megabytes up, so the fallback
+   uses the byte offsets the resumable protocol already provides and the
+   limit applies to one request rather than to the video. Even then
+   nothing is stored; the bytes pass through.
 
    XMLHttpRequest rather than fetch for the upload itself: fetch still
    cannot report upload progress, and a silent bar during a 40MB send
@@ -44,11 +45,6 @@
     const PROBE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
     const PROBE_TIMEOUT_MS = 8000;
 
-    // The fallback route sends the file through our own server, so it is
-    // bounded by what a serverless request body can carry. Kept just
-    // under the platform ceiling so the refusal is ours and explains
-    // itself, rather than a platform error page.
-    const PROXY_MAX_BYTES = 4 * 1024 * 1024;
 
     /**
      * Can this browser reach the analysis service?
@@ -338,24 +334,17 @@
                 const worthRetrying = d && d.status === 0 && d.online !== false && d.kind !== 'timeout';
                 if (!worthRetrying) throw directErr;
 
-                if (file.size > PROXY_MAX_BYTES) {
-                    // Honest rather than hopeful: this route genuinely
-                    // cannot carry the file, and saying so beats a retry
-                    // that was never going to work.
-                    const mb = Math.round(PROXY_MAX_BYTES / (1024 * 1024));
-                    const err = new Error(UI().T('coach.video.errTooBigForFallback',
-                        `Sending directly failed, and the backup route only takes clips under ${mb}MB. `
-                        + 'A shorter or smaller video should go through.'));
-                    err.detail = Object.assign({ fallback: 'too_large' }, d);
-                    throw err;
-                }
-
                 console.warn('[Coach] direct upload refused, falling back through the server', d);
                 setStatus(UI().esc(UI().T('coach.video.retrying',
                     'Direct upload was refused — sending it another way…')));
 
                 try {
-                    uploaded = await window.CoachAPI.proxyVideoUpload(file);
+                    // Chunked, so the file size is no longer bounded by
+                    // what one request body can carry.
+                    uploaded = await window.CoachAPI.proxyVideoUpload(file, (frac) => {
+                        const pct = Math.round(frac * 100);
+                        setStatus(`${UI().esc(UI().T('coach.video.uploading', 'Uploading…'))} ${pct}%`);
+                    });
                     usedFallback = true;
                 } catch (proxyErr) {
                     // Both routes are gone. The fallback's reason is the

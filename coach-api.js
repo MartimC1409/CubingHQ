@@ -222,23 +222,59 @@
     }
 
     /**
-     * Fallback upload, through our own server.
+     * Fallback upload, through our own server, in slices.
      *
-     * The file is the body — not a JSON field — because base64 would
-     * cost a third of a size limit that is already the binding
-     * constraint here.
+     * A serverless request body caps out a few megabytes up, which is
+     * why this is chunked rather than one POST: the resumable protocol
+     * Google is already speaking takes byte offsets, so the ceiling is
+     * a property of one request rather than of the file.
+     *
+     * Each slice is the body itself — not a JSON field — because base64
+     * would spend a third of the very limit being worked around.
+     *
+     * Sequential on purpose: resumable offsets have to arrive in order.
      */
-    async function proxyVideoUpload(file) {
-        const headers = authHeaders();
-        delete headers['Content-Type'];
-        headers['Content-Type'] = 'application/octet-stream';
-        headers['X-Video-Type'] = file.type || 'video/mp4';
-
-        const res = await fetch('/api/coach/video/proxy', {
-            method: 'POST', headers, body: file,
+    async function proxyVideoUpload(file, onProgress) {
+        const begun = await requestJSON('/api/coach/video/begin', {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({
+                mimeType: file.type || 'video/mp4',
+                sizeBytes: file.size,
+            }),
         });
-        if (!res.ok) throw await toError(res);
-        return res.json();
+
+        const size = Math.max(1, begun.chunkBytes || 3 * 1024 * 1024);
+        let offset = 0;
+        let result = null;
+
+        while (offset < file.size) {
+            const end = Math.min(offset + size, file.size);
+            const isFinal = end >= file.size;
+
+            const headers = authHeaders();
+            headers['Content-Type'] = 'application/octet-stream';
+            headers['X-Upload-Token'] = begun.token;
+            headers['X-Upload-Offset'] = String(offset);
+            headers['X-Upload-Final'] = isFinal ? '1' : '0';
+
+            const res = await fetch('/api/coach/video/chunk', {
+                method: 'POST', headers, body: file.slice(offset, end),
+            });
+            if (!res.ok) throw await toError(res);
+            const body = await res.json();
+
+            offset = end;
+            // Progress across the whole file, not within a slice — a bar
+            // that restarts at every chunk reads as a stuck upload.
+            if (typeof onProgress === 'function') onProgress(offset / file.size);
+            if (body.done) result = body;
+        }
+
+        if (!result) {
+            throw new CoachError('incomplete',
+                'The upload finished without confirming. Try again.');
+        }
+        return result;
     }
 
     const analyseVideo = (payload, handlers) =>
