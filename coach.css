@@ -639,3 +639,23 @@
     .coach-video-obs { padding: 12px 13px; }
     .coach-video-obs p { font-size: 14px; }
 }
+
+/* Failure detail, collapsed. Problems get reported by screenshot, and a
+   screenshot cannot show a console nobody opened — so the evidence has
+   to be on the page, just not in the way. */
+.coach-video-detail {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--clr-text-muted);
+}
+.coach-video-detail summary {
+    cursor: pointer;
+    user-select: none;
+}
+.coach-video-detail ul {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    font-family: var(--font-mono, monospace);
+    word-break: break-word;
+}
+.coach-video-detail li { margin-bottom: 3px; }

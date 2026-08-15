@@ -67,7 +67,9 @@ function makeXHR(behaviour) {
     };
 }
 
-function makeWindow(behaviour, { online = true } = {}) {
+let probeCalls = [];
+
+function makeWindow(behaviour, { online = true, probe = 'reachable' } = {}) {
     const el = () => ({
         hidden: false, className: '', innerHTML: '', value: '', disabled: false,
         files: [], addEventListener() { }, click() { }, querySelectorAll: () => [],
@@ -91,6 +93,19 @@ function makeWindow(behaviour, { online = true } = {}) {
         },
         setTimeout, clearTimeout, JSON, Math, Date, Object, Array, String, Number,
         Boolean, Promise, Error, RegExp, Set, Map, isFinite, parseInt, parseFloat,
+        AbortController,
+        // The reachability probe. Any HTTP response means reachable; a
+        // rejection means the host is blocked on this device.
+        fetch: (url, opts) => {
+            probeCalls.push({ url: String(url), opts });
+            if (probe === 'blocked') return Promise.reject(new TypeError('Failed to fetch'));
+            if (probe === 'abort') {
+                const e = new Error('aborted'); e.name = 'AbortError';
+                return Promise.reject(e);
+            }
+            if (probe === 'throws') return Promise.reject(new Error('probe exploded'));
+            return Promise.resolve({ ok: false, status: 400 });
+        },
         // Just enough CoachUI for the module to render text.
         CoachUI: {
             esc: (s) => String(s),
@@ -114,6 +129,7 @@ function makeWindow(behaviour, { online = true } = {}) {
 /** Runs putFile against a stubbed transport and returns the rejection. */
 async function upload(behaviour, opts) {
     logged.length = 0;
+    probeCalls = [];
     const win = makeWindow(behaviour, opts);
     // putFile is module-private; drive it through the public entry point.
     win.CoachAPI.startVideoUpload = async () => ({
@@ -137,7 +153,7 @@ async function upload(behaviour, opts) {
     };
 
     await win.CoachVideo.analyse({ size: 1000, type: 'video/mp4', name: 'solve.mp4' });
-    return { shown, logged: logged.slice() };
+    return { shown, logged: logged.slice(), probes: probeCalls.slice() };
 }
 
 (async () => {
@@ -146,16 +162,61 @@ async function upload(behaviour, opts) {
     let r = await upload({ event: 'error', status: 0 }, { online: false });
     check('offline says so', /offline/i.test(r.shown), r.shown);
 
-    /* ---------- online + status 0 is NOT a connection problem --- */
+    /* ---------- status 0: measured, not guessed ------------------ */
 
-    r = await upload({ event: 'error', status: 0 }, { online: true });
-    check('a blocked request is reported as blocked', /blocked/i.test(r.shown), r.shown);
-    // The whole point of this round: the old message sent people to check
-    // a connection that was demonstrably working.
-    check('and does not blame the connection',
-        !/check your connection/i.test(r.shown), r.shown);
-    check('it names a plausible culprit',
+    // The device really cannot reach the host — now established rather
+    // than assumed, so naming extensions is fair.
+    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'blocked' });
+    check('an unreachable service is reported as blocked',
+        /cannot reach/i.test(r.shown), r.shown);
+    check('and names a plausible culprit',
         /extension|VPN|filter/i.test(r.shown), r.shown);
+    check('it never blames the connection',
+        !/check your connection/i.test(r.shown), r.shown);
+    eq('the probe ran once', r.probes.length, 1);
+    check('the probe carries no API key',
+        !/key=/i.test(r.probes[0].url), r.probes[0].url);
+    check('the probe targets the service host',
+        /generativelanguage\.googleapis\.com/.test(r.probes[0].url), r.probes[0].url);
+
+    // The host IS reachable, so this is ours — and blaming the user's
+    // network here would send them chasing a problem they do not have.
+    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'reachable' });
+    check('a reachable service means the upload was refused',
+        /refused/i.test(r.shown), r.shown);
+    check('and it is owned as our problem',
+        /our side|report/i.test(r.shown), r.shown);
+    check('it does not blame an extension',
+        !/extension|VPN|filter/i.test(r.shown), r.shown);
+
+    // An aborted probe decided nothing; claiming either cause would be
+    // the same overclaim in a new place.
+    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'abort' });
+    check('an inconclusive probe asserts neither cause',
+        !/cannot reach/i.test(r.shown) && !/refused/i.test(r.shown), r.shown);
+    check('but still says what was observed',
+        /did not reach/i.test(r.shown), r.shown);
+
+    // A probe that explodes must not swallow the upload failure.
+    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'throws' });
+    check('a broken probe still reports a failure', /reach|refused/i.test(r.shown), r.shown);
+
+    // Offline needs no probe — the browser already knows.
+    r = await upload({ event: 'error', status: 0 }, { online: false });
+    eq('offline skips the probe', r.probes.length, 0);
+
+    // An HTTP rejection already carries its reason; probing would be an
+    // extra request that answers nothing.
+    r = await upload({ event: 'load', status: 400 });
+    eq('an HTTP failure does not probe', r.probes.length, 0);
+
+    /* ---------- the detail is on the page, not just the console -- */
+
+    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'blocked' });
+    check('a details block is rendered', /<details/.test(r.shown), r.shown);
+    check('it records whether the service was reachable',
+        /service reachable/i.test(r.shown), r.shown);
+    check('and the online state', /online/i.test(r.shown), r.shown);
 
     /* ---------- Google's own reason ----------------------------- */
 
