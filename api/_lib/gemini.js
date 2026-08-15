@@ -536,6 +536,55 @@ async function checkModel() {
  * Bounded by the caller to whatever the platform will accept as a
  * request body, so it is only ever a path for short clips.
  */
+/**
+ * Relays one chunk of a resumable upload.
+ *
+ * The protocol this adapter already speaks supports uploading in pieces
+ * at byte offsets — `upload` for each chunk and `upload, finalize` on
+ * the last. Using it properly is what lets a video exceed the few
+ * megabytes a serverless request body can carry, without re-encoding
+ * the file and destroying the very detail the analysis is looking at.
+ *
+ * @param {string} uploadUrl the session URL, already verified by caller
+ * @returns {object|null} the file record on the finalising chunk
+ */
+async function uploadVideoChunk(uploadUrl, chunk, offset, isFinal) {
+    let res;
+    try {
+        res = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Length': String(chunk.length),
+                'X-Goog-Upload-Offset': String(offset),
+                'X-Goog-Upload-Command': isFinal ? 'upload, finalize' : 'upload',
+            },
+            body: chunk,
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+    } catch (e) {
+        if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+            throw new ModelError('timeout',
+                'That part of the upload timed out. Try again.', 504);
+        }
+        throw fail('network', 0, (e && e.message) || 'chunk upload failed');
+    }
+
+    if (!res.ok) {
+        const detail = await readError(res);
+        throw fail(classifyFailure(res.status, detail), res.status, detail);
+    }
+
+    // Only the finalising chunk returns a body worth reading.
+    if (!isFinal) return null;
+
+    const body = await res.json();
+    const file = body.file || body;
+    if (!file || !file.name) {
+        throw fail('upstream', 0, 'upload finished but returned no file record');
+    }
+    return file;
+}
+
 async function uploadVideoBytes(buffer, mimeType, displayName) {
     const { uploadUrl } = await startVideoUpload({
         displayName, mimeType, sizeBytes: buffer.length,
@@ -649,6 +698,7 @@ const CoachModel = {
     analyseVideo,
     startVideoUpload,
     uploadVideoBytes,
+    uploadVideoChunk,
     getVideoState,
     checkModel,
 };
@@ -667,7 +717,8 @@ module.exports = {
     EFFORT: null,
     _internal: {
         classifyFailure, toGeminiSchema, extractJson, readStream,
-        startVideoUpload, uploadVideoBytes, getVideoState, checkModel,
+        startVideoUpload, uploadVideoBytes, uploadVideoChunk,
+        getVideoState, checkModel,
         extractSuggestedModel,
         MAX_VIDEO_BYTES,
     },

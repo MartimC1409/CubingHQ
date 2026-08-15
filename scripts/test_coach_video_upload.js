@@ -211,17 +211,16 @@ async function upload(behaviour, opts) {
         r.probes.length > 0 && /generativelanguage\.googleapis\.com/.test(r.probes[0].url),
         JSON.stringify(r.probes));
 
-    // Honest rather than hopeful: this route genuinely cannot carry it.
+    // A large file is no longer refused: the fallback chunks it, so the
+    // request-body limit applies to one slice rather than to the video.
     proxied = null;
     r = await upload({ event: 'error', status: 0 }, {
         online: true, probe: 'reachable', fileSize: 20 * 1024 * 1024,
-        proxy: async () => { proxied = 'called'; return {}; },
+        proxy: goodProxy,
     });
-    eq('an oversize file is not pushed through the fallback', proxied, null);
-    check('and the size limit is explained', /4MB|smaller|shorter/i.test(r.shown), r.shown);
-    check('the probe does not overwrite that with something vaguer',
-        !/please report/i.test(r.shown), r.shown);
-    eq('and no probe is needed', r.probes.length, 0);
+    check('a large file now goes through the fallback', !!proxied);
+    eq('and it is the whole file', proxied.size, 20 * 1024 * 1024);
+    check('no size complaint is shown', !/4MB|too large/i.test(r.shown), r.shown);
 
     /* ---------- the fast path stays the default ----------------- */
 
