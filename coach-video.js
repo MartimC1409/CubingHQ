@@ -168,6 +168,13 @@
             ['fallback', detail.fallback],
             ['fallback code', detail.fallbackCode],
             ['fallback status', detail.fallbackStatus],
+            // Which server-side call failed. Opening the upload session
+            // and sending a slice produce the identical code and the
+            // identical sentence, so without this the two are told apart
+            // only by reading the deploy logs.
+            ['fallback step', detail.fallbackStep],
+            // The upstream service's own words, redacted server-side.
+            ['fallback detail', detail.fallbackDetail],
         ].filter(([, v]) => v !== null && v !== undefined && v !== '');
 
         if (!rows.length) return '';
@@ -370,10 +377,14 @@
                         // reason — the useful half — never reaches the page.
                         fallbackCode: (proxyErr && proxyErr.code) || 'none',
                         fallbackStatus: (proxyErr && proxyErr.status) || 0,
+                        fallbackStep: (proxyErr && proxyErr.step) || null,
+                        fallbackDetail: (proxyErr && proxyErr.detail) || null,
                     });
                     console.warn('[Coach] fallback upload failed', {
                         code: err.detail.fallbackCode,
                         status: err.detail.fallbackStatus,
+                        step: err.detail.fallbackStep,
+                        detail: err.detail.fallbackDetail,
                     }, proxyErr);
                     throw err;
                 }

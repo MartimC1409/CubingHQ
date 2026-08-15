@@ -217,7 +217,7 @@ async function upload(behaviour, opts) {
     // own server — and it was being dropped, so the screenshot that
     // should have ended the investigation could not contain the answer.
     const serverError = Object.assign(new Error('the coach could not reach the service'),
-        { code: 'network', status: 502 });
+        { code: 'network', status: 502, step: 'begin', detail: 'getaddrinfo ENOTFOUND' });
     r = await upload({ event: 'error', status: 0 }, {
         online: true, probe: 'reachable',
         proxy: async () => { throw serverError; },
@@ -226,6 +226,13 @@ async function upload(behaviour, opts) {
     check("and the server's own error code", /fallback code/i.test(r.shown) && /network/.test(r.shown),
         r.shown);
     check('and its HTTP status', /fallback status/i.test(r.shown) && /502/.test(r.shown), r.shown);
+    // Opening the upload session and sending a slice fail with the same
+    // code and the same sentence. Without the step, one screenshot
+    // cannot tell them apart and the answer lives only in a deploy log.
+    check('and which server-side call failed',
+        /fallback step/i.test(r.shown) && /begin/.test(r.shown), r.shown);
+    check("and the upstream service's own words",
+        /fallback detail/i.test(r.shown) && /ENOTFOUND/.test(r.shown), r.shown);
     check('the direct attempt is still described too',
         /service reachable/i.test(r.shown), r.shown);
 
@@ -236,6 +243,9 @@ async function upload(behaviour, opts) {
     });
     check('a codeless failure still reports something', /fallback code/i.test(r.shown), r.shown);
     check('rather than an empty row', !/fallback code:\s*<\/li>/i.test(r.shown), r.shown);
+    check('and an absent step prints no row at all',
+        !/fallback step/i.test(r.shown), r.shown);
+    check('nor an empty detail row', !/fallback detail/i.test(r.shown), r.shown);
 
     // A large file is no longer refused: the fallback chunks it, so the
     // request-body limit applies to one slice rather than to the video.
