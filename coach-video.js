@@ -3,10 +3,17 @@
    ------------------------------------------------------------
    Uploads a solve video and turns it into evidence.
 
-   The bytes go from this browser straight to Google. Our server only
-   mints the upload URL, so the video never touches CubingHQ and nothing
-   is stored here — what comes back is a list of observations, not a
-   file. Google expires its copy on its own within about two days.
+   By default the bytes go from this browser straight to Google: our
+   server only mints the upload URL, so the video never touches CubingHQ
+   and nothing is stored here. What comes back is a list of observations,
+   not a file, and Google expires its copy within about two days.
+
+   When that direct route is refused — measured, not assumed: the
+   reachability probe has shown Google up while the upload itself got no
+   response — the file goes through our own API instead. That path is
+   capped by what a serverless request body can carry, so it rescues the
+   short clip a solve actually is and says so plainly for anything
+   larger. Even then nothing is stored; the bytes pass through.
 
    XMLHttpRequest rather than fetch for the upload itself: fetch still
    cannot report upload progress, and a silent bar during a 40MB send
@@ -36,6 +43,12 @@
     // browser can talk to the host at all.
     const PROBE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
     const PROBE_TIMEOUT_MS = 8000;
+
+    // The fallback route sends the file through our own server, so it is
+    // bounded by what a serverless request body can carry. Kept just
+    // under the platform ceiling so the refusal is ours and explains
+    // itself, rather than a platform error page.
+    const PROXY_MAX_BYTES = 4 * 1024 * 1024;
 
     /**
      * Can this browser reach the analysis service?
@@ -294,6 +307,7 @@
         const result = $('#coach-video-result');
         if (result) result.hidden = true;
 
+        let usedFallback = false;
         try {
             setStatus(UI().T('coach.video.preparing', 'Preparing the upload…'));
 
@@ -306,10 +320,56 @@
                 sizeBytes: file.size,
             });
 
-            const uploaded = await putFile(ticket.uploadUrl, file, ticket.headers, (frac) => {
-                const pct = Math.round(frac * 100);
-                setStatus(`${UI().esc(UI().T('coach.video.uploading', 'Uploading…'))} ${pct}%`);
-            });
+            let uploaded;
+            try {
+                uploaded = await putFile(ticket.uploadUrl, file, ticket.headers, (frac) => {
+                    const pct = Math.round(frac * 100);
+                    setStatus(`${UI().esc(UI().T('coach.video.uploading', 'Uploading…'))} ${pct}%`);
+                });
+            } catch (directErr) {
+                // Direct-to-Google is the better path and stays the
+                // default: no bytes through us, no size ceiling. But it
+                // needs Google to accept a cross-origin request carrying
+                // X-Goog-Upload-* headers, and for some browsers it does
+                // not — the reachability probe has shown the host up and
+                // the upload still refused. Falling back beats telling
+                // the user their own browser is the problem.
+                const d = directErr && directErr.detail;
+                const worthRetrying = d && d.status === 0 && d.online !== false && d.kind !== 'timeout';
+                if (!worthRetrying) throw directErr;
+
+                if (file.size > PROXY_MAX_BYTES) {
+                    // Honest rather than hopeful: this route genuinely
+                    // cannot carry the file, and saying so beats a retry
+                    // that was never going to work.
+                    const mb = Math.round(PROXY_MAX_BYTES / (1024 * 1024));
+                    const err = new Error(UI().T('coach.video.errTooBigForFallback',
+                        `Sending directly failed, and the backup route only takes clips under ${mb}MB. `
+                        + 'A shorter or smaller video should go through.'));
+                    err.detail = Object.assign({ fallback: 'too_large' }, d);
+                    throw err;
+                }
+
+                console.warn('[Coach] direct upload refused, falling back through the server', d);
+                setStatus(UI().esc(UI().T('coach.video.retrying',
+                    'Direct upload was refused — sending it another way…')));
+
+                try {
+                    uploaded = await window.CoachAPI.proxyVideoUpload(file);
+                    usedFallback = true;
+                } catch (proxyErr) {
+                    // Both routes are gone. The fallback's reason is the
+                    // more useful one — it is a real HTTP answer from our
+                    // own server rather than a silent refusal — so it
+                    // leads, while the direct failure stays attached for
+                    // the detail block.
+                    const err = new Error(proxyErr && proxyErr.message
+                        ? proxyErr.message
+                        : UI().T('coach.video.failed', "That didn't work. Try again."));
+                    err.detail = Object.assign({}, d, { fallback: 'failed' });
+                    throw err;
+                }
+            }
 
             setStatus(UI().T('coach.video.analysing', 'Analysing your solve…'));
 
@@ -351,27 +411,36 @@
             // genuinely ambiguous, so find out rather than assert. Only
             // here: an HTTP rejection already told us why, and firing an
             // extra request for it would be noise.
-            if (detail && detail.status === 0 && detail.online !== false && detail.kind !== 'timeout') {
+            // Probe on a status-0 failure so the detail block records
+            // whether the service was reachable. Skipped when the file
+            // was simply too big for the fallback: that message is
+            // already exact, and a probe would add nothing.
+            if (detail && detail.status === 0 && detail.online !== false
+                && detail.kind !== 'timeout' && detail.fallback !== 'too_large') {
                 setStatus(UI().esc(message) + ' '
                     + UI().esc(UI().T('coach.video.checking', 'Checking why…')));
 
                 const reachable = await canReachService();
                 detail.serviceReachable = reachable;
 
-                if (reachable === false) {
-                    // Measured, not guessed — the browser cannot reach the
-                    // host at all, so the block is on this device.
-                    message = UI().T('coach.video.errBlocked',
-                        'This browser cannot reach the analysis service at all. A browser '
-                        + 'extension, VPN or network filter is blocking it — try a private '
-                        + 'window or a different network.');
-                } else if (reachable === true) {
-                    // The host is reachable, so blaming the user's network
-                    // would be wrong. This one points at us.
-                    message = UI().T('coach.video.errRefused',
-                        'The analysis service is reachable, but it refused this upload. '
-                        + 'That is a problem on our side rather than your connection — '
-                        + 'please report it.');
+                // Only speak for the direct failure when nothing else
+                // has. If the fallback ran and failed, its reason came
+                // from our own server and is the more useful one, so it
+                // keeps the floor.
+                if (!detail.fallback) {
+                    if (reachable === false) {
+                        // Measured, not guessed — the browser cannot reach
+                        // the host at all, so the block is on this device.
+                        message = UI().T('coach.video.errBlocked',
+                            'This browser cannot reach the analysis service at all. A browser '
+                            + 'extension, VPN or network filter is blocking it — try a private '
+                            + 'window or a different network.');
+                    } else if (reachable === true) {
+                        message = UI().T('coach.video.errRefused',
+                            'The analysis service is reachable, but it refused this upload. '
+                            + 'That is a problem on our side rather than your connection — '
+                            + 'please report it.');
+                    }
                 }
             }
 

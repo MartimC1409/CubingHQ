@@ -221,6 +221,26 @@
         });
     }
 
+    /**
+     * Fallback upload, through our own server.
+     *
+     * The file is the body — not a JSON field — because base64 would
+     * cost a third of a size limit that is already the binding
+     * constraint here.
+     */
+    async function proxyVideoUpload(file) {
+        const headers = authHeaders();
+        delete headers['Content-Type'];
+        headers['Content-Type'] = 'application/octet-stream';
+        headers['X-Video-Type'] = file.type || 'video/mp4';
+
+        const res = await fetch('/api/coach/video/proxy', {
+            method: 'POST', headers, body: file,
+        });
+        if (!res.ok) throw await toError(res);
+        return res.json();
+    }
+
     const analyseVideo = (payload, handlers) =>
         stream('/api/coach/video/analyse', payload, handlers);
 
@@ -232,7 +252,7 @@
     window.CoachAPI = {
         loadProfile, saveProfile, deleteProfile,
         assess, plan, revise, chat,
-        startVideoUpload, analyseVideo,
+        startVideoUpload, proxyVideoUpload, analyseVideo,
         CoachError, friendly,
     };
 })();

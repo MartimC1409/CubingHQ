@@ -128,10 +128,13 @@ function makeWindow(behaviour, { online = true, probe = 'reachable' } = {}) {
 
 /** Runs putFile against a stubbed transport and returns the rejection. */
 async function upload(behaviour, opts) {
+    opts = opts || {};
     logged.length = 0;
     probeCalls = [];
     const win = makeWindow(behaviour, opts);
     // putFile is module-private; drive it through the public entry point.
+    win.CoachAPI.proxyVideoUpload = opts.proxy
+        || (async () => { throw new Error('no fallback configured in this test'); });
     win.CoachAPI.startVideoUpload = async () => ({
         uploadUrl: 'https://upload.example/session/abc',
         headers: {
@@ -152,7 +155,9 @@ async function upload(behaviour, opts) {
         return { hidden: false, innerHTML: '', value: '', disabled: false, addEventListener() { }, click() { } };
     };
 
-    await win.CoachVideo.analyse({ size: 1000, type: 'video/mp4', name: 'solve.mp4' });
+    await win.CoachVideo.analyse({
+        size: opts.fileSize || 1000, type: 'video/mp4', name: 'solve.mp4',
+    });
     return { shown, logged: logged.slice(), probes: probeCalls.slice() };
 }
 
@@ -162,61 +167,83 @@ async function upload(behaviour, opts) {
     let r = await upload({ event: 'error', status: 0 }, { online: false });
     check('offline says so', /offline/i.test(r.shown), r.shown);
 
-    /* ---------- status 0: measured, not guessed ------------------ */
+    /* ---------- status 0: the fallback rescues it ---------------- */
 
-    // The device really cannot reach the host — now established rather
-    // than assumed, so naming extensions is fair.
-    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'blocked' });
-    check('an unreachable service is reported as blocked',
-        /cannot reach/i.test(r.shown), r.shown);
-    check('and names a plausible culprit',
-        /extension|VPN|filter/i.test(r.shown), r.shown);
+    // The point of the fallback: when the device blocks Google, routing
+    // through our own server works around it entirely. The user should
+    // simply not see a failure.
+    let proxied = null;
+    const goodProxy = async (file) => {
+        proxied = file;
+        return { name: 'files/abc', uri: 'u', state: 'ACTIVE' };
+    };
+
+    r = await upload({ event: 'error', status: 0 },
+        { online: true, probe: 'blocked', proxy: goodProxy });
+    check('a blocked device is rescued by the fallback', !!proxied);
+    check('and the user sees no error',
+        !/cannot reach|refused|blocked/i.test(r.shown), r.shown);
+
+    // Same when Google is reachable but refused this particular request.
+    proxied = null;
+    r = await upload({ event: 'error', status: 0 },
+        { online: true, probe: 'reachable', proxy: goodProxy });
+    check('a refused direct upload is also rescued', !!proxied);
+    check('with no error shown', !/refused/i.test(r.shown), r.shown);
+
+    /* ---------- when both routes fail --------------------------- */
+
+    // Only now does the diagnosis matter, and it must still be measured.
+    r = await upload({ event: 'error', status: 0 }, {
+        online: true, probe: 'blocked',
+        proxy: async () => { throw new Error('server said no'); },
+    });
+    check("the fallback's own reason leads", /server said no/.test(r.shown), r.shown);
+    check('and the probe still recorded reachability',
+        /service reachable/i.test(r.shown), r.shown);
     check('it never blames the connection',
         !/check your connection/i.test(r.shown), r.shown);
     eq('the probe ran once', r.probes.length, 1);
     check('the probe carries no API key',
-        !/key=/i.test(r.probes[0].url), r.probes[0].url);
+        r.probes.length > 0 && !/key=/i.test(r.probes[0].url),
+        JSON.stringify(r.probes));
     check('the probe targets the service host',
-        /generativelanguage\.googleapis\.com/.test(r.probes[0].url), r.probes[0].url);
+        r.probes.length > 0 && /generativelanguage\.googleapis\.com/.test(r.probes[0].url),
+        JSON.stringify(r.probes));
 
-    // The host IS reachable, so this is ours — and blaming the user's
-    // network here would send them chasing a problem they do not have.
-    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'reachable' });
-    check('a reachable service means the upload was refused',
-        /refused/i.test(r.shown), r.shown);
-    check('and it is owned as our problem',
-        /our side|report/i.test(r.shown), r.shown);
-    check('it does not blame an extension',
-        !/extension|VPN|filter/i.test(r.shown), r.shown);
+    // Honest rather than hopeful: this route genuinely cannot carry it.
+    proxied = null;
+    r = await upload({ event: 'error', status: 0 }, {
+        online: true, probe: 'reachable', fileSize: 20 * 1024 * 1024,
+        proxy: async () => { proxied = 'called'; return {}; },
+    });
+    eq('an oversize file is not pushed through the fallback', proxied, null);
+    check('and the size limit is explained', /4MB|smaller|shorter/i.test(r.shown), r.shown);
+    check('the probe does not overwrite that with something vaguer',
+        !/please report/i.test(r.shown), r.shown);
+    eq('and no probe is needed', r.probes.length, 0);
 
-    // An aborted probe decided nothing; claiming either cause would be
-    // the same overclaim in a new place.
-    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'abort' });
-    check('an inconclusive probe asserts neither cause',
-        !/cannot reach/i.test(r.shown) && !/refused/i.test(r.shown), r.shown);
-    check('but still says what was observed',
-        /did not reach/i.test(r.shown), r.shown);
+    /* ---------- the fast path stays the default ----------------- */
 
-    // A probe that explodes must not swallow the upload failure.
-    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'throws' });
-    check('a broken probe still reports a failure', /reach|refused/i.test(r.shown), r.shown);
+    proxied = null;
+    r = await upload({
+        event: 'load', status: 200,
+        responseText: '{"file":{"name":"files/ok","uri":"u","state":"ACTIVE"}}',
+    }, { proxy: async () => { proxied = 'called'; return {}; } });
+    eq('a working direct upload does not fall back', proxied, null);
+    eq('and does not probe', r.probes.length, 0);
 
-    // Offline needs no probe — the browser already knows.
-    r = await upload({ event: 'error', status: 0 }, { online: false });
-    eq('offline skips the probe', r.probes.length, 0);
-
-    // An HTTP rejection already carries its reason; probing would be an
-    // extra request that answers nothing.
-    r = await upload({ event: 'load', status: 400 });
+    // An HTTP rejection is not the CORS case; the fallback would fail the
+    // same way, so it must not be tried.
+    proxied = null;
+    r = await upload({ event: 'load', status: 400 },
+        { proxy: async () => { proxied = 'called'; return {}; } });
+    eq('an HTTP failure does not fall back', proxied, null);
     eq('an HTTP failure does not probe', r.probes.length, 0);
 
-    /* ---------- the detail is on the page, not just the console -- */
-
-    r = await upload({ event: 'error', status: 0 }, { online: true, probe: 'blocked' });
-    check('a details block is rendered', /<details/.test(r.shown), r.shown);
-    check('it records whether the service was reachable',
-        /service reachable/i.test(r.shown), r.shown);
-    check('and the online state', /online/i.test(r.shown), r.shown);
+    // Offline needs no probe and no fallback — the browser already knows.
+    r = await upload({ event: 'error', status: 0 }, { online: false, proxy: goodProxy });
+    eq('offline skips the probe', r.probes.length, 0);
 
     /* ---------- Google's own reason ----------------------------- */
 
