@@ -13,7 +13,7 @@
    Bump CACHE_VERSION to retire every previous cache.
    ============================================================ */
 
-const CACHE_VERSION = 'v16';
+const CACHE_VERSION = 'v17';
 const CACHE_NAME = `cubinghq-${CACHE_VERSION}`;
 
 // Enough to boot the app offline on a first visit. Runtime caching picks up

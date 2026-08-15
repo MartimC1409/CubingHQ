@@ -1876,6 +1876,37 @@
     <!-- Offline support / installability. Never allowed to break the page. -->
     <script>
         if ('serviceWorker' in navigator) {
+            /* The page that triggers a worker update is always the stale
+               one: its scripts were already served by the OLD worker's
+               cache before the new one installed and claimed control. So
+               a change needed a second, manual reload to appear — which
+               is not something to keep asking of anyone.
+
+               Reloading when control changes closes that gap. Two guards,
+               because an automatic reload is exactly the kind of thing
+               that goes wrong loudly:
+
+                 - not on the first install, where there is no previous
+                   controller and so nothing stale to replace; reloading
+                   a first-time visitor for no reason is worse than the
+                   problem being solved.
+                 - once per session, so a worker that somehow re-claims
+                   repeatedly cannot turn this into a reload loop. A loop
+                   on a live site is far worse than a stale asset. */
+            const hadController = !!navigator.serviceWorker.controller;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!hadController) return;
+                try {
+                    if (sessionStorage.getItem('chq-sw-reloaded')) return;
+                    sessionStorage.setItem('chq-sw-reloaded', '1');
+                } catch (e) {
+                    /* Private mode can throw on sessionStorage. Without a
+                       guard a reload could repeat, so skip it entirely. */
+                    return;
+                }
+                window.location.reload();
+            });
+
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').catch((err) => {
                     console.warn('Service worker registration failed:', err);
