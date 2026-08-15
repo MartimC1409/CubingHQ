@@ -156,6 +156,29 @@
             'coach.video.added': 'Added to your coaching evidence. Re-run your assessment to use it.',
             'coach.video.needProfile': 'Finish setting up first.',
             'coach.video.failed': "That didn't work. Try again.",
+
+            /* Coach API failures. These were English-only until now: the
+               map lives in coach-api.js and nothing translated it, so a
+               Portuguese page showed an English sentence at exactly the
+               moment something had already gone wrong. Keys match the
+               server's error codes one for one. */
+            'coach.err.offline': "You're offline. The Coach needs a connection for this — your data is safe on this device.",
+            'coach.err.timeout': 'The Coach took too long to answer. Try again.',
+            'coach.err.rate_limited': 'The Coach is busy right now. Give it a moment and try again.',
+            'coach.err.no_credit': 'The Coach has reached its usage limit for now. It should be back later today.',
+            'coach.err.video_unavailable': 'Video analysis is not switched on for this site yet.',
+            'coach.err.video_failed': "That video couldn't be read. Try a different file or format.",
+            'coach.err.too_large': 'That video is too large. A single solve is all I need.',
+            'coach.err.not_configured': 'The Coach is not switched on for this deployment yet.',
+            'coach.err.sync_unavailable': 'Cloud sync is off, so your coaching data is saved on this device only.',
+            'coach.err.no_token': 'Sign in with your WCA account to sync across devices.',
+            'coach.err.invalid_token': 'Your WCA sign-in expired. Sign in again to keep syncing.',
+            'coach.err.upstream': 'The Coach had a problem at its end. Try again shortly.',
+            'coach.err.bad_upload': 'That upload was rejected partway through. Pick the video again.',
+            'coach.err.network': "The Coach couldn't reach the analysis service. Try again shortly.",
+            'coach.err.unknown': "Something went wrong at the Coach's end. Try again shortly.",
+            'coach.err.internal': 'Something went wrong. Try again.',
+
             'coach.tab.data': 'Your data',
 
             'coach.greet.morning': 'Good morning',
@@ -574,6 +597,7 @@
             'toast.resultsCopied': 'Results copied to clipboard!',
             'toast.roomCooldown': 'Please wait {n}s before creating another room',
             'toast.roomCreateFailed': 'Failed to create room. Try again.',
+            'toast.roomCreateDenied': 'The rooms database refused to save this room. That is a server setting on our side — please report it.',
             'toast.roomJoinFailed': 'Could not join room',
             'toast.roomNameLong': 'Room name can be at most {n} characters',
             'toast.roomNameShort': 'Room name needs at least {n} characters',
@@ -598,6 +622,8 @@
             'battle.liveLower': 'live',
             'battle.noPlayers': 'No players yet',
             'battle.noRooms': 'No rooms found.',
+            'battle.roomsDenied': 'The rooms database is refusing connections, so battles are unavailable right now. This is a server setting, not something you can fix — please report it.',
+            'battle.roomsUnreachable': "Couldn't reach the rooms database. Check your connection and refresh.",
             'battle.noSolvesTable': 'No solves yet — solve the scramble!',
             'battle.offline': 'offline',
             'battle.player': '{n} player',
@@ -972,6 +998,24 @@
             'coach.video.added': 'Adicionado \u00e0s tuas evid\u00eancias. Volta a correr a avalia\u00e7\u00e3o para us\u00e1-las.',
             'coach.video.needProfile': 'Termina primeiro a configura\u00e7\u00e3o.',
             'coach.video.failed': 'Isso n\u00e3o resultou. Tenta outra vez.',
+
+            /* Falhas da API do Coach. Ver o bloco EN correspondente. */
+            'coach.err.offline': 'Est\u00e1s offline. O Coach precisa de liga\u00e7\u00e3o para isto \u2014 os teus dados est\u00e3o seguros neste dispositivo.',
+            'coach.err.timeout': 'O Coach demorou demasiado a responder. Tenta outra vez.',
+            'coach.err.rate_limited': 'O Coach est\u00e1 ocupado neste momento. Espera um pouco e tenta outra vez.',
+            'coach.err.no_credit': 'O Coach atingiu o limite de utiliza\u00e7\u00e3o por agora. Deve voltar mais logo.',
+            'coach.err.video_unavailable': 'A an\u00e1lise de v\u00eddeo ainda n\u00e3o est\u00e1 ligada neste site.',
+            'coach.err.video_failed': 'N\u00e3o foi poss\u00edvel ler esse v\u00eddeo. Tenta outro ficheiro ou formato.',
+            'coach.err.too_large': 'Esse v\u00eddeo \u00e9 demasiado grande. Um solve chega.',
+            'coach.err.not_configured': 'O Coach ainda n\u00e3o est\u00e1 ligado nesta instala\u00e7\u00e3o.',
+            'coach.err.sync_unavailable': 'A sincroniza\u00e7\u00e3o est\u00e1 desligada, por isso os teus dados de treino ficam s\u00f3 neste dispositivo.',
+            'coach.err.no_token': 'Inicia sess\u00e3o com a tua conta WCA para sincronizar entre dispositivos.',
+            'coach.err.invalid_token': 'A tua sess\u00e3o WCA expirou. Inicia sess\u00e3o outra vez para continuar a sincronizar.',
+            'coach.err.upstream': 'O Coach teve um problema do lado dele. Tenta daqui a pouco.',
+            'coach.err.bad_upload': 'Esse envio foi recusado a meio. Escolhe o v\u00eddeo outra vez.',
+            'coach.err.network': 'O Coach n\u00e3o conseguiu chegar ao servi\u00e7o de an\u00e1lise. Tenta daqui a pouco.',
+            'coach.err.unknown': 'Correu algo mal do lado do Coach. Tenta daqui a pouco.',
+            'coach.err.internal': 'Correu algo mal. Tenta outra vez.',
             'coach.tab.data': 'Os teus dados',
 
             'coach.greet.morning': 'Bom dia',
@@ -1301,6 +1345,7 @@
             'toast.resultsCopied': 'Resultados copiados para a área de transferência!',
             'toast.roomCooldown': 'Espera {n}s antes de criares outra sala',
             'toast.roomCreateFailed': 'Não foi possível criar a sala. Tenta novamente.',
+            'toast.roomCreateDenied': 'A base de dados das salas recusou guardar esta sala. É uma definição do nosso servidor — por favor reporta.',
             'toast.roomJoinFailed': 'Não foi possível entrar na sala',
             'toast.roomNameLong': 'O nome da sala pode ter no máximo {n} caracteres',
             'toast.roomNameShort': 'O nome da sala precisa de pelo menos {n} caracteres',
@@ -1325,6 +1370,8 @@
             'battle.liveLower': 'ao vivo',
             'battle.noPlayers': 'Ainda sem jogadores',
             'battle.noRooms': 'Nenhuma sala encontrada.',
+            'battle.roomsDenied': 'A base de dados das salas está a recusar ligações, por isso as batalhas estão indisponíveis. É uma definição do servidor, não algo que possas resolver — por favor reporta.',
+            'battle.roomsUnreachable': 'Não foi possível aceder à base de dados das salas. Verifica a ligação e atualiza a página.',
             'battle.noSolvesTable': 'Ainda sem solves — resolve a scramble!',
             'battle.offline': 'offline',
             'battle.player': '{n} jogador',

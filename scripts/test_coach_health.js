@@ -280,6 +280,100 @@ async function callHealthWithQuery(env, query) {
             logged || '(nothing logged)');
     }
 
+    /* ---------- ?video=1 ----------------------------------------- */
+
+    // This probe exists to end a diagnosis loop, so what matters is that
+    // it names WHICH leg is broken and that it cannot itself become a
+    // way to burn quota or leak a key.
+
+    const GEMINI = { COACH_PROVIDER: 'gemini', GEMINI_API_KEY: 'k', COACH_MODEL: 'gemini-3.6-flash' };
+
+    // A working path.
+    let calls = [];
+    global.fetch = async (url, opts = {}) => {
+        calls.push({ url: String(url), method: (opts && opts.method) || 'GET' });
+        const u = String(url);
+        if (u.includes('/upload/v1beta/files?')) {
+            return {
+                ok: true, status: 200,
+                headers: { get: () => 'https://generativelanguage.googleapis.com/upload/v1beta/files/p' },
+                json: async () => ({}), text: async () => '',
+            };
+        }
+        return {
+            ok: true, status: 200,
+            json: async () => ({ file: { name: 'files/p1', uri: 'u', state: 'ACTIVE' } }),
+            text: async () => '',
+        };
+    };
+
+    r = await callHealthWithQuery(GEMINI, { video: '1' });
+    eq('a working upload path reports ok', r.body.video.ok, true);
+    check('and says the browser leg is the remaining suspect',
+        /between the browser and this server/.test(r.body.video.diagnosis), r.body.video.diagnosis);
+    check('nothing was asked of the model', !calls.some(c => /generateContent/.test(c.url)),
+        JSON.stringify(calls.map(c => c.url)));
+
+    // Google refusing the chunk. A fresh module instance resets the
+    // rate limiter, which is what callHealthWithQuery already does.
+    global.fetch = async (url) => {
+        const u = String(url);
+        if (u.includes('/upload/v1beta/files?')) {
+            return {
+                ok: true, status: 200,
+                headers: { get: () => 'https://generativelanguage.googleapis.com/upload/v1beta/files/p' },
+                json: async () => ({}), text: async () => '',
+            };
+        }
+        return {
+            ok: false, status: 400,
+            json: async () => ({ error: { message: 'Invalid upload request key=AIzaSyABCDEFGHIJK' } }),
+            text: async () => 'Invalid upload request',
+        };
+    };
+    r = await callHealthWithQuery(GEMINI, { video: '1' });
+    eq('a refused chunk is not ok', r.body.video.ok, false);
+    eq('and names the step', r.body.video.step, 'chunk');
+    check('and blames the server-to-Google leg, not the browser',
+        /this server and Google/.test(r.body.video.diagnosis), r.body.video.diagnosis);
+    check('the reason never carries a key',
+        !/AIzaSy/.test(JSON.stringify(r.body)), JSON.stringify(r.body.video));
+
+    // The rate limit. Two probes against the SAME instance.
+    for (const m of ['../api/coach/health.js', '../api/_lib/model.js', '../api/_lib/rtdb.js',
+        '../api/_lib/gemini.js', '../api/_lib/openrouter.js', '../api/_lib/claude.js']) {
+        delete require.cache[require.resolve(m)];
+    }
+    for (const k of ENV_KEYS) delete process.env[k];
+    Object.assign(process.env, GEMINI);
+    const handler = require('../api/coach/health.js');
+    const once = async () => {
+        let payload = null;
+        await handler({ method: 'GET', query: { video: '1' } },
+            { statusCode: 0, setHeader() { }, end(b) { payload = JSON.parse(b); } });
+        return payload;
+    };
+    const first = await once();
+    const second = await once();
+    check('the first probe runs', first.video.ok === false || first.video.ok === true);
+    eq('an immediate second probe is skipped', second.video.ok, null);
+    check('and says why', /one probe per/i.test(second.video.reason), second.video.reason);
+
+    // Unconfigured, and a provider that cannot do video at all.
+    r = await callHealthWithQuery({ COACH_PROVIDER: 'gemini' }, { video: '1' });
+    eq('an unconfigured deploy skips the probe', r.body.video.ok, null);
+    check('pointing at the diagnosis', /configuration is incomplete/i.test(r.body.video.reason));
+
+    r = await callHealthWithQuery(
+        { COACH_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k', COACH_MODEL: 'claude-opus-5' },
+        { video: '1' });
+    eq('a provider without video skips it', r.body.video.ok, null);
+    check('and says which', /anthropic/.test(r.body.video.reason), r.body.video.reason);
+
+    // Not asked for, not run — the default answer stays instant and free.
+    r = await callHealthWithQuery(GEMINI, {});
+    check('the probe is opt-in', r.body.video === undefined, JSON.stringify(r.body.video));
+
     console.log(`\n${pass} passed, ${fail} failed`);
     process.exit(fail ? 1 : 0);
 })();
