@@ -30,6 +30,44 @@
     // stalled request with no timeout hangs forever behind a spinner.
     const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 
+    // Reachability probe. No API key, no upload, no side effect — the
+    // endpoint answers an unauthenticated request with a readable 400
+    // that carries CORS headers, which is all we need: whether the
+    // browser can talk to the host at all.
+    const PROBE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+    const PROBE_TIMEOUT_MS = 8000;
+
+    /**
+     * Can this browser reach the analysis service?
+     *
+     * A status-0 upload failure has two very different explanations —
+     * something on the device blocking the host, or the request itself
+     * being refused — and they point at opposite people. Guessing sends
+     * the user hunting through browser extensions on a hunch, so this
+     * finds out instead.
+     *
+     * Any HTTP response counts as reachable, including the 400 an
+     * unauthenticated call earns. Only a rejected fetch means blocked.
+     *
+     * @returns {Promise<boolean|null>} null when it could not be decided
+     */
+    async function canReachService() {
+        try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+            try {
+                await fetch(PROBE_URL, { method: 'GET', signal: controller.signal });
+                return true;
+            } finally { clearTimeout(timer); }
+        } catch (e) {
+            // An abort is inconclusive: a slow network is not a blocked
+            // one, and saying "blocked" on a timeout would be the same
+            // overclaim in a new place.
+            if (e && e.name === 'AbortError') return null;
+            return false;
+        }
+    }
+
     /**
      * Builds the failure, having first looked at what actually happened.
      *
@@ -71,16 +109,15 @@
             message = T('coach.video.errReply',
                 'The upload finished but the reply could not be read. Try again.');
         } else if (xhr.status === 0) {
-            // Status 0 means no response was readable at all. Whether the
-            // network is down or something blocked the request are
-            // different problems with different fixes.
+            // No response was readable at all. Which of the two possible
+            // causes it is cannot be known here — analyse() probes for
+            // that and replaces this message with a definite one. Stating
+            // what was observed is the most that is true at this point.
             message = detail.online === false
                 ? T('coach.video.errOffline',
                     'You appear to be offline. Reconnect and try again.')
-                : T('coach.video.errBlocked',
-                    'The upload was blocked before it reached the analysis service. '
-                    + 'A browser extension, VPN or network filter is the usual cause — '
-                    + 'try another network or a private window.');
+                : T('coach.video.errNoResponse',
+                    'The upload did not reach the analysis service.');
         } else if (xhr.status === 403 || xhr.status === 404 || xhr.status === 410) {
             // Resumable sessions expire. Retrying the same one never works.
             message = T('coach.video.errExpired',
@@ -95,6 +132,33 @@
         const err = new Error(message);
         err.detail = detail;
         return err;
+    }
+
+    /**
+     * The recorded failure, collapsed, for the reader to expand.
+     *
+     * The same facts already go to the console, but problems here get
+     * reported by screenshot — and a screenshot cannot show a console
+     * nobody opened. Putting it on the page means the next report
+     * carries its own evidence.
+     */
+    function detailsBlock(detail) {
+        if (!detail) return '';
+        const rows = [
+            ['status', detail.status],
+            ['kind', detail.kind],
+            ['online', detail.online],
+            ['service reachable', detail.serviceReachable],
+            ['upload status', detail.googleUploadStatus],
+            ['response', detail.body],
+        ].filter(([, v]) => v !== null && v !== undefined && v !== '');
+
+        if (!rows.length) return '';
+        return `<details class="coach-video-detail">
+            <summary>${UI().esc(UI().T('coach.video.details', 'Technical detail'))}</summary>
+            <ul>${rows.map(([k, v]) =>
+            `<li><b>${UI().esc(k)}:</b> ${UI().esc(String(v))}</li>`).join('')}</ul>
+        </details>`;
     }
 
     /**
@@ -279,9 +343,39 @@
             }
         } catch (err) {
             console.warn('[Coach] video analysis failed', err);
-            setStatus(UI().esc(err && err.message
-                ? err.message
-                : UI().T('coach.video.failed', "That didn't work. Try again.")), 'error');
+            const detail = err && err.detail;
+            let message = (err && err.message)
+                || UI().T('coach.video.failed', "That didn't work. Try again.");
+
+            // A status-0 failure is the one case where the cause is
+            // genuinely ambiguous, so find out rather than assert. Only
+            // here: an HTTP rejection already told us why, and firing an
+            // extra request for it would be noise.
+            if (detail && detail.status === 0 && detail.online !== false && detail.kind !== 'timeout') {
+                setStatus(UI().esc(message) + ' '
+                    + UI().esc(UI().T('coach.video.checking', 'Checking why…')));
+
+                const reachable = await canReachService();
+                detail.serviceReachable = reachable;
+
+                if (reachable === false) {
+                    // Measured, not guessed — the browser cannot reach the
+                    // host at all, so the block is on this device.
+                    message = UI().T('coach.video.errBlocked',
+                        'This browser cannot reach the analysis service at all. A browser '
+                        + 'extension, VPN or network filter is blocking it — try a private '
+                        + 'window or a different network.');
+                } else if (reachable === true) {
+                    // The host is reachable, so blaming the user's network
+                    // would be wrong. This one points at us.
+                    message = UI().T('coach.video.errRefused',
+                        'The analysis service is reachable, but it refused this upload. '
+                        + 'That is a problem on our side rather than your connection — '
+                        + 'please report it.');
+                }
+            }
+
+            setStatus(UI().esc(message) + detailsBlock(detail), 'error');
         } finally {
             busy = false;
             if (btn) btn.disabled = false;

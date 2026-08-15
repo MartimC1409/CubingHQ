@@ -649,6 +649,62 @@
 
                     <p><a class="home-editorial-all" href="/guides/" data-i18n="home.editorial.all">Read all the guides →</a></p>
                 </section>
+
+                <!-- Ad unit. The adsbygoogle loader is already in <head>;
+                     loading it a second time is what Google warns against,
+                     so only the slot and its push live here.
+
+                     Deliberately the last thing on the home view, below the
+                     hero, the feature grid and the guide links. -->
+                <aside class="home-ad" aria-label="Advertisement">
+                    <span class="home-ad-label" data-i18n="home.ad.label">Advertisement</span>
+                    <ins class="adsbygoogle"
+                         style="display:block"
+                         data-ad-client="ca-pub-1447384831345579"
+                         data-ad-slot="7576508151"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                </aside>
+                <script>
+                    /* Google's snippet pushes immediately, which is wrong on
+                       this page: index.html is hash-routed, so landing on
+                       #timer or #battle leaves the home view display:none at
+                       load. A slot with no width is filled once, fails, and
+                       is never retried — the pageview is simply lost.
+
+                       So push only once the slot actually has width, and only
+                       ever once: pushing a filled slot again throws
+                       "All ins elements already have ads". */
+                    (function () {
+                        var slot = document.querySelector('.home-ad .adsbygoogle');
+                        if (!slot) return;
+                        var done = false;
+
+                        function fill() {
+                            if (done || !slot.offsetWidth) return false;
+                            done = true;
+                            try {
+                                (window.adsbygoogle = window.adsbygoogle || []).push({});
+                            } catch (e) {
+                                /* An ad that fails must never break the page. */
+                                console.warn('[ads] slot could not be filled', e);
+                            }
+                            return true;
+                        }
+
+                        if (!fill() && window.IntersectionObserver) {
+                            var io = new IntersectionObserver(function (entries) {
+                                for (var i = 0; i < entries.length; i++) {
+                                    if (entries[i].isIntersecting && fill()) {
+                                        io.disconnect();
+                                        return;
+                                    }
+                                }
+                            });
+                            io.observe(slot);
+                        }
+                    })();
+                </script>
                 </div>
             </div>
         </section>
