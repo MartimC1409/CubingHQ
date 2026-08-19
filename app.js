@@ -662,7 +662,9 @@
 
         if ($('#nav-premium-btn')) $('#nav-premium-btn').addEventListener('click', openPremiumModal);
         if ($('#premium-close-btn')) $('#premium-close-btn').addEventListener('click', closePremiumModal);
-        if ($('#premium-upgrade-btn')) $('#premium-upgrade-btn').addEventListener('click', startPremiumTrial);
+        if ($('#premium-upgrade-btn')) $('#premium-upgrade-btn').addEventListener('click', () => {
+            showToast('Premium is under construction — your free tools are available now.', 'info');
+        });
         if ($('#premium-free-btn')) $('#premium-free-btn').addEventListener('click', () => showToast('You are on the Free plan.', 'info'));
         $$('.premium-billing-option').forEach(button => {
             button.addEventListener('click', () => setPremiumBilling(button.dataset.period));

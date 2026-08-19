@@ -1049,9 +1049,11 @@ select.form-select {
 }
 .premium-close:hover { color: var(--clr-text); background: var(--clr-surface); }
 .premium-eyebrow { color: #f5c76b; font-size: 11px; font-weight: 800; letter-spacing: .14em; }
+.premium-construction-badge { display: inline-block; margin-left: 7px; padding: 3px 6px; border: 1px solid rgba(245,199,107,.32); border-radius: 5px; color: #ffe3a1; font-size: 8px; letter-spacing: .08em; vertical-align: 2px; }
 .premium-star { font-size: 18px; vertical-align: -1px; margin-right: 5px; }
 .premium-dialog h2 { margin: 10px 0 8px; color: var(--clr-text); font: 650 clamp(1.8rem, 4vw, 2.7rem)/1.05 var(--font-display, var(--font-body)); letter-spacing: -.045em; }
 .premium-subtitle { max-width: 620px; margin: 0; color: var(--clr-text-secondary); line-height: 1.55; }
+.premium-notice { display: flex; gap: 9px; align-items: center; max-width: 680px; margin: 18px 0 0; padding: 11px 13px; border: 1px solid rgba(245,199,107,.24); border-radius: 10px; color: #e8d4a5; background: rgba(245,199,107,.07); font-size: 12px; line-height: 1.45; }
 .premium-billing { display: flex; gap: 4px; width: fit-content; margin: 26px auto 20px; padding: 4px; border: 1px solid var(--lu-border); border-radius: 12px; background: color-mix(in oklab, var(--clr-bg) 55%, transparent); }
 .premium-billing-option { border: 0; border-radius: 8px; padding: 9px 15px; color: var(--clr-text-muted); background: transparent; cursor: pointer; font: inherit; font-size: 13px; }
 .premium-billing-option.active { color: var(--clr-text); background: var(--clr-surface); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
@@ -1074,6 +1076,7 @@ select.form-select {
 .premium-plan-button:hover { transform: translateY(-1px); filter: brightness(1.08); }
 .premium-plan-button--secondary { border: 1px solid var(--lu-border); color: var(--clr-text-secondary); background: transparent; }
 .premium-plan-button--primary { border: 0; color: #251b0c; background: linear-gradient(135deg, #ffe3a1, #eab85c); box-shadow: 0 7px 20px rgba(245,199,107,.18); }
+.premium-plan-button--primary:disabled { cursor: not-allowed; opacity: .62; filter: saturate(.55); transform: none; box-shadow: none; }
 .premium-plan-button--primary span { float: right; font-size: 18px; line-height: 13px; }
 .premium-fine-print, .premium-footnote { color: var(--clr-text-muted); font-size: 11px; text-align: center; }
 .premium-fine-print { margin: 10px 0 0; }
