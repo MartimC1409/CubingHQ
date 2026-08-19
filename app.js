@@ -420,6 +420,50 @@
         _loginOpener = null;
     }
 
+    // ========== PREMIUM PLAN ==========
+    let _premiumOpener = null;
+    function openPremiumModal() {
+        const modal = $('#premium-modal');
+        if (!modal) return;
+        _premiumOpener = document.activeElement;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.premium-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closePremiumModal() {
+        const modal = $('#premium-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (_premiumOpener && document.contains(_premiumOpener)) _premiumOpener.focus();
+        _premiumOpener = null;
+    }
+
+    function setPremiumBilling(period) {
+        $$('.premium-billing-option').forEach(button => {
+            button.classList.toggle('active', button.dataset.period === period);
+        });
+        const price = $('#premium-price');
+        if (!price) return;
+        price.innerHTML = period === 'yearly'
+            ? '£4.49 <span>/ month, billed yearly</span>'
+            : '£5.99 <span>/ month</span>';
+    }
+
+    function startPremiumTrial() {
+        if (!state.userProfile) {
+            closePremiumModal();
+            openLoginModal();
+            showToast('Sign in first to start your Premium trial.', 'info');
+            return;
+        }
+        localStorage.setItem('cubinghq_premium_trial', 'started');
+        closePremiumModal();
+        showToast('Your Premium trial is ready to start — welcome aboard!', 'success');
+    }
+
     // Turn the profile button in the nav back into the Login button,
     // restoring the original markup (the person icon and the .nav-btn
     // class) so it matches the rest of the navigation.
@@ -606,11 +650,26 @@
                 e.preventDefault();
                 closeLoginModal();
             }
+            if (e.key === 'Escape' && $('#premium-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closePremiumModal();
+            }
         });
 
         if ($('#wca-login-btn')) {
             $('#wca-login-btn').addEventListener('click', handleWCALogin);
         }
+
+        if ($('#nav-premium-btn')) $('#nav-premium-btn').addEventListener('click', openPremiumModal);
+        if ($('#premium-close-btn')) $('#premium-close-btn').addEventListener('click', closePremiumModal);
+        if ($('#premium-upgrade-btn')) $('#premium-upgrade-btn').addEventListener('click', startPremiumTrial);
+        if ($('#premium-free-btn')) $('#premium-free-btn').addEventListener('click', () => showToast('You are on the Free plan.', 'info'));
+        $$('.premium-billing-option').forEach(button => {
+            button.addEventListener('click', () => setPremiumBilling(button.dataset.period));
+        });
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#premium-modal')) closePremiumModal();
+        });
 
         if ($('#logout-btn')) {
             $('#logout-btn').addEventListener('click', () => {
@@ -4137,17 +4196,11 @@
     async function pollBattleChat() {
         if (!battleChatRoomId) return;
         try {
-            // Try server-side ordering first; fall back to plain GET if the DB
-            // rejects the orderBy (some RTDBs require an index rule for new paths).
-            let data = null;
-            try {
-                const r = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json?orderBy="timestamp"&limitToLast=50`);
-                if (r.ok) data = await r.json();
-            } catch (_) { /* fall through to plain GET */ }
-            if (data === null) {
-                const r2 = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json`);
-                if (r2.ok) data = await r2.json();
-            }
+            // Read through the same server-side gateway as room data. The
+            // gateway intentionally accepts paths only, so sort and cap the
+            // small chat payload in the browser instead of exposing Firebase
+            // credentials or depending on an RTDB index.
+            const data = await fbGet(`/battle_chats/${battleChatRoomId}`);
             if (data === null) {
                 updateBattleChatStatus(i18nT('battle.offline', 'offline'));
                 return;
@@ -4289,16 +4342,12 @@
                 text: text,
                 timestamp: Date.now()
             };
-            const res = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
+            const result = await fbPush(`/battle_chats/${battleChatRoomId}`, payload);
+            if (result && result.name) {
                 input.value = '';
                 pollBattleChat(); // immediate visual update
             } else {
-                console.error('Chat send failed:', res.status);
+                console.error('Chat send failed:', fbError());
             }
         } catch (e) {
             console.error('Failed to send chat message', e);
@@ -4604,7 +4653,22 @@
 
         let r;
         try {
-            r = await fetch(`${RTDB}${path}.json`, opts);
+            // Battle data is routed through our serverless gateway. The
+            // browser must not carry the Firebase database credential, and
+            // the database rules intentionally reject anonymous writes.
+            const isBattlePath = path === '/battle/rooms'
+                || path.startsWith('/battle/rooms/')
+                || path === '/battle_chats'
+                || path.startsWith('/battle_chats/');
+            if (isBattlePath) {
+                r = await fetch('/api/battle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ method, path, data })
+                });
+            } else {
+                r = await fetch(`${RTDB}${path}.json`, opts);
+            }
         } catch (e) {
             fbLastError = 'network';
             console.error(`[fb] ${method} ${path} → network error`, e);
