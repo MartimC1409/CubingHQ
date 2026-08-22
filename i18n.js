@@ -21,6 +21,9 @@
         en: {
             // ----- Navigation -----
             'nav.coach': 'Coach',
+            'coach.underConstruction.title': 'Under construction',
+            'coach.underConstruction.body': "We're rebuilding the AI Coach to make it more reliable. It isn't available right now — nothing you've done elsewhere on CubingHQ is affected, and no coaching data has been lost.",
+            'coach.underConstruction.backHome': 'Back to CubingHQ',
 
             // ----- AI Coach -----
             'coach.boot': 'Loading your coaching profile…',
@@ -992,6 +995,9 @@
         pt: {
             // ----- Navegação -----
             'nav.coach': 'Treinador',
+            'coach.underConstruction.title': 'Em construção',
+            'coach.underConstruction.body': 'Estamos a reconstruir o AI Coach para o tornar mais fiável. Não está disponível neste momento — nada do que fizeste no resto do CubingHQ foi afetado, e nenhum dado de treino foi perdido.',
+            'coach.underConstruction.backHome': 'Voltar ao CubingHQ',
 
             // ----- Treinador de IA -----
             'coach.boot': 'A carregar o teu perfil de treino…',

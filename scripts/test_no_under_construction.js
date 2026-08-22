@@ -73,6 +73,16 @@ const UNFINISHED = [
 
     for (const page of all) {
         const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
+
+        // The whole point of this scan is that AdSense's crawler can see
+        // the phrase. A page marked noindex is, by construction, not in
+        // its path — coach.html says "under construction" on purpose
+        // while it is rebuilt, and is noindexed and dropped from the
+        // sitemap for exactly that reason. Skipping it here is not a
+        // hole in the check: it is the check correctly recognising that
+        // its premise (a crawlable page) does not hold for this one.
+        if (/<meta\s+name="robots"\s+content="[^"]*noindex/i.test(html)) continue;
+
         const text = renderedText(html);
         for (const pattern of UNFINISHED) {
             const hit = text.match(pattern);
@@ -106,6 +116,18 @@ const UNFINISHED = [
         !/welcome aboard/i.test(app), 'app.js still starts a fake trial');
     check('and no fake trial is recorded',
         !/cubinghq_premium_trial/.test(app), 'app.js still writes a trial flag');
+
+    /* ---- coach.html specifically ----------------------------------- */
+
+    const coach = fs.readFileSync(path.join(ROOT, 'coach.html'), 'utf8');
+    check('coach.html is noindexed',
+        /<meta name="robots" content="noindex, nofollow">/.test(coach));
+    check('and says so, since it is out of the crawler\'s path',
+        /under construction/i.test(renderedText(coach)));
+    check('it is not in the sitemap — noindex alone relies on Google honouring it',
+        !fs.readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8').includes('coach.html'));
+    check('the heavy coach modules are not loaded while nothing uses them',
+        !/<script src="coach-video\.js|<script src="coach-app\.js/.test(coach));
 
     /* ---- what AdSense needs, which was already right --------------- */
 
