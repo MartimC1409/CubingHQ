@@ -34,15 +34,18 @@ module.exports = async function handler(req, res) {
         diagnosis = 'No database credential is configured, so accounts cannot be created at '
             + 'all yet — see FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_DB_SECRET in .env.example.';
     } else if (!hasMailer) {
-        diagnosis = 'Signing up and signing in work. Password reset does not: requesting one '
-            + 'always answers success (so the endpoint cannot be used to test which emails have '
-            + 'accounts), but nothing is actually sent because RESEND_API_KEY and MAIL_FROM are '
-            + 'not both set. Check the server logs for "[auth] a password reset was requested" '
-            + 'to confirm this is what is happening.';
+        diagnosis = 'Signing up and signing in work. Two things depend on mail and silently do '
+            + 'not happen without it: a new account gets no welcome email, and password reset '
+            + 'requests always answer success (so the endpoint cannot be used to test which '
+            + 'emails have accounts) without anything actually being sent. Set RESEND_API_KEY '
+            + 'and MAIL_FROM to fix both at once — check the server logs for "[auth] welcome '
+            + 'email failed" or "[auth] a password reset was requested" to confirm this is what '
+            + 'is happening.';
     } else {
-        diagnosis = 'Configuration looks complete. If a reset email still does not arrive, check '
-            + 'the Resend dashboard for the delivery — a rejected or bounced send is logged there '
-            + 'and in this deployment\'s own logs under "[mailer]", never in this response.';
+        diagnosis = 'Configuration looks complete. If a welcome or reset email still does not '
+            + 'arrive, check the Resend dashboard for the delivery — a rejected or bounced send '
+            + 'is logged there and in this deployment\'s own logs under "[mailer]", never in '
+            + 'this response.';
     }
 
     sendJson(res, 200, {

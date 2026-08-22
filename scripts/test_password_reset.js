@@ -95,6 +95,11 @@ async function call(handlerPath, req, env) {
 async function signUp(email) {
     const r = await call('../api/auth/_signup.js',
         { body: { email, password: 'a good password', name: 'Ana Silva' } });
+    // Signup sends its own welcome email in this ENV (mail is
+    // configured by default here). That is not what this file is
+    // about — cleared immediately so every sentMail assertion below
+    // is about the reset flow specifically, not a leftover from setup.
+    sentMail = [];
     return r.body.user.uid;
 }
 

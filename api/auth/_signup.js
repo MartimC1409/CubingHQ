@@ -12,10 +12,30 @@
 const { sendJson, sendError, readBody, methodGuard } = require('../_lib/http.js');
 const accounts = require('../_lib/accounts.js');
 const session = require('../_lib/session.js');
+const mailer = require('../_lib/mailer.js');
 const rate = require('../_lib/ratelimit.js');
 
 // Creating accounts is not something a person does repeatedly.
 const LIMIT = { max: 5, windowMs: 60 * 60 * 1000 };
+
+function welcomeEmail(name) {
+    const safeName = String(name || 'there').replace(/[<>&]/g, '');
+    const text = `Hi ${safeName},\n\n`
+        + `Welcome to CubingHQ! Your account is ready — the timer, the competition `
+        + `simulator, stats and records are all there waiting.\n\n`
+        + `If you have a WCA ID, you can link it any time from your account panel to `
+        + `pull in your official results and add friends to compare with. Not required, `
+        + `and nothing about signing up needed it.\n\n`
+        + `Have a good session.`;
+    const html = `<p>Hi ${safeName},</p>`
+        + `<p>Welcome to CubingHQ! Your account is ready — the timer, the competition `
+        + `simulator, stats and records are all there waiting.</p>`
+        + `<p>If you have a WCA ID, you can link it any time from your account panel to `
+        + `pull in your official results and add friends to compare with. Not required, `
+        + `and nothing about signing up needed it.</p>`
+        + `<p>Have a good session.</p>`;
+    return { text, html };
+}
 
 module.exports = async function handler(req, res) {
     if (!methodGuard(req, res, ['POST'])) return;
@@ -39,6 +59,24 @@ module.exports = async function handler(req, res) {
         const password = accounts.checkPassword(body && body.password);
 
         const user = await accounts.create({ email, password, name: body && body.name });
+
+        // Best-effort, and awaited rather than fired-and-forgotten: a
+        // serverless instance can freeze the moment the response goes
+        // out, so a send started but not waited on may simply never
+        // finish. Unlike request-reset.js there is no anti-enumeration
+        // reason to hide a failure here — signup already tells the
+        // caller their account exists, being the one who just made it
+        // — so a mail problem is only logged, never worth failing the
+        // signup itself over.
+        if (mailer.isConfigured()) {
+            const { text, html } = welcomeEmail(user.name);
+            try {
+                await mailer.sendMail({ to: user.email, subject: 'Welcome to CubingHQ', text, html });
+            } catch (e) {
+                console.error('[auth] welcome email failed to send:', e.message);
+            }
+        }
+
         sendJson(res, 200, { token: session.issue(user), user });
     } catch (err) {
         sendError(res, err);
