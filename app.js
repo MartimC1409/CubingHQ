@@ -1160,10 +1160,6 @@
             }
         });
 
-        if ($('#wca-login-btn')) {
-            $('#wca-login-btn').addEventListener('click', handleWCALogin);
-        }
-
         // The account panel.
         if ($('#account-close')) $('#account-close').addEventListener('click', closeAccountModal);
         if ($('#account-logout')) $('#account-logout').addEventListener('click', signOut);

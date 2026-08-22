@@ -182,28 +182,22 @@
             </div>
 
             <h2 id="login-title" class="lu-dialog-title" data-i18n="login.welcome">Sign in to CubingHQ</h2>
-            <p class="lu-dialog-sub" data-i18n="login.subtitle">Connect your WCA account to make the simulator yours — it takes one click.</p>
+            <p class="lu-dialog-sub" data-i18n="login.subtitle">Create a free account with your email — link your WCA account any time afterward.</p>
 
             <ul class="lu-dialog-perks">
-                <li>
-                    <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
-                    <span data-i18n="login.perk.prs">Your personal records fill in the simulator automatically</span>
-                </li>
                 <li>
                     <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
                     <span data-i18n="login.perk.sync">Solves and sessions sync across your devices</span>
                 </li>
                 <li>
                     <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
-                    <span data-i18n="login.perk.stats">See your official WCA profile, medals and records</span>
+                    <span data-i18n="signup.perk.friends">Add friends and compare results once you're signed in</span>
+                </li>
+                <li>
+                    <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
+                    <span data-i18n="signup.perk.link">Link your WCA account whenever you're ready</span>
                 </li>
             </ul>
-
-            <button id="wca-login-btn" class="lu-btn lu-btn-default lu-btn-lg lu-dialog-cta" data-i18n="login.wca">
-                Continue with WCA
-            </button>
-
-            <div class="lu-auth-divider"><span data-i18n="auth.or">or use an email address</span></div>
 
             <form id="auth-form" class="lu-auth-form" novalidate>
                 <div id="auth-name-field" class="lu-auth-field" style="display:none;">
@@ -232,7 +226,7 @@
 
             <button id="login-skip-btn" class="lu-btn lu-btn-ghost lu-dialog-skip" data-i18n="login.skip">Keep browsing without an account</button>
 
-            <p class="lu-dialog-note" data-i18n="login.note">CubingHQ is an unofficial fan project. Signing in only reads your public WCA data — we never post anything.</p>
+            <p class="lu-dialog-note" data-i18n="login.note">CubingHQ is an unofficial fan project. Your email is only used to sign you in — we never post anything.</p>
         </div>
     </div>
 
@@ -1364,7 +1358,7 @@
                     <div style="font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.8;">📊</div>
                     <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--clr-text); margin-bottom: var(--space-sm);" data-i18n="stats.noProfile">No Profile Loaded</h2>
                     <p style="color: var(--clr-text-muted); font-size: 1.1rem; max-width: 400px; margin: 0 auto; line-height: 1.6;" data-i18n="stats.noProfileDesc">
-                        Log in with WCA or look up a WCA ID on the setup page to view official statistics!
+                        Sign in and link your WCA account, or look up a WCA ID on the setup page, to view official statistics!
                     </p>
                 </div>
                 <div id="stats-content" style="display: none;">
@@ -2020,7 +2014,7 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=cfb675ed"></script>
+    <script src="i18n.js?v=936c9f33"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=db71e576"></script>
@@ -2044,7 +2038,7 @@
     <script src="ambient-noise.js?v=b03aa034"></script>
     <!-- Must precede app.js: the battle chat filters on both send and render. -->
     <script src="content-filter.js?v=a5e71610"></script>
-    <script src="app.js?v=ef1492ae"></script>
+    <script src="app.js?v=c27cc182"></script>
     <script src="mobile-nav.js?v=9c5da4eb"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->
