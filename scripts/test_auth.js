@@ -24,7 +24,7 @@ function eq(label, got, want) {
     check(label, Object.is(got, want), `got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
 }
 
-const MODULES = ['../api/auth/signup.js', '../api/auth/login.js', '../api/auth/me.js',
+const MODULES = ['../api/auth/_signup.js', '../api/auth/_login.js', '../api/auth/_me.js',
     '../api/_lib/accounts.js', '../api/_lib/session.js', '../api/_lib/rtdb.js',
     '../api/_lib/firebase-auth.js', '../api/_lib/ratelimit.js', '../api/_lib/http.js'];
 
@@ -151,7 +151,7 @@ async function call(handlerPath, req, env) {
     /* ---- signup --------------------------------------------------- */
 
     store = {}; writes = []; installFetch();
-    let r = await call('../api/auth/signup.js', {
+    let r = await call('../api/auth/_signup.js', {
         body: { email: 'Ana@Example.com', password: 'a good password', name: 'Ana Silva' },
     });
     eq('signup succeeds', r.status, 200);
@@ -166,38 +166,38 @@ async function call(handlerPath, req, env) {
     check('the response never carries the hash',
         !JSON.stringify(r.body).includes('scrypt'), JSON.stringify(r.body));
 
-    r = await call('../api/auth/signup.js', {
+    r = await call('../api/auth/_signup.js', {
         body: { email: 'ana@example.com', password: 'another password' },
     });
     eq('a second signup for the same address is refused', r.status, 409);
     eq('and says to sign in instead', r.body.error.code, 'email_taken');
 
-    r = await call('../api/auth/signup.js', { body: { email: 'b@c.com', password: 'short' } });
+    r = await call('../api/auth/_signup.js', { body: { email: 'b@c.com', password: 'short' } });
     eq('a weak password is refused at signup', r.status, 400);
 
-    r = await call('../api/auth/signup.js', { body: { email: 'not-an-address', password: 'a good password' } });
+    r = await call('../api/auth/_signup.js', { body: { email: 'not-an-address', password: 'a good password' } });
     eq('a bad address is refused at signup', r.status, 400);
 
     // No display name: derived from the address rather than left blank.
-    r = await call('../api/auth/signup.js', { body: { email: 'solo@example.com', password: 'a good password' } });
+    r = await call('../api/auth/_signup.js', { body: { email: 'solo@example.com', password: 'a good password' } });
     eq('a nameless signup still gets a name', r.body.user.name, 'solo');
 
     /* ---- login ---------------------------------------------------- */
 
-    r = await call('../api/auth/login.js', { body: { email: 'ana@example.com', password: 'a good password' } });
+    r = await call('../api/auth/_login.js', { body: { email: 'ana@example.com', password: 'a good password' } });
     eq('the right password signs in', r.status, 200);
     eq('as the same account', r.body.user.uid, accounts.uidFor('ana@example.com'));
     check('with a working token', !!load('../api/_lib/session.js').verify(r.body.token));
 
     // Case and spacing in the address must not matter.
-    r = await call('../api/auth/login.js', { body: { email: '  ANA@example.com ', password: 'a good password' } });
+    r = await call('../api/auth/_login.js', { body: { email: '  ANA@example.com ', password: 'a good password' } });
     eq('the address is matched case-insensitively', r.status, 200);
 
-    r = await call('../api/auth/login.js', { body: { email: 'ana@example.com', password: 'wrong' } });
+    r = await call('../api/auth/_login.js', { body: { email: 'ana@example.com', password: 'wrong' } });
     eq('a wrong password is refused', r.status, 401);
     const wrongPassword = r.body.error;
 
-    r = await call('../api/auth/login.js', { body: { email: 'nobody@example.com', password: 'wrong' } });
+    r = await call('../api/auth/_login.js', { body: { email: 'nobody@example.com', password: 'wrong' } });
     eq('an unknown address is refused', r.status, 401);
     // The load-bearing one: this endpoint must not be a way to ask
     // whether someone has an account here.
@@ -206,7 +206,7 @@ async function call(handlerPath, req, env) {
 
     /* ---- rate limiting -------------------------------------------- */
 
-    const login = load('../api/auth/login.js');
+    const login = load('../api/auth/_login.js');
     const rate = require('../api/_lib/ratelimit.js');
     rate._reset();
     const attempt = async (ip, password) => {
@@ -227,28 +227,28 @@ async function call(handlerPath, req, env) {
     /* ---- /me ------------------------------------------------------ */
 
     rate._reset();
-    r = await call('../api/auth/login.js', { body: { email: 'ana@example.com', password: 'a good password' } });
+    r = await call('../api/auth/_login.js', { body: { email: 'ana@example.com', password: 'a good password' } });
     const good = r.body.token;
 
-    r = await call('../api/auth/me.js', { method: 'GET', headers: { authorization: `Bearer ${good}` } });
+    r = await call('../api/auth/_me.js', { method: 'GET', headers: { authorization: `Bearer ${good}` } });
     eq('me returns the signed-in user', r.status, 200);
     eq('by uid', r.body.user.uid, accounts.uidFor('ana@example.com'));
 
-    r = await call('../api/auth/me.js', { method: 'GET', headers: {} });
+    r = await call('../api/auth/_me.js', { method: 'GET', headers: {} });
     eq('me without a token is 401', r.status, 401);
 
-    r = await call('../api/auth/me.js', { method: 'GET', headers: { authorization: 'Bearer nonsense' } });
+    r = await call('../api/auth/_me.js', { method: 'GET', headers: { authorization: 'Bearer nonsense' } });
     eq('me with a forged token is 401', r.status, 401);
 
     /* ---- a deployment with no storage ------------------------------ */
 
     const NO_STORAGE = { AUTH_SIGNING_SECRET: 'test-signing-secret' };
-    r = await call('../api/auth/signup.js', { body: { email: 'a@b.com', password: 'a good password' } }, NO_STORAGE);
+    r = await call('../api/auth/_signup.js', { body: { email: 'a@b.com', password: 'a good password' } }, NO_STORAGE);
     eq('signup without storage fails as configuration', r.status, 503);
     eq('and says so', r.body.error.code, 'not_configured');
 
     // No secret at all: nothing can be signed, so nothing pretends to work.
-    r = await call('../api/auth/login.js', { body: { email: 'a@b.com', password: 'a good password' } }, {});
+    r = await call('../api/auth/_login.js', { body: { email: 'a@b.com', password: 'a good password' } }, {});
     eq('login with nothing configured is 503', r.status, 503);
 
     console.log(`\n${pass} passed, ${fail} failed`);

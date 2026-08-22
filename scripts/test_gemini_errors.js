@@ -103,7 +103,7 @@ const { readError } = gemini._internal || {};
 
     /* ---- the chunk size Google will accept ------------------------ */
 
-    const begin = require('../api/coach/video/begin.js');
+    const begin = require('../api/coach/video/_begin.js');
     const { alignedChunkBytes, CHUNK_GRANULARITY, CHUNK_BYTES } = begin._internal;
 
     eq('the shipped default is a whole number of 256KB blocks',

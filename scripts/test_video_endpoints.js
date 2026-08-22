@@ -34,7 +34,7 @@ function eq(label, got, want) {
     check(label, Object.is(got, want), `got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
 }
 
-const MODULES = ['../api/coach/video/begin.js', '../api/coach/video/chunk.js',
+const MODULES = ['../api/coach/video/_begin.js', '../api/coach/video/_chunk.js',
     '../api/_lib/model.js', '../api/_lib/gemini.js', '../api/_lib/openrouter.js',
     '../api/_lib/claude.js', '../api/_lib/upload-token.js', '../api/_lib/auth.js',
     '../api/_lib/http.js'];
@@ -119,7 +119,7 @@ function streamed(buf) {
     /* ---- /begin ------------------------------------------------- */
 
     installFetch();
-    let r = await call('../api/coach/video/begin.js', {
+    let r = await call('../api/coach/video/_begin.js', {
         headers: AUTH,
         body: { mimeType: 'video/mp4', sizeBytes: 10 * 1024 * 1024 },
     });
@@ -132,14 +132,14 @@ function streamed(buf) {
     const token = r.body.token;
 
     installFetch();
-    r = await call('../api/coach/video/begin.js', {
+    r = await call('../api/coach/video/_begin.js', {
         headers: AUTH,
         body: { mimeType: 'application/pdf', sizeBytes: 1000 },
     });
     eq('begin refuses a non-video type', r.status, 400);
 
     installFetch();
-    r = await call('../api/coach/video/begin.js', {
+    r = await call('../api/coach/video/_begin.js', {
         headers: {},
         body: { mimeType: 'video/mp4', sizeBytes: 1000 },
     });
@@ -153,7 +153,7 @@ function streamed(buf) {
     const payload = Buffer.alloc(2048, 0x41);
 
     installFetch();
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token,
             'x-upload-offset': '0',
@@ -175,7 +175,7 @@ function streamed(buf) {
     /* ---- /chunk, body as a stream ------------------------------- */
 
     installFetch();
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token,
             'x-upload-offset': '3145728',
@@ -195,7 +195,7 @@ function streamed(buf) {
     /* ---- /chunk rejections -------------------------------------- */
 
     installFetch();
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token.slice(0, -3) + 'zzz',
             'x-upload-offset': '0', 'x-upload-final': '1',
@@ -207,14 +207,14 @@ function streamed(buf) {
     check('and nothing is relayed', !sent.some(s => s.url === UPLOAD_URL));
 
     installFetch();
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({ 'x-upload-token': token, 'x-upload-final': '1' }, AUTH),
         body: payload,
     });
     eq('a missing offset is refused', r.status, 400);
 
     installFetch();
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token, 'x-upload-offset': '0', 'x-upload-final': '1',
         }, AUTH),
@@ -223,7 +223,7 @@ function streamed(buf) {
     eq('an empty chunk is refused', r.status, 400);
 
     installFetch();
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token, 'x-upload-offset': '0', 'x-upload-final': '1',
         }, AUTH),
@@ -236,7 +236,7 @@ function streamed(buf) {
     // corruption, so it must fail loudly rather than upload a subtly
     // wrong video that only breaks later, somewhere else.
     installFetch();
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token, 'x-upload-offset': '0', 'x-upload-final': '1',
         }, AUTH),
@@ -250,7 +250,7 @@ function streamed(buf) {
     // 400 used to classify as `unknown`, which named neither the cause
     // nor even which side of the link it came from.
     installFetch({ chunkStatus: 400 });
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token, 'x-upload-offset': '0', 'x-upload-final': '1',
         }, AUTH),
@@ -267,7 +267,7 @@ function streamed(buf) {
         JSON.stringify(r.body.error));
 
     installFetch({ startStatus: 400 });
-    r = await call('../api/coach/video/begin.js', {
+    r = await call('../api/coach/video/_begin.js', {
         headers: AUTH,
         body: { mimeType: 'video/mp4', sizeBytes: 1000 },
     });
@@ -298,7 +298,7 @@ function streamed(buf) {
             return res;
         };
     })(global.fetch);
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token, 'x-upload-offset': '0', 'x-upload-final': '1',
         }, AUTH),
@@ -310,7 +310,7 @@ function streamed(buf) {
     check('but something useful survives', /rejected for/.test(serialised), serialised);
 
     installFetch({ chunkStatus: 503 });
-    r = await call('../api/coach/video/chunk.js', {
+    r = await call('../api/coach/video/_chunk.js', {
         headers: Object.assign({
             'x-upload-token': token, 'x-upload-offset': '0', 'x-upload-final': '1',
         }, AUTH),
@@ -321,9 +321,9 @@ function streamed(buf) {
     /* ---- method guard ------------------------------------------- */
 
     installFetch();
-    r = await call('../api/coach/video/chunk.js', { method: 'GET', headers: AUTH });
+    r = await call('../api/coach/video/_chunk.js', { method: 'GET', headers: AUTH });
     eq('GET is not allowed on chunk', r.status, 405);
-    r = await call('../api/coach/video/begin.js', { method: 'GET', headers: AUTH });
+    r = await call('../api/coach/video/_begin.js', { method: 'GET', headers: AUTH });
     eq('GET is not allowed on begin', r.status, 405);
 
     console.log(`\n${pass} passed, ${fail} failed`);
