@@ -283,12 +283,17 @@ function streamed(buf) {
         return async (url, opts) => {
             const res = await inner(url, opts);
             if (!String(url).includes('worldcubeassociation')) {
-                res.json = async () => ({
+                // Stubbed as text, because that is the one read a real
+                // Response allows: the body can only be consumed once,
+                // and readError takes it as text before parsing it.
+                const leaky = JSON.stringify({
                     error: {
                         message: 'rejected for https://x/u?upload_id=AHxX3fSECRET'
                             + '&key=AIzaSyLEAKEDKEYVALUE',
                     },
                 });
+                res.text = async () => leaky;
+                res.json = async () => JSON.parse(leaky);
             }
             return res;
         };
