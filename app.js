@@ -322,8 +322,14 @@
                 window._justLoggedIn = true;
                 // Remove token from URL
                 window.history.replaceState(null, null, window.location.pathname);
+                // Returned so the caller can tell a fresh redirect from a
+                // token that has been sitting in storage since last time —
+                // which is the difference between linking an account and
+                // simply still being signed in.
+                return token;
             }
         }
+        return null;
     }
 
     async function fetchWCAProfile() {
@@ -361,6 +367,14 @@
 
     function updateUIAfterLogin() {
         if (!state.userProfile) return;
+        // Only an email account has a link to undo. A WCA sign-in has
+        // nothing to unlink — it IS the WCA account, and offering it
+        // there would read as a way to delete something.
+        const unlinkBtn = $('#unlink-wca-btn');
+        if (unlinkBtn) {
+            const linked = state.userProfile.source === 'email' && !!state.userProfile.wca_id;
+            unlinkBtn.style.display = linked ? '' : 'none';
+        }
         let navBtn = $('#nav-login-btn') || $('#nav-profile-btn');
         if (navBtn) {
             const avatarUrl = state.userProfile.avatar?.url || 'https://www.worldcubeassociation.org/assets/missing_avatar_thumb-12654dd6f1aa6d458e80d41e6c4ea6cf79b7c53d1010e6fb3eb18ce86d9ed8df.png';
@@ -376,6 +390,11 @@
                 if (state.userProfile && state.userProfile.wca_id) {
                     await lookupWCAProfile(state.userProfile.wca_id, true);
                     switchView('statistics');
+                } else if (state.userProfile && state.userProfile.source === 'email') {
+                    // An email account with nothing linked used to get a
+                    // dead end here — a toast naming a problem and
+                    // offering no way out of it. This is that way out.
+                    openLinkWcaModal();
                 } else {
                     showToast(i18nT('toast.noWcaLinked', 'No WCA ID linked to this account.'), 'info');
                 }
@@ -411,14 +430,18 @@
 
     function isSignedIn() { return !!state.userProfile; }
 
-    function setAccountProfile(user) {
-        state.userProfile = {
+    function setAccountProfile(user, extra) {
+        state.userProfile = Object.assign({
             uid: user.uid,
             name: user.name || 'Cuber',
             email: user.email || null,
-            wca_id: null,
+            // Present once a WCA account has been linked. The rest of the
+            // app reads wca_id and does not care how it got there, so a
+            // linked email account behaves like a WCA sign-in everywhere
+            // that matters — stats, records, and the battle identity.
+            wca_id: user.wcaId || null,
             source: 'email',
-        };
+        }, extra || {});
     }
 
     /** Turns a stored token back into a signed-in state on page load. */
@@ -502,6 +525,124 @@
             .replace('{name}', String(body.user.name || 'Cuber').split(' ')[0]), 'success');
     }
 
+    // ----- Linking a WCA account to an email account -----
+    //
+    // The WCA hands its token back through a redirect, and a redirect
+    // carries no memory of why it was started. So the intent is written
+    // down before leaving and read on the way back: without it, someone
+    // linking their account would return looking exactly like someone
+    // signing in with the WCA, and would be silently switched to a
+    // different identity instead of having one attached.
+    const LINK_INTENT_KEY = 'chq_wca_link_intent';
+
+    function openLinkWcaModal() {
+        const modal = $('#link-wca-modal');
+        if (!modal) return;
+        _linkOpener = document.activeElement;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.lu-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closeLinkWcaModal() {
+        const modal = $('#link-wca-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (_linkOpener && document.contains(_linkOpener)) _linkOpener.focus();
+        _linkOpener = null;
+    }
+
+    function startWcaLink() {
+        if (!storedAuthToken()) {
+            showToast(i18nT('toast.signInFirst', 'Sign in first.'), 'info');
+            return;
+        }
+        try { localStorage.setItem(LINK_INTENT_KEY, '1'); } catch (e) { /* private mode */ }
+        closeLinkWcaModal();
+        handleWCALogin();
+    }
+
+    /**
+     * Finishes a link after the WCA redirect.
+     *
+     * The WCA token is handed to the server and never kept: the account
+     * is identified by its own session, the competitor by the token, and
+     * what comes back is a new session token that knows about both.
+     */
+    async function completeWcaLink(wcaToken) {
+        try { localStorage.removeItem(LINK_INTENT_KEY); } catch (e) { /* private mode */ }
+
+        const sessionToken = storedAuthToken();
+        if (!sessionToken) return false;
+
+        let body = null;
+        try {
+            const res = await fetch('/api/auth/link-wca', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${sessionToken}`,
+                },
+                body: JSON.stringify({ wcaToken }),
+            });
+            body = await res.json().catch(() => null);
+        } catch (e) {
+            console.error('[auth] linking failed', e);
+        }
+
+        if (!body || !body.token || !body.user) {
+            showToast((body && body.error && body.error.message)
+                || i18nT('toast.linkFailed', "Couldn't link that WCA account. Try again."), 'error');
+            return false;
+        }
+
+        try { localStorage.setItem(AUTH_TOKEN_KEY, body.token); } catch (e) { /* private mode */ }
+        setAccountProfile(body.user);
+
+        // The avatar is the one thing the link response has no reason to
+        // carry, and it is what makes the nav button look right. Best
+        // effort: the link has already succeeded either way.
+        try {
+            const meRes = await fetch(`${WCA_API}/me`, { headers: { Authorization: `Bearer ${wcaToken}` } });
+            if (meRes.ok) {
+                const me = (await meRes.json()).me;
+                if (me && me.avatar) setAccountProfile(body.user, { avatar: me.avatar });
+            }
+        } catch (e) { /* the link stands without it */ }
+
+        updateUIAfterLogin();
+        showToast(i18nT('toast.wcaLinked', 'WCA account linked — your records are on the way.'), 'success');
+        if (body.user.wcaId) await lookupWCAProfile(body.user.wcaId, true);
+        return true;
+    }
+
+    async function unlinkWca() {
+        const sessionToken = storedAuthToken();
+        if (!sessionToken) return;
+        let body = null;
+        try {
+            const res = await fetch('/api/auth/unlink-wca', {
+                method: 'POST', headers: { Authorization: `Bearer ${sessionToken}` },
+            });
+            body = await res.json().catch(() => null);
+        } catch (e) { console.error('[auth] unlinking failed', e); }
+
+        if (!body || !body.token || !body.user) {
+            showToast(i18nT('toast.unlinkFailed', "Couldn't unlink that account. Try again."), 'error');
+            return;
+        }
+        try { localStorage.setItem(AUTH_TOKEN_KEY, body.token); } catch (e) { /* private mode */ }
+        // The WCA token was only ever held for the link; without one it
+        // is a stale credential for an account this browser no longer
+        // claims to be.
+        try { localStorage.removeItem('wca_access_token'); } catch (e) { /* private mode */ }
+        setAccountProfile(body.user);
+        updateUIAfterLogin();
+        showToast(i18nT('toast.wcaUnlinked', 'WCA account unlinked.'), 'success');
+    }
+
     function showAuthError(message, focusEl) {
         const el = $('#auth-error');
         if (el) { el.textContent = message; el.style.display = 'block'; }
@@ -575,6 +716,7 @@
 
     // ========== PREMIUM PLAN ==========
     let _premiumOpener = null;
+    let _linkOpener = null;
     function openPremiumModal() {
         const modal = $('#premium-modal');
         if (!modal) return;
@@ -635,12 +777,44 @@
         if (window.AppI18N) window.AppI18N.apply();
     }
 
-    function init() {
-        checkOAuthCallback();
+    /**
+     * Decides which sign-in this page load is resuming.
+     *
+     * Three cases share one redirect and one token in localStorage, so
+     * the order matters:
+     *
+     *   1. a WCA redirect that was started to LINK an account — the
+     *      token belongs to the account already signed in, and must not
+     *      replace it;
+     *   2. an email session to restore;
+     *   3. a WCA sign-in, which is what this always used to be.
+     */
+    async function bootSession() {
+        const returnedFromWca = checkOAuthCallback();
+        let linkIntent = false;
+        try { linkIntent = localStorage.getItem(LINK_INTENT_KEY) === '1'; } catch (e) { /* private mode */ }
+
+        if (returnedFromWca && linkIntent && storedAuthToken()) {
+            // Restore the account first: the link response names the
+            // user, but a failure part-way should still leave someone
+            // signed in as who they were.
+            await restoreAccountSession();
+            if (await completeWcaLink(returnedFromWca)) return;
+        }
+        // A stale flag would otherwise turn the next ordinary WCA login
+        // into a link attempt.
+        if (linkIntent && !returnedFromWca) {
+            try { localStorage.removeItem(LINK_INTENT_KEY); } catch (e) { /* private mode */ }
+        }
+
+        if (storedAuthToken()) {
+            if (await restoreAccountSession()) return;
+        }
         fetchWCAProfile();
-        // Only when the WCA path is not already in play, so a fresh OAuth
-        // return is never overwritten by a stale account session.
-        if (!localStorage.getItem('wca_access_token')) restoreAccountSession();
+    }
+
+    function init() {
+        bootSession();
         loadTheme();
         loadHistory();
         bindEvents();
@@ -810,11 +984,33 @@
                 e.preventDefault();
                 closePremiumModal();
             }
+            if (e.key === 'Escape' && $('#link-wca-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closeLinkWcaModal();
+            }
         });
 
         if ($('#wca-login-btn')) {
             $('#wca-login-btn').addEventListener('click', handleWCALogin);
         }
+
+        // Linking a WCA account to an email account.
+        if ($('#unlink-wca-btn')) {
+            $('#unlink-wca-btn').addEventListener('click', () => {
+                // Reversible and cheap, but it does change who other
+                // players see in a battle room, so it asks first.
+                if (window.confirm(i18nT('link.confirmUnlink',
+                    'Unlink your WCA account? Your CubingHQ account, email and password stay as they are.'))) {
+                    unlinkWca();
+                }
+            });
+        }
+        if ($('#link-wca-start')) $('#link-wca-start').addEventListener('click', startWcaLink);
+        if ($('#link-wca-close')) $('#link-wca-close').addEventListener('click', closeLinkWcaModal);
+        if ($('#link-wca-cancel')) $('#link-wca-cancel').addEventListener('click', closeLinkWcaModal);
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#link-wca-modal')) closeLinkWcaModal();
+        });
 
         // Email + password sign-in.
         if ($('#auth-form')) {

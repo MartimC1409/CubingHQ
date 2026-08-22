@@ -25,6 +25,7 @@ function eq(label, got, want) {
 }
 
 const MODULES = ['../api/auth/_signup.js', '../api/auth/_login.js', '../api/auth/_me.js',
+    '../api/auth/_link-wca.js', '../api/auth/_unlink-wca.js', '../api/_lib/auth.js',
     '../api/_lib/accounts.js', '../api/_lib/session.js', '../api/_lib/rtdb.js',
     '../api/_lib/firebase-auth.js', '../api/_lib/ratelimit.js', '../api/_lib/http.js'];
 
@@ -50,6 +51,9 @@ function installFetch() {
         writes.push({ path, method, body: opts.body ? JSON.parse(opts.body) : undefined });
         if (method === 'PUT') store[path] = JSON.parse(opts.body);
         if (method === 'PATCH') store[path] = Object.assign({}, store[path], JSON.parse(opts.body));
+        // DELETE was missing, so anything removed stayed in the stub and
+        // an unlinked WCA id looked permanently taken.
+        if (method === 'DELETE') delete store[path];
         return { ok: true, status: 200, text: async () => opts.body || 'null' };
     };
 }
@@ -239,6 +243,147 @@ async function call(handlerPath, req, env) {
 
     r = await call('../api/auth/_me.js', { method: 'GET', headers: { authorization: 'Bearer nonsense' } });
     eq('me with a forged token is 401', r.status, 401);
+
+    /* ---- linking a WCA account ------------------------------------ */
+
+    // Two identities have to be proven, and neither may come from the
+    // request: the session says which account, the WCA says which
+    // competitor. A caller who could name a WCA ID could claim someone
+    // else's competition record.
+
+    const WCA_TOKENS = {
+        'wca-ana': { id: 11, wca_id: '2016ANAA01', name: 'Ana Silva' },
+        'wca-bruno': { id: 22, wca_id: '2018BRUN02', name: 'Bruno Costa' },
+        'wca-newcomer': { id: 33, wca_id: null, name: 'No Results Yet' },
+    };
+
+    function installWcaFetch() {
+        const db = global.fetch;
+        global.fetch = async (url, opts = {}) => {
+            const u = String(url);
+            if (!u.includes('worldcubeassociation.org')) return db(url, opts);
+            const bearer = String((opts.headers && opts.headers.Authorization) || '')
+                .replace(/^Bearer /, '');
+            const me = WCA_TOKENS[bearer];
+            if (!me) return { ok: false, status: 401, json: async () => ({ error: 'Not authorized' }) };
+            return { ok: true, status: 200, json: async () => ({ me }) };
+        };
+    }
+
+    store = {}; writes = []; installFetch(); installWcaFetch();
+    rate._reset();
+
+    // Two accounts to link from.
+    r = await call('../api/auth/_signup.js', { body: { email: 'ana@example.com', password: 'a good password' } });
+    const anaToken = r.body.token;
+    const anaUid = r.body.user.uid;
+    r = await call('../api/auth/_signup.js', { body: { email: 'bruno@example.com', password: 'a good password' } });
+    const brunoToken = r.body.token;
+
+    // installFetch is reinstalled by nothing here, but load() re-requires
+    // the modules, so re-apply the WCA layer before each group.
+    installWcaFetch();
+
+    r = await call('../api/auth/_link-wca.js', {
+        headers: { authorization: `Bearer ${anaToken}` }, body: { wcaToken: 'wca-ana' },
+    });
+    eq('linking succeeds', r.status, 200);
+    eq('and reports the linked id', r.body.user.wcaId, '2016ANAA01');
+    check('handing back a new session token', typeof r.body.token === 'string');
+
+    const linkedSession = load('../api/_lib/session.js').verify(r.body.token);
+    eq('the new token knows about the link', linkedSession.wcaId, '2016ANAA01');
+    eq('and is still the same account', linkedSession.uid, anaUid);
+
+    eq('the link is stored on the account', store[`accounts/${anaUid}`].wcaId, '2016ANAA01');
+    eq('and indexed by WCA id', store['wca_links/2016ANAA01'], anaUid);
+
+    // The rule that matters: one WCA account, one CubingHQ account.
+    // Without it two accounts would present the same competition record
+    // AND be the same player in a battle room.
+    installWcaFetch();
+    r = await call('../api/auth/_link-wca.js', {
+        headers: { authorization: `Bearer ${brunoToken}` }, body: { wcaToken: 'wca-ana' },
+    });
+    eq('a second account cannot claim the same WCA account', r.status, 409);
+    eq('and is told why', r.body.error.code, 'wca_taken');
+
+    // Re-linking the same one is a no-op, so a retry is not punished.
+    installWcaFetch();
+    r = await call('../api/auth/_link-wca.js', {
+        headers: { authorization: `Bearer ${anaToken}` }, body: { wcaToken: 'wca-ana' },
+    });
+    eq('re-linking the same account is fine', r.status, 200);
+
+    // Switching to a different one needs an explicit unlink first.
+    installWcaFetch();
+    r = await call('../api/auth/_link-wca.js', {
+        headers: { authorization: `Bearer ${anaToken}` }, body: { wcaToken: 'wca-bruno' },
+    });
+    eq('switching WCA accounts is refused', r.status, 409);
+    eq('and says to unlink first', r.body.error.code, 'already_linked');
+
+    /* ---- neither identity can be asserted ------------------------- */
+
+    installWcaFetch();
+    r = await call('../api/auth/_link-wca.js', {
+        headers: {}, body: { wcaToken: 'wca-bruno' },
+    });
+    eq('linking without a session is refused', r.status, 401);
+
+    installWcaFetch();
+    r = await call('../api/auth/_link-wca.js', {
+        headers: { authorization: `Bearer ${brunoToken}` }, body: { wcaToken: 'not-a-wca-token' },
+    });
+    eq('a WCA token the WCA does not know is refused', r.status, 401);
+    eq('and says which side failed', r.body.error.code, 'bad_wca_token');
+
+    installWcaFetch();
+    r = await call('../api/auth/_link-wca.js', {
+        headers: { authorization: `Bearer ${brunoToken}` }, body: { wcaId: '2016ANAA01' },
+    });
+    eq('naming a WCA ID without a token proves nothing', r.status, 400);
+    eq('and is refused for that reason', r.body.error.code, 'no_wca_token');
+    check('and nothing was written for it',
+        store['wca_links/2016ANAA01'] === anaUid, JSON.stringify(store['wca_links/2016ANAA01']));
+
+    installWcaFetch();
+    r = await call('../api/auth/_link-wca.js', {
+        headers: { authorization: `Bearer ${brunoToken}` }, body: { wcaToken: 'wca-newcomer' },
+    });
+    eq('a WCA account with no WCA ID yet cannot be linked', r.status, 400);
+    eq('and is told what to do about it', r.body.error.code, 'no_wca_id');
+
+    /* ---- unlinking ------------------------------------------------- */
+
+    installWcaFetch();
+    r = await call('../api/auth/_unlink-wca.js', { headers: { authorization: `Bearer ${anaToken}` } });
+    eq('unlinking succeeds', r.status, 200);
+    eq('and the account no longer carries an id', r.body.user.wcaId, null);
+    eq('the new token agrees',
+        load('../api/_lib/session.js').verify(r.body.token).wcaId, null);
+    check('the index entry is gone', !store['wca_links/2016ANAA01'],
+        JSON.stringify(store['wca_links/2016ANAA01']));
+    check('but the account itself is untouched',
+        store[`accounts/${anaUid}`].email === 'ana@example.com'
+        && !!store[`accounts/${anaUid}`].password);
+
+    // And now the WCA account is free for someone else.
+    installWcaFetch();
+    r = await call('../api/auth/_link-wca.js', {
+        headers: { authorization: `Bearer ${brunoToken}` }, body: { wcaToken: 'wca-ana' },
+    });
+    eq('a freed WCA account can be claimed again', r.status, 200);
+
+    installWcaFetch();
+    r = await call('../api/auth/_unlink-wca.js', { headers: {} });
+    eq('unlinking without a session is refused', r.status, 401);
+
+    // Unlinking when nothing is linked is not an error — the end state
+    // the caller asked for is the state they get.
+    installWcaFetch();
+    r = await call('../api/auth/_unlink-wca.js', { headers: { authorization: `Bearer ${anaToken}` } });
+    eq('unlinking an unlinked account is a no-op, not a failure', r.status, 200);
 
     /* ---- a deployment with no storage ------------------------------ */
 

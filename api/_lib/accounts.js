@@ -204,8 +204,128 @@ async function authenticate({ email, password }) {
     return { uid: record.uid, email: record.email, name: record.name || 'Cuber' };
 }
 
+/* ---- linking a WCA account --------------------------------------
+   An email account can carry a WCA identity as well. The two are
+   deliberately separate records: the link lives on the account, and a
+   second entry under /wca_links maps the WCA id back to the account
+   that claimed it.
+
+   The index exists to keep one WCA account from being claimed by two
+   CubingHQ accounts. Without it, two accounts would present the same
+   competition record — and, because the battle system derives a
+   player id from the WCA id, they would also BE the same player in a
+   room. That is a correctness problem, not a policy one. */
+
+/** WCA ids look like 2016SMIT01. Also a safe database key. */
+function normalizeWcaId(input) {
+    const id = String(input == null ? '' : input).trim().toUpperCase();
+    if (!/^[0-9]{4}[A-Z]{4}[0-9]{2}$/.test(id)) {
+        throw new AccountError(400, 'bad_wca_id', 'That does not look like a WCA ID.');
+    }
+    return id;
+}
+
+/** The account behind a session, or null. */
+async function findByUid(uid) {
+    if (!rtdb.isConfigured()) throw notConfigured();
+    if (!/^[A-Za-z0-9_-]+$/.test(String(uid || ''))) {
+        throw new AccountError(400, 'bad_uid', 'That sign-in is not valid.');
+    }
+    let record;
+    try { record = await rtdb.get(`accounts/${uid}`); } catch (e) {
+        throw new AccountError(503, 'storage', 'Accounts are temporarily unavailable.');
+    }
+    return record ? Object.assign({ uid }, record) : null;
+}
+
+/** Which account, if any, has claimed a WCA id. */
+async function accountForWcaId(wcaId) {
+    try { return await rtdb.get(`wca_links/${wcaId}`); } catch (e) {
+        throw new AccountError(503, 'storage', 'Accounts are temporarily unavailable.');
+    }
+}
+
+/**
+ * Attaches a WCA identity to an account.
+ *
+ * The caller must have verified BOTH sides first: the session says
+ * which account, and the WCA says which competitor. Nothing here comes
+ * from the request.
+ *
+ * Re-linking the same id succeeds and changes nothing, so a client that
+ * retries is not punished for it. Linking a different one is refused
+ * while a link exists — unlink first, which is a deliberate act rather
+ * than something a stray redirect can do.
+ */
+async function linkWca({ uid, wcaId, wcaName, wcaAccountId }) {
+    if (!rtdb.isConfigured()) throw notConfigured();
+
+    const account = await findByUid(uid);
+    if (!account) throw new AccountError(401, 'no_account', 'That sign-in is not valid.');
+
+    if (account.wcaId && account.wcaId !== wcaId) {
+        throw new AccountError(409, 'already_linked',
+            'This account is already linked to a different WCA account. Unlink it first.');
+    }
+
+    const claimedBy = await accountForWcaId(wcaId);
+    if (claimedBy && claimedBy !== uid) {
+        throw new AccountError(409, 'wca_taken',
+            'That WCA account is already linked to another CubingHQ account.');
+    }
+
+    const patch = {
+        wcaId,
+        wcaName: wcaName ? String(wcaName).slice(0, NAME_MAX) : null,
+        wcaAccountId: wcaAccountId == null ? null : String(wcaAccountId),
+        wcaLinkedAt: Date.now(),
+    };
+    try {
+        // The index goes first. If the second write fails, the worst
+        // case is an index entry pointing at an account that does not
+        // claim it — which blocks nobody but this same account, and is
+        // repaired by linking again. The other order could hand the same
+        // WCA id to two accounts.
+        await rtdb.set(`wca_links/${wcaId}`, uid);
+        await rtdb.patch(`accounts/${uid}`, patch);
+    } catch (e) {
+        throw new AccountError(503, 'storage', 'That link could not be saved. Try again shortly.');
+    }
+
+    return {
+        uid, email: account.email, name: account.name || 'Cuber',
+        wcaId, wcaName: patch.wcaName,
+    };
+}
+
+/** Detaches it again, freeing the WCA id for another account. */
+async function unlinkWca(uid) {
+    if (!rtdb.isConfigured()) throw notConfigured();
+
+    const account = await findByUid(uid);
+    if (!account) throw new AccountError(401, 'no_account', 'That sign-in is not valid.');
+    if (!account.wcaId) {
+        return { uid, email: account.email, name: account.name || 'Cuber', wcaId: null };
+    }
+
+    try {
+        // Account first here, for the same reason the other order is
+        // right in linkWca: whichever write lands, no WCA id is ever
+        // left claimable by two accounts at once.
+        await rtdb.patch(`accounts/${uid}`, {
+            wcaId: null, wcaName: null, wcaAccountId: null, wcaLinkedAt: null,
+        });
+        await rtdb.del(`wca_links/${account.wcaId}`);
+    } catch (e) {
+        throw new AccountError(503, 'storage', 'That could not be saved. Try again shortly.');
+    }
+
+    return { uid, email: account.email, name: account.name || 'Cuber', wcaId: null };
+}
+
 module.exports = {
     normalizeEmail, checkPassword, cleanName, uidFor,
     hashPassword, verifyPassword, find, create, authenticate,
+    findByUid, accountForWcaId, linkWca, unlinkWca, normalizeWcaId,
     AccountError, PASSWORD_MIN, PASSWORD_MAX, NAME_MAX,
 };
