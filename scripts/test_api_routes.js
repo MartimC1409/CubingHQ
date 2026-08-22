@@ -45,6 +45,7 @@ process.env.FIREBASE_DB_SECRET = 'legacy-secret';
 
 const authRoute = require('../api/auth/[action].js');
 const videoRoute = require('../api/coach/video/[step].js');
+const coachRoute = require('../api/coach/[endpoint].js');
 
 /** Runs a dispatcher and reports the status it produced. */
 async function call(route, req) {
@@ -53,7 +54,11 @@ async function call(route, req) {
         statusCode: 0, setHeader() { },
         end(b) { payload = b ? JSON.parse(b) : null; status = this.statusCode; },
     };
-    await route(Object.assign({ method: 'POST', headers: {}, socket: {} }, req), res);
+    // A real request is always readable, even when it carries nothing.
+    // Handlers that parse a body before checking anything else would
+    // otherwise fail on the read rather than on the thing being tested.
+    const empty = { [Symbol.asyncIterator]: async function* () { } };
+    await route(Object.assign({ method: 'POST', headers: {}, socket: {} }, empty, req), res);
     return { status, body: payload };
 }
 
@@ -70,12 +75,13 @@ async function call(route, req) {
     check(`api/ deploys ${files.length} functions, at most 12`,
         files.length <= 12, files.join(', '));
     // Headroom, so the next endpoint added does not fail a build again.
-    check('with room for more', files.length <= 10, String(files.length));
+    check('with real room to spare', files.length <= 8, files.join(', '));
 
     /* ---- every URL still reaches its own handler ------------------ */
 
-    const { actionOf } = authRoute._internal;
-    const { stepOf } = videoRoute._internal;
+    const actionOf = authRoute._internal.paramOf;
+    const stepOf = videoRoute._internal.paramOf;
+    const endpointOf = coachRoute._internal.paramOf;
 
     eq('a path picks the endpoint', actionOf({ url: '/api/auth/login' }), 'login');
     eq('a query string does not confuse it',
@@ -87,6 +93,21 @@ async function call(route, req) {
         actionOf({ query: { action: ['me', 'login'] } }), 'me');
     eq('video steps are read the same way',
         stepOf({ url: '/api/coach/video/chunk' }), 'chunk');
+    eq('and so are coach endpoints',
+        endpointOf({ url: '/api/coach/chat' }), 'chat');
+    eq('health keeps its query string, which it reads itself',
+        endpointOf({ url: '/api/coach/health?live=1&video=1' }), 'health');
+
+    // Each dispatcher reads its OWN parameter name. Sharing one helper
+    // makes it cheap to pass the wrong one, and the failure would be
+    // invisible: every request would fall back to the URL and mostly
+    // still work, until one did not.
+    eq('the coach route reads `endpoint`',
+        endpointOf({ url: '/api/coach/x', query: { endpoint: 'chat', action: 'me' } }), 'chat');
+    eq('the auth route reads `action`',
+        actionOf({ url: '/api/auth/x', query: { endpoint: 'chat', action: 'me' } }), 'me');
+    eq('the video route reads `step`',
+        stepOf({ url: '/api/coach/video/x', query: { step: 'begin', action: 'me' } }), 'begin');
 
     /* ---- and the right handler actually runs ---------------------- */
 
@@ -115,6 +136,29 @@ async function call(route, req) {
     eq('/signup validates its own body', r.status, 400);
     eq('as a weak password', r.body.error.code, 'weak_password');
 
+    // Coach endpoints, each identified by a refusal only it produces.
+    r = await call(coachRoute, { url: '/api/coach/health', method: 'GET' });
+    eq('/health answers without sign-in — a health check that needs one is useless', r.status, 200);
+    check('and reports configuration', typeof r.body.ok === 'boolean', JSON.stringify(r.body));
+
+    r = await call(coachRoute, { url: '/api/coach/health', method: 'DELETE' });
+    eq('/health still refuses a DELETE', r.status, 405);
+
+    r = await call(coachRoute, { url: '/api/coach/profile', method: 'GET', headers: {} });
+    eq('/profile requires sign-in', r.status, 401);
+
+    // These two validate their payload before anything else, and each
+    // says something only it says — which is exactly what proves the
+    // dispatcher sent the request to the right one rather than to a
+    // neighbour that happens to fail the same way.
+    r = await call(coachRoute, { url: '/api/coach/chat', headers: {} });
+    eq('/chat asks for a question', r.status, 400);
+    check('in its own words', /Ask the Coach/.test(r.body.error.message), r.body.error.message);
+
+    r = await call(coachRoute, { url: '/api/coach/assess', headers: {} });
+    eq('/assess asks for statistics', r.status, 400);
+    check('in its own words too', /statistics/.test(r.body.error.message), r.body.error.message);
+
     r = await call(videoRoute, { url: '/api/coach/video/begin', headers: {} });
     eq('/begin requires sign-in', r.status, 401);
     eq('and says which', r.body.error.code, 'no_token');
@@ -133,6 +177,11 @@ async function call(route, req) {
         r = await call(videoRoute, { url });
         eq(`${url} is 404`, r.status, 404);
     }
+    for (const url of ['/api/coach/', '/api/coach/video', '/api/coach/_chat',
+        '/api/coach/constructor', '/api/coach/__proto__']) {
+        r = await call(coachRoute, { url });
+        eq(`${url} is 404`, r.status, 404);
+    }
 
     /* ---- the client asks for exactly these ------------------------ */
 
@@ -145,13 +194,15 @@ async function call(route, req) {
     const client = api + app;
 
     const wanted = new Set();
-    for (const m of client.matchAll(/['"`]\/api\/(auth|coach\/video)\/([a-z]+)['"`]/g)) {
+    for (const m of client.matchAll(/['"`]\/api\/(auth|coach|coach\/video)\/([a-z]+)['"`]/g)) {
         wanted.add(`${m[1]}/${m[2]}`);
     }
     check('the client calls some of these at all', wanted.size >= 4, [...wanted].join(', '));
     for (const url of wanted) {
         const [group, name] = [url.slice(0, url.lastIndexOf('/')), url.slice(url.lastIndexOf('/') + 1)];
-        const routes = group === 'auth' ? authRoute._internal.ROUTES : videoRoute._internal.ROUTES;
+        const routes = group === 'auth' ? authRoute._internal.ROUTES
+            : group === 'coach' ? coachRoute._internal.ROUTES
+            : videoRoute._internal.ROUTES;
         check(`/api/${url} is a route that exists`, routes.includes(name), routes.join(', '));
     }
 
