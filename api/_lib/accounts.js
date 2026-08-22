@@ -201,7 +201,10 @@ async function authenticate({ email, password }) {
     rtdb.patch(`accounts/${record.uid}`, { lastLoginAt: Date.now() })
         .catch(e => console.error('[accounts] could not record last login:', e.message));
 
-    return { uid: record.uid, email: record.email, name: record.name || 'Cuber' };
+    return {
+        uid: record.uid, email: record.email, name: record.name || 'Cuber',
+        passwordChangedAt: record.passwordChangedAt || 0,
+    };
 }
 
 /* ---- linking a WCA account --------------------------------------
@@ -295,6 +298,7 @@ async function linkWca({ uid, wcaId, wcaName, wcaAccountId }) {
     return {
         uid, email: account.email, name: account.name || 'Cuber',
         wcaId, wcaName: patch.wcaName,
+        passwordChangedAt: account.passwordChangedAt || 0,
     };
 }
 
@@ -305,7 +309,10 @@ async function unlinkWca(uid) {
     const account = await findByUid(uid);
     if (!account) throw new AccountError(401, 'no_account', 'That sign-in is not valid.');
     if (!account.wcaId) {
-        return { uid, email: account.email, name: account.name || 'Cuber', wcaId: null };
+        return {
+            uid, email: account.email, name: account.name || 'Cuber', wcaId: null,
+            passwordChangedAt: account.passwordChangedAt || 0,
+        };
     }
 
     try {
@@ -320,7 +327,10 @@ async function unlinkWca(uid) {
         throw new AccountError(503, 'storage', 'That could not be saved. Try again shortly.');
     }
 
-    return { uid, email: account.email, name: account.name || 'Cuber', wcaId: null };
+    return {
+        uid, email: account.email, name: account.name || 'Cuber', wcaId: null,
+        passwordChangedAt: account.passwordChangedAt || 0,
+    };
 }
 
 /** Stores (or clears) the account's profile picture. */
@@ -399,10 +409,116 @@ async function ensureAccount(identity) {
     return Object.assign({ uid: identity.uid }, record);
 }
 
+/* ---- forgotten passwords ------------------------------------------
+   A reset token is never stored in a form that could be replayed from
+   a database leak: only its SHA-256 hash sits on the account, the raw
+   32 bytes exist for the few minutes between being generated and
+   being emailed, and only the person holding that raw value — from
+   the link in their inbox — can ever produce a hash that matches.
+
+   Expiring and single-use: a token is deleted the moment it is spent,
+   successfully or not, so a captured link is worth exactly one guess
+   ever, and a stale one left unread in an old email stops working on
+   its own. */
+
+const RESET_TOKEN_BYTES = 32;
+const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;   // 30 minutes
+
+function hashResetToken(raw) {
+    return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+/**
+ * Starts a reset, or returns null if there is nothing to reset.
+ *
+ * Silence here is what the anti-enumeration promise rests on: the
+ * caller (the endpoint) must respond identically whether this returns
+ * a real token or null, exactly as accounts.find() already requires
+ * of everything built on top of it.
+ *
+ * @returns {uid, email, name, token} — `token` is the RAW value, for
+ *          the caller to email. It is never returned again; only its
+ *          hash is kept.
+ */
+async function requestPasswordReset(email) {
+    if (!rtdb.isConfigured()) throw notConfigured();
+
+    const account = await find(email);
+    if (!account) return null;
+
+    const raw = crypto.randomBytes(RESET_TOKEN_BYTES).toString('base64url');
+    try {
+        await rtdb.set(`accounts/${account.uid}/resetToken`, {
+            hash: hashResetToken(raw),
+            expiresAt: Date.now() + RESET_TOKEN_TTL_MS,
+        });
+    } catch (e) {
+        throw new AccountError(503, 'storage', 'That could not be started. Try again shortly.');
+    }
+
+    return { uid: account.uid, email: account.email, name: account.name || 'Cuber', token: raw };
+}
+
+/**
+ * Spends a reset token for a new password.
+ *
+ * `uid` comes from the reset link, not from the request body's own
+ * claim — it names an account, not a secret (the same status as a
+ * WCA ID elsewhere in this file), and the token is what actually has
+ * to match. A uid with no matching, unexpired, correctly-hashed token
+ * fails exactly like a wrong token would: there is nothing here for a
+ * guesser to learn by trying uids.
+ */
+async function resetPassword({ uid, token, password }) {
+    if (!rtdb.isConfigured()) throw notConfigured();
+
+    const bad = () => new AccountError(400, 'bad_reset_token',
+        'That reset link is invalid or has expired. Request a new one.');
+
+    if (!uid || !token) throw bad();
+
+    const stored = await rtdb.get(`accounts/${uid}/resetToken`);
+    if (!stored || !stored.hash || !stored.expiresAt) throw bad();
+    if (Date.now() > stored.expiresAt) {
+        await rtdb.del(`accounts/${uid}/resetToken`).catch(() => {});
+        throw bad();
+    }
+
+    const expected = Buffer.from(stored.hash, 'hex');
+    const got = Buffer.from(hashResetToken(token), 'hex');
+    if (expected.length !== got.length || !crypto.timingSafeEqual(expected, got)) {
+        throw bad();
+    }
+
+    const account = await findByUid(uid);
+    if (!account) throw bad();
+
+    const newPassword = checkPassword(password);
+    const now = Date.now();
+    try {
+        await rtdb.patch(`accounts/${uid}`, {
+            password: await hashPassword(newPassword),
+            passwordChangedAt: now,
+        });
+        // Spent regardless of what happens next: a token is good for one
+        // attempt, and leaving it live after a successful change would
+        // let it be replayed to overwrite the password someone just set.
+        await rtdb.del(`accounts/${uid}/resetToken`);
+    } catch (e) {
+        throw new AccountError(503, 'storage', 'That could not be saved. Try again shortly.');
+    }
+
+    return {
+        uid, email: account.email, name: account.name || 'Cuber',
+        wcaId: account.wcaId || null, passwordChangedAt: now,
+    };
+}
+
 module.exports = {
     normalizeEmail, checkPassword, cleanName, uidFor,
     hashPassword, verifyPassword, find, create, authenticate,
     findByUid, accountForWcaId, linkWca, unlinkWca, normalizeWcaId,
     setAvatar, publicProfile, ensureAccount,
+    requestPasswordReset, resetPassword,
     AccountError, PASSWORD_MIN, PASSWORD_MAX, NAME_MAX,
 };

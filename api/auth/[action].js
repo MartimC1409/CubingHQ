@@ -7,6 +7,9 @@
      POST /api/auth/link-wca
      POST /api/auth/unlink-wca
      POST /api/auth/avatar
+     POST /api/auth/request-reset
+     POST /api/auth/reset-password
+     GET  /api/auth/health
 
    See _lib/dispatch.js for why this shape exists at all.
    ============================================================ */
@@ -21,4 +24,7 @@ module.exports = makeDispatcher('action', {
     'link-wca': require('./_link-wca.js'),
     'unlink-wca': require('./_unlink-wca.js'),
     avatar: require('./_avatar.js'),
+    'request-reset': require('./_request-reset.js'),
+    'reset-password': require('./_reset-password.js'),
+    health: require('./_health.js'),
 });

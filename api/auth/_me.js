@@ -31,10 +31,24 @@ module.exports = async function handler(req, res) {
         // token that travels on every request. If storage cannot answer,
         // the token's own claims still sign the person in; they just see
         // no picture, which is a better failure than being signed out.
-        let profile = null;
-        try { profile = await accounts.publicProfile(user.uid); } catch (e) {
+        let account = null;
+        try { account = await accounts.findByUid(user.uid); } catch (e) {
             console.error('[auth] could not read the profile behind a valid session:', e.message);
         }
+
+        // The one place a token can be recognised as pre-dating a
+        // password reset — see session.isStaleAfterPasswordChange for
+        // why this check lives only here rather than in verify() itself.
+        if (account && session.isStaleAfterPasswordChange(user, account.passwordChangedAt)) {
+            const e = new Error('Your password changed since this device last signed in. Sign in again.');
+            e.status = 401; e.code = 'invalid_session';
+            throw e;
+        }
+
+        const profile = account ? {
+            uid: user.uid, email: account.email || null, name: account.name || 'Cuber',
+            wcaId: account.wcaId || null, avatar: account.avatar || null,
+        } : null;
 
         sendJson(res, 200, { user: profile || user });
     } catch (err) {

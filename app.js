@@ -491,8 +491,11 @@
         if (!emailEl || !passwordEl || !button) return;
 
         const email = emailEl.value.trim();
-        const password = passwordEl.value;
         if (!email) { showAuthError(i18nT('auth.needEmail', 'Enter your email address.'), emailEl); return; }
+
+        if (mode === 'reset-request') { await submitPasswordResetRequest(email, button); return; }
+
+        const password = passwordEl.value;
         if (!password) { showAuthError(i18nT('auth.needPassword', 'Enter your password.'), passwordEl); return; }
 
         clearAuthError();
@@ -537,6 +540,145 @@
         closeLoginModal();
         showToast(i18nT('toast.welcomeBack', 'Welcome back, {name}!')
             .replace('{name}', String(body.user.name || 'Cuber').split(' ')[0]), 'success');
+    }
+
+    /**
+     * Requests a reset link.
+     *
+     * The server answers success whether or not the address has an
+     * account — see request-reset.js — so this never has a "wrong
+     * email" branch to show. The modal stays open and the confirmation
+     * message replaces the usual close-and-toast, because there is
+     * nothing to sign in to yet.
+     */
+    async function submitPasswordResetRequest(email, button) {
+        clearAuthError();
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = i18nT('auth.working', 'One moment...');
+
+        let ok = false, message = null;
+        try {
+            const res = await fetch('/api/auth/request-reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const body = await res.json().catch(() => null);
+            ok = res.ok && body && body.sent === true;
+            if (!ok) message = body && body.error && body.error.message;
+        } catch (e) {
+            console.error('[auth] reset request failed', e);
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
+        }
+
+        if (!ok) {
+            showAuthError(message || i18nT('auth.offline', "Couldn't reach the server. Check your connection."));
+            return;
+        }
+        const sentMsg = $('#auth-reset-sent');
+        if (sentMsg) sentMsg.style.display = 'block';
+        $('#auth-email').value = '';
+    }
+
+    // ----- Setting a new password, from an emailed link -----
+    let _resetPasswordUid = null;
+    let _resetPasswordToken = null;
+
+    /**
+     * Reads #reset_uid=...&reset_token=... from the URL, the same way
+     * checkOAuthCallback reads the WCA's #access_token=. A hash
+     * fragment, not a query string, so the token never reaches this
+     * site's own access logs or a Referer header on the page it opens.
+     *
+     * @returns true if a reset link was present (and the modal opened)
+     */
+    function checkPasswordResetLink() {
+        const hash = window.location.hash;
+        if (!hash.includes('reset_uid=') || !hash.includes('reset_token=')) return false;
+
+        const params = new URLSearchParams(hash.substring(1));
+        const uid = params.get('reset_uid');
+        const token = params.get('reset_token');
+        window.history.replaceState(null, null, window.location.pathname);
+        if (!uid || !token) return false;
+
+        _resetPasswordUid = uid;
+        _resetPasswordToken = token;
+        openResetPasswordModal();
+        return true;
+    }
+
+    function openResetPasswordModal() {
+        const modal = $('#reset-password-modal');
+        if (!modal) return;
+        const err = $('#reset-password-error');
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        if ($('#reset-password-new')) $('#reset-password-new').value = '';
+        if ($('#reset-password-confirm')) $('#reset-password-confirm').value = '';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.lu-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closeResetPasswordModal() {
+        const modal = $('#reset-password-modal');
+        if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
+        _resetPasswordUid = null;
+        _resetPasswordToken = null;
+    }
+
+    async function submitNewPassword() {
+        const pw = ($('#reset-password-new') || {}).value || '';
+        const confirm = ($('#reset-password-confirm') || {}).value || '';
+        const errEl = $('#reset-password-error');
+        const button = $('#reset-password-submit');
+        const showErr = (msg) => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+        if (!pw) { showErr(i18nT('auth.needPassword', 'Enter your password.')); return; }
+        if (pw !== confirm) { showErr(i18nT('auth.passwordsDontMatch', "Those passwords don't match.")); return; }
+        if (!_resetPasswordUid || !_resetPasswordToken) {
+            showErr(i18nT('auth.resetLinkExpired', 'That reset link is invalid or has expired. Request a new one.'));
+            return;
+        }
+
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = i18nT('auth.working', 'One moment...');
+
+        let body = null, status = 0;
+        try {
+            const res = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: _resetPasswordUid, token: _resetPasswordToken, password: pw }),
+            });
+            status = res.status;
+            body = await res.json().catch(() => null);
+        } catch (e) {
+            console.error('[auth] reset-password failed', e);
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
+        }
+
+        if (!body || !body.token || !body.user) {
+            showErr((body && body.error && body.error.message)
+                || (status === 0
+                    ? i18nT('auth.offline', "Couldn't reach the server. Check your connection.")
+                    : i18nT('auth.failed', 'That did not work. Try again.')));
+            return;
+        }
+
+        try { localStorage.setItem(AUTH_TOKEN_KEY, body.token); } catch (e) { /* private mode */ }
+        setAccountProfile(body.user);
+        updateUIAfterLogin();
+        closeResetPasswordModal();
+        showToast(i18nT('toast.passwordReset', 'Password changed — you\'re signed in.'), 'success');
     }
 
     // ----- The account panel -----
@@ -838,25 +980,50 @@
         if (el) { el.textContent = ''; el.style.display = 'none'; }
     }
 
-    /** Switches the modal between "sign in" and "create account". */
+    /** Switches the modal between "sign in", "create account" and "forgot password". */
     function setAuthMode(mode) {
         const signup = mode === 'signup';
+        const resetRequest = mode === 'reset-request';
         clearAuthError();
+
+        const resetSent = $('#auth-reset-sent');
+        if (resetSent) resetSent.style.display = 'none';
+
         const nameField = $('#auth-name-field');
         if (nameField) nameField.style.display = signup ? 'block' : 'none';
+
+        // Forgotten-password mode asks for an email only — there is no
+        // password to check yet, that is the whole point of being here.
+        const passwordField = $('#auth-password-field');
+        if (passwordField) passwordField.style.display = resetRequest ? 'none' : 'block';
+        const passwordInput = $('#auth-password');
+        if (passwordInput) passwordInput.required = !resetRequest;
+
         const submit = $('#auth-submit-btn');
         if (submit) {
-            submit.textContent = signup
+            submit.textContent = resetRequest
+                ? i18nT('auth.sendResetLink', 'Send reset link')
+                : signup
                 ? i18nT('auth.createAccount', 'Create account')
                 : i18nT('auth.signIn', 'Sign in');
             submit.dataset.mode = mode;
         }
+
         const toggle = $('#auth-toggle-btn');
         if (toggle) {
-            toggle.textContent = signup
+            toggle.style.display = 'block';
+            toggle.textContent = resetRequest
+                ? i18nT('auth.backToSignIn', 'Back to sign in')
+                : signup
                 ? i18nT('auth.haveAccount', 'Already have an account? Sign in')
                 : i18nT('auth.noAccount', "No account? Create one");
         }
+
+        // Only a reason to ask when there is a password on screen to
+        // have forgotten.
+        const forgotLink = $('#auth-forgot-link');
+        if (forgotLink) forgotLink.style.display = mode === 'login' ? 'block' : 'none';
+
         const hint = $('#auth-password-hint');
         if (hint) hint.style.display = signup ? 'block' : 'none';
     }
@@ -896,6 +1063,9 @@
             _loginOpener.focus();
         }
         _loginOpener = null;
+        // Otherwise reopening the modal later can land back on "forgot
+        // password" or "create account" from whatever was left showing.
+        if ($('#auth-submit-btn')) setAuthMode('login');
     }
 
     // ========== PREMIUM PLAN ==========
@@ -977,6 +1147,12 @@
      *   3. a WCA sign-in, which is what this always used to be.
      */
     async function bootSession() {
+        // Checked first and unconditionally: a reset link carries no
+        // access_token, so it cannot collide with the WCA branches
+        // below, and opening it does not depend on — or block —
+        // whatever else this page load turns out to be.
+        checkPasswordResetLink();
+
         const returnedFromWca = checkOAuthCallback();
         let linkIntent = false;
         try { linkIntent = localStorage.getItem(LINK_INTENT_KEY) === '1'; } catch (e) { /* private mode */ }
@@ -1186,6 +1362,10 @@
                 e.preventDefault();
                 closeCreateGroupModal();
             }
+            if (e.key === 'Escape' && $('#reset-password-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closeResetPasswordModal();
+            }
         });
 
         // The account panel.
@@ -1254,11 +1434,35 @@
         if ($('#auth-toggle-btn')) {
             $('#auth-toggle-btn').addEventListener('click', () => {
                 const current = ($('#auth-submit-btn') && $('#auth-submit-btn').dataset.mode) || 'login';
-                setAuthMode(current === 'signup' ? 'login' : 'signup');
+                // Both signup and the forgotten-password screen lead back
+                // to sign-in; only sign-in itself offers to go the other
+                // way, to create-account.
+                setAuthMode(current === 'login' ? 'signup' : 'login');
             });
+        }
+        if ($('#auth-forgot-link')) {
+            $('#auth-forgot-link').addEventListener('click', () => setAuthMode('reset-request'));
         }
         ['#auth-email', '#auth-password', '#auth-name'].forEach(sel => {
             if ($(sel)) $(sel).addEventListener('input', clearAuthError);
+        });
+
+        // Setting a new password, from an emailed link.
+        if ($('#reset-password-form')) {
+            $('#reset-password-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitNewPassword();
+            });
+        }
+        if ($('#reset-password-close')) $('#reset-password-close').addEventListener('click', closeResetPasswordModal);
+        ['#reset-password-new', '#reset-password-confirm'].forEach(sel => {
+            if ($(sel)) $(sel).addEventListener('input', () => {
+                const err = $('#reset-password-error');
+                if (err) { err.style.display = 'none'; err.textContent = ''; }
+            });
+        });
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#reset-password-modal')) closeResetPasswordModal();
         });
 
         if (PREMIUM_ENABLED && $('#nav-premium-btn')) {

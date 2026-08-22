@@ -208,6 +208,33 @@ async function call(route, req) {
     r = await call(authRoute, { url: '/api/auth/avatar', headers: {} });
     eq('/avatar requires a session', r.status, 401);
 
+    r = await call(authRoute, { url: '/api/auth/request-reset', method: 'GET', headers: {} });
+    eq('/request-reset refuses a GET', r.status, 405);
+
+    r = await call(authRoute, {
+        url: '/api/auth/request-reset',
+        [Symbol.asyncIterator]: async function* () { yield Buffer.from('{"email":"not an address"}'); },
+    });
+    // A malformed address fails validation before anything touches
+    // storage or mail, so this proves the route reaches its own
+    // handler without needing either stubbed. The anti-enumeration
+    // promise itself — same response for a real account and a fake
+    // one — is what test_password_reset.js exists to check, with a
+    // real database behind it.
+    eq('/request-reset reaches its own handler', r.status, 400);
+    eq('validating its own body', r.body.error.code, 'bad_email');
+
+    r = await call(authRoute, { url: '/api/auth/reset-password', method: 'GET', headers: {} });
+    eq('/reset-password refuses a GET', r.status, 405);
+
+    r = await call(authRoute, { url: '/api/auth/health', method: 'POST', headers: {}, body: {} });
+    eq('/health refuses a POST', r.status, 405);
+
+    r = await call(authRoute, { url: '/api/auth/health', method: 'GET', headers: {} });
+    eq('/health needs no session at all', r.status, 200);
+    check('and reports the shape health.js promises',
+        typeof r.body.hasStorage === 'boolean' && typeof r.body.hasMailer === 'boolean');
+
     // A hyphenated segment is the case a naive `[a-z]+` route match
     // would drop on the floor.
     eq('a hyphenated endpoint is read whole',
