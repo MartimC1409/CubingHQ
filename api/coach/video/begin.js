@@ -21,9 +21,28 @@ const { issue } = require('../../_lib/upload-token.js');
 const { sendJson, sendError, methodGuard, readBody } = require('../../_lib/http.js');
 
 // Comfortably under a serverless request body limit once headers are
-// counted. The number is ours, not Google's — the resumable protocol
-// itself does not care.
-const CHUNK_BYTES = parseInt(process.env.COACH_VIDEO_CHUNK_BYTES || String(3 * 1024 * 1024), 10);
+// counted.
+//
+// The size is ours to pick, but not freely: Google's upload protocol
+// takes intermediate chunks in multiples of 256KB, and one that is not
+// gets the whole upload refused with a 400 on the SECOND chunk — the
+// first is accepted, so it looks like a mid-upload failure rather than
+// a setting. The default is already a multiple; this makes an overridden
+// one safe too, rather than trusting whoever sets the variable to know.
+const CHUNK_GRANULARITY = 256 * 1024;
+
+function alignedChunkBytes(raw) {
+    const wanted = parseInt(raw || String(3 * 1024 * 1024), 10);
+    if (!Number.isFinite(wanted) || wanted < CHUNK_GRANULARITY) return CHUNK_GRANULARITY;
+    const aligned = Math.floor(wanted / CHUNK_GRANULARITY) * CHUNK_GRANULARITY;
+    if (aligned !== wanted) {
+        console.warn(`[video] COACH_VIDEO_CHUNK_BYTES=${wanted} is not a multiple of 256KB; `
+            + `using ${aligned}. Google refuses an unaligned intermediate chunk.`);
+    }
+    return aligned;
+}
+
+const CHUNK_BYTES = alignedChunkBytes(process.env.COACH_VIDEO_CHUNK_BYTES);
 
 const ALLOWED_TYPES = [
     'video/mp4', 'video/quicktime', 'video/webm',
@@ -75,4 +94,4 @@ module.exports = async function handler(req, res) {
     }
 };
 
-module.exports._internal = { CHUNK_BYTES, ALLOWED_TYPES };
+module.exports._internal = { CHUNK_BYTES, ALLOWED_TYPES, alignedChunkBytes, CHUNK_GRANULARITY };

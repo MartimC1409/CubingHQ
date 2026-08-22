@@ -203,13 +203,46 @@ function fail(kind, status, message, step) {
     return err;
 }
 
+/**
+ * Google's own words for a failure.
+ *
+ * Read as text FIRST, then parsed. The other order looks equivalent and
+ * is not: `res.json()` consumes the body before it throws, so the
+ * `res.text()` in the catch could only ever fail with "Body has already
+ * been read" — and every error whose body is not JSON collapsed to the
+ * bare string `HTTP <status>`.
+ *
+ * That is not a cosmetic loss. A resumable upload rejection comes back
+ * as plain text, so the one sentence saying WHY an upload was refused
+ * was discarded every single time, and what reached the screen was a
+ * status code with no cause attached. Model errors are JSON and were
+ * unaffected, which is why this survived: the paths that were looked at
+ * were the paths that worked.
+ */
 async function readError(res) {
+    let text;
+    try { text = await res.text(); } catch (e) { return `HTTP ${res.status}`; }
+    if (!text) return uploadStatusOf(res) || `HTTP ${res.status}`;
+
+    let body = null;
+    try { body = JSON.parse(text); } catch (e) { /* plain text, returned below */ }
+    const message = (body && body.error && body.error.message)
+        || (body ? JSON.stringify(body) : text.trim());
+
+    // An empty-bodied refusal still says something in this header —
+    // `final`, `cancelled`, `active` — and for an upload that is often
+    // the whole diagnosis.
+    const status = uploadStatusOf(res);
+    return status ? `${message} [upload status: ${status}]` : message;
+}
+
+/** `X-Goog-Upload-Status`, when the response carries one. */
+function uploadStatusOf(res) {
     try {
-        const body = await res.json();
-        return (body && body.error && body.error.message) || JSON.stringify(body);
-    } catch (e) {
-        try { return await res.text(); } catch (e2) { return `HTTP ${res.status}`; }
-    }
+        const v = res.headers && typeof res.headers.get === 'function'
+            ? res.headers.get('x-goog-upload-status') : null;
+        return v ? String(v) : '';
+    } catch (e) { return ''; }
 }
 
 /* ---- schema translation ------------------------------------------ */
@@ -866,7 +899,7 @@ module.exports = {
     CoachModel, ModelError, structured, conversation, MODEL,
     EFFORT: null,
     _internal: {
-        classifyFailure, toGeminiSchema, extractJson, readStream,
+        classifyFailure, toGeminiSchema, extractJson, readStream, readError,
         startVideoUpload, uploadVideoBytes, uploadVideoChunk,
         getVideoState, checkModel, checkVideoPath, deleteVideo, redact,
         extractSuggestedModel,
