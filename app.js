@@ -346,6 +346,9 @@
                 updateUIAfterLogin();
                 showToast(i18nT('toast.welcomeBack', 'Welcome back, {name}!').replace('{name}', data.me.name.split(' ')[0]), 'success');
                 closeLoginModal();
+                // Populates the friends badge and lists for this session,
+                // without waiting for someone to open the Friends view.
+                reloadFriendsList();
 
                 // Automatically load their WCA stats if they have a WCA ID
                 if (state.userProfile.wca_id) {
@@ -471,6 +474,7 @@
             if (!body || !body.user) return false;
             setAccountProfile(body.user);
             updateUIAfterLogin();
+            reloadFriendsList();
             return true;
         } catch (e) {
             console.error('[auth] could not restore session', e);
@@ -686,6 +690,23 @@
         restoreLoginNavButton();
         switchView('home');
         showToast(i18nT('toast.loggedOut', 'Logged out successfully'), 'success');
+
+        // Nothing left to show without a session — a stale badge count or
+        // a friends list from the account that just signed out would be
+        // shown to whoever uses this browser next.
+        friendsState.friends = [];
+        friendsState.incoming = [];
+        friendsState.outgoing = [];
+        friendsState.groups = [];
+        friendsState.selectedCompare.clear();
+        friendsState.openGroupId = null;
+        updateFriendsBadge();
+        const requestsSection = $('#friend-requests-section');
+        if (requestsSection) requestsSection.style.display = 'none';
+        const friendsList = $('#friends-list');
+        if (friendsList) friendsList.innerHTML = '';
+        const groupsList = $('#friends-groups-list');
+        if (groupsList) groupsList.innerHTML = '';
     }
 
     // ----- Linking a WCA account to an email account -----
@@ -1017,10 +1038,10 @@
     // ========== NAVIGATION (Hash-based Routing) ==========
     const VIEW_TO_HASH = {
         'home': '#home', 'setup': '#simulation', 'dashboard': '#simulation',
-        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle'
+        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle', 'friends': '#friends'
     };
     const HASH_TO_VIEW = {
-        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '': 'home'
+        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '#friends': 'friends', '': 'home'
     };
 
     function switchView(viewName, updateHash = true) {
@@ -1062,6 +1083,8 @@
             $('#nav-algorithms-btn').classList.add('active');
         } else if (viewName === 'battle') {
             if ($('#nav-battle-btn')) $('#nav-battle-btn').classList.add('active');
+        } else if (viewName === 'friends') {
+            if ($('#nav-friends-btn')) $('#nav-friends-btn').classList.add('active');
         }
 
         // Update URL hash
@@ -1087,6 +1110,7 @@
             if (targetView === 'competitions' && !state.upcomingCompsFetched) fetchUpcomingCompetitions();
             if (targetView === 'algorithms') initializeAlgorithmsUI();
             if (targetView === 'battle') initBattle();
+            if (targetView === 'friends') initFriends();
         }
     }
 
@@ -1157,6 +1181,10 @@
             if (e.key === 'Escape' && $('#account-modal')?.style.display !== 'none') {
                 e.preventDefault();
                 closeAccountModal();
+            }
+            if (e.key === 'Escape' && $('#create-group-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closeCreateGroupModal();
             }
         });
 
@@ -1326,6 +1354,12 @@
             $('#nav-battle-btn').addEventListener('click', () => {
                 switchView('battle');
                 initBattle();
+            });
+        }
+        if ($('#nav-friends-btn')) {
+            $('#nav-friends-btn').addEventListener('click', () => {
+                switchView('friends');
+                initFriends();
             });
         }
         // Guest battle removed
@@ -5171,6 +5205,532 @@
         document.addEventListener('keydown', updateActivity);
     }
 
+
+    // ========== FRIENDS & GROUPS ==========
+    //
+    // Friends, requests and groups are server state (/api/social) — the
+    // request has to reach both people, so it cannot live only in one
+    // browser's storage the way the timer's solve history does.
+    //
+    // The comparison itself is not server state at all. A personal-best
+    // table is public WCA data, fetched the same way the statistics view
+    // already fetches one person's — this just does it for several
+    // people at once and lines the rows up. Nothing about "who compared
+    // with whom" is stored anywhere.
+
+    /**
+     * This browser's uid, exactly as the server derives it for the
+     * social endpoints — used only to decide which buttons to show
+     * (leave vs. remove, the owner label). The server re-derives
+     * identity from the session on every call regardless, so a wrong
+     * answer here could only ever mis-draw a button, never grant an
+     * action the server would refuse.
+     *
+     * Deliberately NOT getBattleUserId(): that helper checks wca_id
+     * before uid, which is right for battles (a guest with no account
+     * needs an id from somewhere) and wrong here. An email account's
+     * `uid` is the server's real, stable session id even after linking
+     * a WCA account — checking wca_id first would return a DIFFERENT
+     * id than the one the server actually authorizes against.
+     */
+    function myFriendsUid() {
+        const p = state.userProfile;
+        if (p && p.uid) return p.uid;                          // an email account, linked or not
+        if (p && p.wca_id) return 'wca_' + String(p.wca_id).toUpperCase();   // a bare WCA sign-in
+        return null;
+    }
+
+    const friendsState = {
+        initialized: false,
+        friends: [],
+        incoming: [],
+        outgoing: [],
+        groups: [],
+        selectedCompare: new Set(),
+        openGroupId: null,
+        wcaCache: new Map(),   // wcaId -> personal_records, or null on failure
+    };
+
+    async function friendsApi(action, { method = 'GET', body, query = '' } = {}) {
+        const token = authToken();
+        if (!token) return { ok: false, status: 401, body: null };
+        const headers = { Authorization: `Bearer ${token}` };
+        if (body !== undefined) headers['Content-Type'] = 'application/json';
+        let res, json = null;
+        try {
+            res = await fetch(`/api/social/${action}${query}`, {
+                method, headers, body: body !== undefined ? JSON.stringify(body) : undefined,
+            });
+            json = await res.json().catch(() => null);
+        } catch (e) {
+            console.error(`[friends] ${action} failed`, e);
+            return { ok: false, status: 0, body: null };
+        }
+        return { ok: res.ok, status: res.status, body: json };
+    }
+
+    function friendAvatarHtml(person) {
+        const picture = person.avatar && (person.avatar.url || person.avatar);
+        if (typeof picture === 'string' && picture) {
+            return `<div class="friend-row-avatar" style="background-image:url('${esc(picture)}')"></div>`;
+        }
+        return `<div class="friend-row-avatar">${esc(initialsOf(person.name))}</div>`;
+    }
+
+    function updateFriendsBadge() {
+        const badge = $('#friends-badge');
+        if (!badge) return;
+        const n = friendsState.incoming.length;
+        badge.textContent = n > 9 ? '9+' : String(n);
+        badge.style.display = n > 0 ? '' : 'none';
+    }
+
+    async function initFriends() {
+        const signedOut = $('#friends-signed-out');
+        const signedIn = $('#friends-signed-in');
+        if (!isSignedIn()) {
+            if (signedOut) signedOut.style.display = 'block';
+            if (signedIn) signedIn.style.display = 'none';
+            return;
+        }
+        if (signedOut) signedOut.style.display = 'none';
+        if (signedIn) signedIn.style.display = 'block';
+
+        if (!friendsState.initialized) {
+            friendsState.initialized = true;
+            bindFriendsEvents();
+            if ($('#friends-signin-btn')) $('#friends-signin-btn').addEventListener('click', openLoginModal);
+        }
+        await Promise.all([reloadFriendsList(), reloadGroupsList()]);
+    }
+
+    async function reloadFriendsList() {
+        const r = await friendsApi('list');
+        if (!r.ok || !r.body) return;
+        friendsState.friends = r.body.friends || [];
+        friendsState.incoming = r.body.incoming || [];
+        friendsState.outgoing = r.body.outgoing || [];
+        // A removed friend cannot stay selected for a comparison.
+        const friendUids = new Set(friendsState.friends.map(f => f.uid));
+        for (const uid of [...friendsState.selectedCompare]) {
+            if (!friendUids.has(uid)) friendsState.selectedCompare.delete(uid);
+        }
+        updateFriendsBadge();
+        renderFriendRequests();
+        renderFriendsList();
+    }
+
+    async function reloadGroupsList() {
+        const r = await friendsApi('list-groups');
+        if (!r.ok || !r.body) return;
+        friendsState.groups = r.body.groups || [];
+        renderGroupsList();
+        // A refresh while a group is open re-renders it too, so an edit
+        // by another tab (or a member who left) does not go stale.
+        if (friendsState.openGroupId) {
+            const still = friendsState.groups.find(g => g.groupId === friendsState.openGroupId);
+            if (still) renderGroupDetail(still); else closeGroupDetail();
+        }
+    }
+
+    function renderFriendRequests() {
+        const section = $('#friend-requests-section');
+        const list = $('#friend-requests-list');
+        if (!section || !list) return;
+        const incoming = friendsState.incoming;
+        section.style.display = incoming.length ? 'block' : 'none';
+        list.innerHTML = incoming.map(req => `
+            <div class="friend-row" data-uid="${esc(req.uid)}">
+                ${friendAvatarHtml(req)}
+                <div class="friend-row-info">
+                    <div class="friend-row-name">${esc(req.name)}</div>
+                    ${req.wcaId ? `<div class="friend-row-meta">${esc(req.wcaId)}</div>` : ''}
+                </div>
+                <div class="friend-row-actions">
+                    <button class="lu-btn lu-btn-default friend-accept-btn" data-uid="${esc(req.uid)}">${esc(i18nT('friends.accept', 'Accept'))}</button>
+                    <button class="lu-btn lu-btn-ghost friend-decline-btn" data-uid="${esc(req.uid)}">${esc(i18nT('friends.decline', 'Decline'))}</button>
+                </div>
+            </div>
+        `).join('');
+        list.querySelectorAll('.friend-accept-btn').forEach(btn => {
+            btn.addEventListener('click', () => respondToRequest(btn.dataset.uid, true));
+        });
+        list.querySelectorAll('.friend-decline-btn').forEach(btn => {
+            btn.addEventListener('click', () => respondToRequest(btn.dataset.uid, false));
+        });
+    }
+
+    async function respondToRequest(uid, accept) {
+        const r = accept
+            ? await friendsApi('accept', { method: 'POST', body: { fromUid: uid } })
+            : await friendsApi('decline', { method: 'POST', body: { uid } });
+        if (!r.ok) {
+            showToast((r.body && r.body.error && r.body.error.message)
+                || i18nT('friends.actionFailed', 'That did not work. Try again.'), 'error');
+            return;
+        }
+        await reloadFriendsList();
+    }
+
+    function renderFriendsList() {
+        const list = $('#friends-list');
+        const empty = $('#friends-empty');
+        const compareBtn = $('#friends-compare-btn');
+        if (!list) return;
+        const friends = friendsState.friends;
+        empty.style.display = friends.length ? 'none' : 'block';
+        list.innerHTML = friends.map(f => `
+            <div class="friend-row">
+                <label class="friend-row--picker" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; cursor:pointer;">
+                    <input type="checkbox" class="friend-compare-check" data-uid="${esc(f.uid)}" ${friendsState.selectedCompare.has(f.uid) ? 'checked' : ''}>
+                    ${friendAvatarHtml(f)}
+                    <span class="friend-row-info">
+                        <span class="friend-row-name">${esc(f.name)}</span>
+                        ${f.wcaId ? `<span class="friend-row-meta">${esc(f.wcaId)}</span>` : `<span class="friend-row-meta">${esc(i18nT('friends.noWca', 'No WCA ID linked'))}</span>`}
+                    </span>
+                </label>
+                <div class="friend-row-actions">
+                    <button class="lu-btn lu-btn-ghost friend-remove-btn" data-uid="${esc(f.uid)}" data-name="${esc(f.name)}">${esc(i18nT('friends.remove', 'Remove'))}</button>
+                </div>
+            </div>
+        `).join('');
+        list.querySelectorAll('.friend-compare-check').forEach(box => {
+            box.addEventListener('change', () => {
+                if (box.checked) friendsState.selectedCompare.add(box.dataset.uid);
+                else friendsState.selectedCompare.delete(box.dataset.uid);
+                if (compareBtn) compareBtn.style.display = friendsState.selectedCompare.size ? '' : 'none';
+            });
+        });
+        list.querySelectorAll('.friend-remove-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!window.confirm(i18nT('friends.confirmRemove', 'Remove {name} from your friends?').replace('{name}', btn.dataset.name))) return;
+                friendsApi('remove-friend', { method: 'POST', body: { uid: btn.dataset.uid } })
+                    .then(r => { if (r.ok) reloadFriendsList(); });
+            });
+        });
+        if (compareBtn) compareBtn.style.display = friendsState.selectedCompare.size ? '' : 'none';
+    }
+
+    async function addFriendSubmit() {
+        const input = $('#friend-add-input');
+        const btn = $('#friend-add-btn');
+        if (!input) return;
+        const identifier = input.value.trim();
+        const errEl = $('#friend-add-error');
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+        if (!identifier) return;
+
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = i18nT('auth.working', 'One moment...');
+        const r = await friendsApi('request', { method: 'POST', body: { identifier } });
+        btn.disabled = false;
+        btn.textContent = label;
+
+        if (!r.ok) {
+            if (errEl) {
+                errEl.textContent = (r.body && r.body.error && r.body.error.message)
+                    || i18nT('friends.actionFailed', 'That did not work. Try again.');
+                errEl.style.display = 'block';
+            }
+            return;
+        }
+        input.value = '';
+        const msg = r.body && r.body.becameFriends
+            ? i18nT('friends.nowFriends', "You're now friends!")
+            : i18nT('friends.requestSent', 'Request sent — CubingHQ will let you know if it goes through.');
+        showToast(msg, 'success');
+        await reloadFriendsList();
+    }
+
+    /* ---- comparing results ------------------------------------------ */
+
+    // WCA event order and formatting mirror the statistics view exactly
+    // (lookupWCAProfile), which is the only other place in the app that
+    // reads this shape of data. 333fm is a move count, not a time;
+    // 333mbf is packed into one integer WCA-side and needs decoding.
+    const WCA_EVENT_ORDER = ['333', '222', '444', '555', '666', '777',
+        '333bf', '333fm', '333oh', 'clock', 'minx', 'pyram', 'skewb', 'sq1',
+        '444bf', '555bf', '333mbf'];
+
+    function formatWcaBest(eventId, best, isAverage) {
+        if (!best) return null;
+        if (eventId === '333fm') return isAverage ? (best / 100).toFixed(2) : String(best);
+        if (eventId === '333mbf') return isAverage ? null : decodeMBLD(best);
+        return formatTime(best / 100);
+    }
+
+    async function fetchWcaPersonalRecords(wcaId) {
+        if (!wcaId) return null;
+        if (friendsState.wcaCache.has(wcaId)) return friendsState.wcaCache.get(wcaId);
+        let data = null;
+        try {
+            const res = await fetch(`${WCA_API}/persons/${wcaId}`);
+            if (res.ok) data = (await res.json()).personal_records || {};
+        } catch (e) { /* treated as "no data" below */ }
+        friendsState.wcaCache.set(wcaId, data);
+        return data;
+    }
+
+    async function renderComparison(people) {
+        const wrap = $('#friends-compare-table-wrap');
+        const section = $('#friends-compare-section');
+        if (!wrap || !section) return;
+        section.style.display = 'block';
+        wrap.innerHTML = `<div class="records-loading-state"><span>${esc(i18nT('friends.loadingResults', 'Fetching results…'))}</span></div>`;
+
+        const withWca = people.filter(p => p.wcaId);
+        const withoutWca = people.filter(p => !p.wcaId);
+        const records = await Promise.all(withWca.map(p => fetchWcaPersonalRecords(p.wcaId)));
+
+        const events = new Set();
+        records.forEach(pr => { if (pr) Object.keys(pr).forEach(e => events.add(e)); });
+        const orderedEvents = [...events].sort((a, b) => {
+            const ia = WCA_EVENT_ORDER.indexOf(a), ib = WCA_EVENT_ORDER.indexOf(b);
+            return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+        });
+
+        if (!withWca.length) {
+            wrap.innerHTML = `<p class="friends-empty-state">${esc(i18nT('friends.noneLinked', 'None of the people you picked have a WCA ID linked yet.'))}</p>`;
+            return;
+        }
+
+        const head = withWca.map(p => `<th><span class="compare-person-head">${friendAvatarHtml(p)}<span>${esc(p.name)}</span></span></th>`).join('');
+
+        const rows = orderedEvents.map(eventId => {
+            let bestSingle = Infinity, bestAvg = Infinity;
+            withWca.forEach((p, i) => {
+                const pr = records[i] && records[i][eventId];
+                if (pr && pr.single && pr.single.best && eventId !== '333mbf') bestSingle = Math.min(bestSingle, pr.single.best);
+                if (pr && pr.average && pr.average.best) bestAvg = Math.min(bestAvg, pr.average.best);
+            });
+            const cells = withWca.map((p, i) => {
+                const pr = records[i] && records[i][eventId];
+                const single = pr && pr.single ? formatWcaBest(eventId, pr.single.best, false) : null;
+                const avg = pr && pr.average ? formatWcaBest(eventId, pr.average.best, true) : null;
+                const singleIsBest = pr && pr.single && pr.single.best === bestSingle && eventId !== '333mbf';
+                const avgIsBest = pr && pr.average && pr.average.best === bestAvg;
+                return `<td class="${singleIsBest ? 'compare-best' : ''}">${esc(single || '—')}${avg ? `<br><small class="${avgIsBest ? 'compare-best' : ''}">${esc(avg)}</small>` : ''}</td>`;
+            }).join('');
+            return `<tr><td>${esc(EVENT_NAMES[eventId] || eventId)}</td>${cells}</tr>`;
+        }).join('');
+
+        const skippedNote = withoutWca.length
+            ? `<p class="friends-empty-state" style="margin-top:12px;">${esc(i18nT('friends.someUnlinked', '{names} have no WCA ID linked, so they are not in this table.').replace('{names}', withoutWca.map(p => p.name).join(', ')))}</p>`
+            : '';
+
+        wrap.innerHTML = orderedEvents.length
+            ? `<table class="compare-table"><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table>${skippedNote}`
+            : `<p class="friends-empty-state">${esc(i18nT('friends.noResults', 'No official results for anyone selected yet.'))}</p>${skippedNote}`;
+    }
+
+    function meAsComparisonPerson() {
+        const p = state.userProfile || {};
+        return { uid: 'me', name: p.name || 'You', avatar: p.avatarUrl ? { url: p.avatarUrl } : p.avatar, wcaId: p.wca_id || null };
+    }
+
+    async function compareSelectedFriends() {
+        const people = [meAsComparisonPerson(), ...friendsState.friends.filter(f => friendsState.selectedCompare.has(f.uid))];
+        await renderComparison(people);
+        const section = $('#friends-compare-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ---- groups -------------------------------------------------------- */
+
+    function renderGroupsList() {
+        const list = $('#friends-groups-list');
+        const empty = $('#friends-groups-empty');
+        if (!list) return;
+        const groups = friendsState.groups;
+        empty.style.display = groups.length ? 'none' : 'block';
+        list.innerHTML = groups.map(g => `
+            <div class="friend-row">
+                <div class="friend-row-info">
+                    <div class="friend-row-name">${esc(g.name)}</div>
+                    <div class="friend-row-meta">${esc(String(Object.keys(g.members || {}).length))} ${esc(i18nT('friends.members', 'members'))}</div>
+                </div>
+                <div class="friend-row-actions">
+                    <button class="lu-btn lu-btn-ghost friend-open-group-btn" data-id="${esc(g.groupId)}">${esc(i18nT('friends.open', 'Open'))}</button>
+                </div>
+            </div>
+        `).join('');
+        list.querySelectorAll('.friend-open-group-btn').forEach(btn => {
+            btn.addEventListener('click', () => openGroupDetail(btn.dataset.id));
+        });
+    }
+
+    async function openGroupDetail(groupId) {
+        const r = await friendsApi('group', { query: `?id=${encodeURIComponent(groupId)}` });
+        if (!r.ok || !r.body) {
+            showToast(i18nT('friends.groupGone', 'That group is no longer available.'), 'error');
+            return;
+        }
+        friendsState.openGroupId = groupId;
+        renderGroupDetail(r.body);
+        const section = $('#friends-group-detail-section');
+        if (section) { section.style.display = 'block'; section.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    }
+
+    function closeGroupDetail() {
+        friendsState.openGroupId = null;
+        const section = $('#friends-group-detail-section');
+        if (section) section.style.display = 'none';
+    }
+
+    function renderGroupDetail(group) {
+        const meUid = myFriendsUid();
+        const amOwner = group.ownerUid === meUid;
+
+        const title = $('#friends-group-detail-title');
+        if (title) title.textContent = group.name;
+        const deleteBtn = $('#friends-group-delete-btn');
+        if (deleteBtn) deleteBtn.style.display = amOwner ? '' : 'none';
+        const addRow = $('#friends-group-add-row');
+        if (addRow) addRow.style.display = amOwner ? 'flex' : 'none';
+
+        if (amOwner) {
+            const select = $('#friends-group-add-select');
+            const memberUids = new Set(Object.keys(group.members || {}));
+            const options = friendsState.friends.filter(f => !memberUids.has(f.uid));
+            if (select) {
+                select.innerHTML = options.length
+                    ? options.map(f => `<option value="${esc(f.uid)}">${esc(f.name)}</option>`).join('')
+                    : `<option value="">${esc(i18nT('friends.noneToAdd', 'No more friends to add'))}</option>`;
+                select.disabled = !options.length;
+            }
+            const addBtn = $('#friends-group-add-btn');
+            if (addBtn) addBtn.disabled = !options.length;
+        }
+
+        const members = Object.values(group.members || {});
+        const list = $('#friends-group-members-list');
+        if (list) {
+            list.innerHTML = members.map(m => `
+                <div class="friend-row">
+                    ${friendAvatarHtml(m)}
+                    <div class="friend-row-info">
+                        <div class="friend-row-name">${esc(m.name)}${m.uid === group.ownerUid ? ` <small>(${esc(i18nT('friends.owner', 'owner'))})</small>` : ''}</div>
+                        ${m.wcaId ? `<div class="friend-row-meta">${esc(m.wcaId)}</div>` : ''}
+                    </div>
+                    <div class="friend-row-actions">
+                        ${(amOwner && m.uid !== group.ownerUid) || m.uid === meUid && m.uid !== group.ownerUid
+                            ? `<button class="lu-btn lu-btn-ghost friend-group-remove-btn" data-uid="${esc(m.uid)}">${esc(m.uid === meUid ? i18nT('friends.leave', 'Leave') : i18nT('friends.remove', 'Remove'))}</button>`
+                            : ''}
+                    </div>
+                </div>
+            `).join('');
+            list.querySelectorAll('.friend-group-remove-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const r = await friendsApi('remove-from-group', {
+                        method: 'POST', body: { groupId: group.groupId, memberUid: btn.dataset.uid },
+                    });
+                    if (r.ok) { await reloadGroupsList(); if (btn.dataset.uid === meUid) closeGroupDetail(); }
+                });
+            });
+        }
+
+        const compareBtn = $('#friends-group-compare-btn');
+        if (compareBtn) {
+            compareBtn.onclick = () => {
+                const people = members.map(m => m.uid === meUid ? meAsComparisonPerson() : m);
+                renderComparison(people);
+                const section = $('#friends-compare-section');
+                if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+        }
+    }
+
+    function openCreateGroupModal() {
+        const modal = $('#create-group-modal');
+        if (!modal) return;
+        const nameInput = $('#create-group-name');
+        if (nameInput) nameInput.value = '';
+        const err = $('#create-group-error');
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        const picker = $('#create-group-members');
+        if (picker) {
+            picker.innerHTML = friendsState.friends.length
+                ? friendsState.friends.map(f => `
+                    <label class="friend-row friend-row--picker">
+                        <input type="checkbox" class="group-member-check" value="${esc(f.uid)}">
+                        ${friendAvatarHtml(f)}
+                        <span class="friend-row-info"><span class="friend-row-name">${esc(f.name)}</span></span>
+                    </label>
+                `).join('')
+                : `<p class="friends-empty-state">${esc(i18nT('friends.noFriendsYet', 'No friends yet — add one above.'))}</p>`;
+        }
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeCreateGroupModal() {
+        const modal = $('#create-group-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    async function submitCreateGroup() {
+        const name = ($('#create-group-name') || {}).value || '';
+        const memberUids = [...document.querySelectorAll('.group-member-check:checked')].map(cb => cb.value);
+        const err = $('#create-group-error');
+        const btn = $('#create-group-submit');
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = i18nT('auth.working', 'One moment...');
+        const r = await friendsApi('create-group', { method: 'POST', body: { name, memberUids } });
+        btn.disabled = false;
+        btn.textContent = label;
+
+        if (!r.ok) {
+            if (err) {
+                err.textContent = (r.body && r.body.error && r.body.error.message)
+                    || i18nT('friends.actionFailed', 'That did not work. Try again.');
+                err.style.display = 'block';
+            }
+            return;
+        }
+        closeCreateGroupModal();
+        await reloadGroupsList();
+        showToast(i18nT('friends.groupCreated', 'Group created.'), 'success');
+    }
+
+    function bindFriendsEvents() {
+        if ($('#friend-add-btn')) $('#friend-add-btn').addEventListener('click', addFriendSubmit);
+        if ($('#friend-add-input')) $('#friend-add-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addFriendSubmit();
+        });
+        if ($('#friends-compare-btn')) $('#friends-compare-btn').addEventListener('click', compareSelectedFriends);
+        if ($('#friends-compare-close')) $('#friends-compare-close').addEventListener('click', () => {
+            const section = $('#friends-compare-section');
+            if (section) section.style.display = 'none';
+        });
+        if ($('#friends-create-group-btn')) $('#friends-create-group-btn').addEventListener('click', openCreateGroupModal);
+        if ($('#create-group-close')) $('#create-group-close').addEventListener('click', closeCreateGroupModal);
+        if ($('#create-group-submit')) $('#create-group-submit').addEventListener('click', submitCreateGroup);
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#create-group-modal')) closeCreateGroupModal();
+        });
+        if ($('#friends-group-close-btn')) $('#friends-group-close-btn').addEventListener('click', closeGroupDetail);
+        if ($('#friends-group-delete-btn')) $('#friends-group-delete-btn').addEventListener('click', async () => {
+            if (!friendsState.openGroupId) return;
+            if (!window.confirm(i18nT('friends.confirmDeleteGroup', 'Delete this group? This cannot be undone.'))) return;
+            const r = await friendsApi('delete-group', { method: 'POST', body: { groupId: friendsState.openGroupId } });
+            if (r.ok) { closeGroupDetail(); await reloadGroupsList(); }
+        });
+        if ($('#friends-group-add-btn')) $('#friends-group-add-btn').addEventListener('click', async () => {
+            const select = $('#friends-group-add-select');
+            const memberUid = select && select.value;
+            if (!memberUid || !friendsState.openGroupId) return;
+            const r = await friendsApi('add-to-group', {
+                method: 'POST', body: { groupId: friendsState.openGroupId, memberUid },
+            });
+            if (r.ok) await reloadGroupsList();
+        });
+    }
 
     // ========== BATTLE SYSTEM (Real-time Firebase) ==========
     const RTDB = 'https://simulatecubing-default-rtdb.firebaseio.com';

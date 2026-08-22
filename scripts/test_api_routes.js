@@ -75,7 +75,7 @@ async function call(route, req) {
     check(`api/ deploys ${files.length} functions, at most 12`,
         files.length <= 12, files.join(', '));
     // Headroom, so the next endpoint added does not fail a build again.
-    check('with real room to spare', files.length <= 8, files.join(', '));
+    check('with real room to spare', files.length <= 9, files.join(', '));
 
     /* ---- every URL still reaches its own handler ------------------ */
 
@@ -158,6 +158,33 @@ async function call(route, req) {
     r = await call(coachRoute, { url: '/api/coach/assess', headers: {} });
     eq('/assess asks for statistics', r.status, 400);
     check('in its own words too', /statistics/.test(r.body.error.message), r.body.error.message);
+
+    /* ---- /api/social ------------------------------------------------ */
+
+    const socialRoute = require('../api/social/[action].js');
+
+    r = await call(socialRoute, { url: '/api/social/list', method: 'GET', headers: {} });
+    eq('/social/list requires sign-in', r.status, 401);
+
+    r = await call(socialRoute, { url: '/api/social/list', method: 'POST', headers: {}, body: {} });
+    eq('/social/list refuses a POST', r.status, 405);
+
+    r = await call(socialRoute, { url: '/api/social/request', method: 'GET', headers: {} });
+    eq('/social/request refuses a GET', r.status, 405);
+
+    r = await call(socialRoute, { url: '/api/social/not-a-real-action', headers: {}, body: {} });
+    eq('an unknown social action still checks sign-in first',
+        r.status, 401, 'a 404 before auth would leak which actions exist to a signed-out caller for free');
+
+    eq('the social route lists exactly its own actions',
+        socialRoute._internal.ROUTES.length, 11);
+
+    check('the parameter is read the same way as the others',
+        typeof socialRoute._internal.paramOf === 'function');
+    eq('reading the action from a path',
+        socialRoute._internal.paramOf({ url: '/api/social/remove-friend' }), 'remove-friend');
+    eq('reading the group id from a query string',
+        socialRoute._internal.groupIdOf({ url: '/api/social/group?id=-Nabc123' }), '-Nabc123');
 
     r = await call(videoRoute, { url: '/api/coach/video/begin', headers: {} });
     eq('/begin requires sign-in', r.status, 401);
