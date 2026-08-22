@@ -55,13 +55,20 @@ function sign(payload) {
 
 /**
  * A token for this user.
- * @param user { uid, email, name }
+ * @param user { uid, email, name, wcaId? }
+ *
+ * `wcaId` is present once an account has linked a WCA account. It is
+ * carried here so the rest of the server can see the link without a
+ * database read, and re-issued on every sign-in — which is also why
+ * linking hands back a new token rather than editing the old one: a
+ * signed token cannot be amended, only replaced.
  */
 function issue(user, now = Date.now()) {
     const claims = {
         uid: user.uid,
         email: user.email || null,
         name: user.name || 'Cuber',
+        wcaId: user.wcaId || null,
         exp: now + TTL_MS,
     };
     const payload = Buffer.from(JSON.stringify(claims), 'utf8').toString('base64url');
@@ -94,7 +101,12 @@ function verify(token, now = Date.now()) {
     if (!claims || typeof claims.uid !== 'string' || !claims.uid) return null;
     if (!Number.isFinite(claims.exp) || claims.exp < now) return null;
 
-    return { uid: claims.uid, email: claims.email || null, name: claims.name || 'Cuber' };
+    return {
+        uid: claims.uid,
+        email: claims.email || null,
+        name: claims.name || 'Cuber',
+        wcaId: claims.wcaId || null,
+    };
 }
 
 /** True when a session could be signed at all. */

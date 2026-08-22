@@ -168,7 +168,23 @@ async function call(route, req) {
 
     /* ---- and nothing else is reachable ---------------------------- */
 
+    r = await call(authRoute, { url: '/api/auth/link-wca', headers: {} });
+    eq('/link-wca requires a session', r.status, 401);
+    eq('and says which', r.body.error.code, 'invalid_session');
+
+    r = await call(authRoute, { url: '/api/auth/unlink-wca', headers: {} });
+    eq('/unlink-wca requires one too', r.status, 401);
+
+    r = await call(authRoute, { url: '/api/auth/link-wca', method: 'GET', headers: {} });
+    eq('/link-wca refuses a GET', r.status, 405);
+
+    // A hyphenated segment is the case a naive `[a-z]+` route match
+    // would drop on the floor.
+    eq('a hyphenated endpoint is read whole',
+        actionOf({ url: '/api/auth/unlink-wca' }), 'unlink-wca');
+
     for (const url of ['/api/auth/', '/api/auth/logout', '/api/auth/_signup',
+        '/api/auth/link', '/api/auth/linkwca',
         '/api/auth/constructor', '/api/auth/__proto__', '/api/auth/toString']) {
         r = await call(authRoute, { url });
         eq(`${url} is 404`, r.status, 404);
