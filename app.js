@@ -4653,15 +4653,16 @@
             opts.body = JSON.stringify(data);
         }
 
+        // Battle data is routed through our serverless gateway. The
+        // browser must not carry the Firebase database credential, and
+        // the database rules intentionally reject anonymous writes.
+        const isBattlePath = path === '/battle/rooms'
+            || path.startsWith('/battle/rooms/')
+            || path === '/battle_chats'
+            || path.startsWith('/battle_chats/');
+
         let r;
         try {
-            // Battle data is routed through our serverless gateway. The
-            // browser must not carry the Firebase database credential, and
-            // the database rules intentionally reject anonymous writes.
-            const isBattlePath = path === '/battle/rooms'
-                || path.startsWith('/battle/rooms/')
-                || path === '/battle_chats'
-                || path.startsWith('/battle_chats/');
             if (isBattlePath) {
                 r = await fetch('/api/battle', {
                     method: 'POST',
@@ -4682,7 +4683,16 @@
             try { body = (await r.text()).slice(0, 200); } catch (e) { /* nothing to add */ }
             // 401/403 is the rules refusing us. Worth its own kind: it is
             // the one failure where "try again" is actively wrong advice.
-            fbLastError = (r.status === 401 || r.status === 403) ? 'denied' : 'error';
+            //
+            // So is a 404 on a battle path. That path does not address a
+            // room — it addresses /api/battle — so a 404 means the gateway
+            // itself is not there, which is what happened when the client
+            // was switched over to it before the endpoint existed: every
+            // room creation failed, and the only thing on screen was
+            // "try again". Its own kind, so it can say so.
+            fbLastError = (r.status === 401 || r.status === 403) ? 'denied'
+                : (isBattlePath && r.status === 404) ? 'no_gateway'
+                : 'error';
             console.error(`[fb] ${method} ${path} → HTTP ${r.status} ${body}`);
             return null;
         }
@@ -4886,6 +4896,9 @@
             const why = battleState.lobbyError === 'denied'
                 ? i18nT('battle.roomsDenied',
                     'The rooms database is refusing connections, so battles are unavailable right now. This is a server setting, not something you can fix — please report it.')
+                : battleState.lobbyError === 'no_gateway'
+                ? i18nT('battle.roomsNoGateway',
+                    'The rooms service is not running on this deployment, so battles are unavailable right now. This is a server setting, not something you can fix — please report it.')
                 : i18nT('battle.roomsUnreachable',
                     "Couldn't reach the rooms database. Check your connection and refresh.");
             grid.innerHTML = `<div class="battle-empty-state">
@@ -5092,9 +5105,13 @@
                 // retrying it never once works, and sending someone round
                 // that loop is how a server misconfiguration gets mistaken
                 // for a flaky button.
-                showCreateRoomError(fbError() === 'denied'
+                const kind = fbError();
+                showCreateRoomError(kind === 'denied'
                     ? i18nT('toast.roomCreateDenied',
                         'The rooms database refused to save this room. That is a server setting on our side — please report it.')
+                    : kind === 'no_gateway'
+                    ? i18nT('toast.roomCreateNoGateway',
+                        'The rooms service is not running on this deployment, so rooms cannot be saved. That is on our side — please report it.')
                     : i18nT('toast.roomCreateFailed', 'Failed to create room. Try again.'));
                 return;
             }
