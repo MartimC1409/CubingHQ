@@ -6,6 +6,7 @@
      GET  /api/auth/me
      POST /api/auth/link-wca
      POST /api/auth/unlink-wca
+     POST /api/auth/avatar
 
    See _lib/dispatch.js for why this shape exists at all.
    ============================================================ */
@@ -19,4 +20,5 @@ module.exports = makeDispatcher('action', {
     me: require('./_me.js'),
     'link-wca': require('./_link-wca.js'),
     'unlink-wca': require('./_unlink-wca.js'),
+    avatar: require('./_avatar.js'),
 });

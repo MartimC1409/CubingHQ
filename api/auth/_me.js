@@ -12,6 +12,7 @@
 
 const { sendJson, sendError, methodGuard } = require('../_lib/http.js');
 const session = require('../_lib/session.js');
+const accounts = require('../_lib/accounts.js');
 
 module.exports = async function handler(req, res) {
     if (!methodGuard(req, res, ['GET'])) return;
@@ -25,7 +26,17 @@ module.exports = async function handler(req, res) {
             e.status = 401; e.code = 'invalid_session';
             throw e;
         }
-        sendJson(res, 200, { user });
+        // The token is the authority on WHO this is. The record is the
+        // authority on what they look like — a picture cannot live in a
+        // token that travels on every request. If storage cannot answer,
+        // the token's own claims still sign the person in; they just see
+        // no picture, which is a better failure than being signed out.
+        let profile = null;
+        try { profile = await accounts.publicProfile(user.uid); } catch (e) {
+            console.error('[auth] could not read the profile behind a valid session:', e.message);
+        }
+
+        sendJson(res, 200, { user: profile || user });
     } catch (err) {
         sendError(res, err);
     }

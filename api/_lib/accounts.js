@@ -323,9 +323,47 @@ async function unlinkWca(uid) {
     return { uid, email: account.email, name: account.name || 'Cuber', wcaId: null };
 }
 
+/** Stores (or clears) the account's profile picture. */
+async function setAvatar(uid, avatar) {
+    if (!rtdb.isConfigured()) throw notConfigured();
+
+    const account = await findByUid(uid);
+    if (!account) throw new AccountError(401, 'no_account', 'That sign-in is not valid.');
+
+    try { await rtdb.patch(`accounts/${uid}`, { avatar: avatar || null }); } catch (e) {
+        throw new AccountError(503, 'storage', 'That picture could not be saved. Try again shortly.');
+    }
+    return {
+        uid, email: account.email, name: account.name || 'Cuber',
+        wcaId: account.wcaId || null, avatar: avatar || null,
+    };
+}
+
+/**
+ * Everything a signed-in client needs about itself.
+ *
+ * The session token carries a uid, a name and a WCA id, which is enough
+ * for authorization and deliberately not enough for a profile — a
+ * picture has no business inside a token that travels on every request.
+ * So this reads the record, and the caller decides what to do when
+ * storage is unavailable.
+ */
+async function publicProfile(uid) {
+    const account = await findByUid(uid);
+    if (!account) return null;
+    return {
+        uid,
+        email: account.email || null,
+        name: account.name || 'Cuber',
+        wcaId: account.wcaId || null,
+        avatar: account.avatar || null,
+    };
+}
+
 module.exports = {
     normalizeEmail, checkPassword, cleanName, uidFor,
     hashPassword, verifyPassword, find, create, authenticate,
     findByUid, accountForWcaId, linkWca, unlinkWca, normalizeWcaId,
+    setAvatar, publicProfile,
     AccountError, PASSWORD_MIN, PASSWORD_MAX, NAME_MAX,
 };

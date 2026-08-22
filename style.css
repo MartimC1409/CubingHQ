@@ -3631,6 +3631,22 @@ body {
     border: 2px solid var(--clr-primary);
     box-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
 }
+/* No picture: the person's initials, not a stock silhouette of nobody.
+   Sized to match the <img> exactly so the nav does not shift when a
+   picture is added or removed. */
+.nav-avatar--initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--clr-text);
+    background: var(--clr-surface, rgba(255, 255, 255, 0.08));
+    box-sizing: border-box;
+}
+
 .nav-btn.active .nav-avatar {
     border-color: #ff9500;
     box-shadow: 0 0 12px rgba(255, 149, 0, 0.6);

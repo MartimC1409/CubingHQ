@@ -1404,6 +1404,56 @@ select.form-select {
 }
 .lu-dialog-skip:hover { color: var(--clr-text); }
 
+/* ----- The account panel ----------------------------------------- */
+.account-avatar-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.account-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: var(--lu-muted);
+    border: 1px solid var(--clr-border);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--clr-text-secondary);
+    /* Initials, when there is no picture. Better than a stock silhouette
+       of nobody, and it belongs to the person by being their letters. */
+    letter-spacing: 0.02em;
+    overflow: hidden;
+}
+
+.account-avatar-btn { font-size: 0.78rem; padding: 4px 10px; }
+
+.account-name { margin-bottom: 2px; }
+
+.account-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--clr-border);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: var(--clr-text-secondary);
+}
+.account-row strong { color: var(--clr-text); font-family: var(--font-mono, monospace); }
+
+.account-inline-btn { font-size: 0.76rem; padding: 3px 8px; }
+
 /* ----- Email + password sign-in, inside the login dialog ---------
    Kept visually secondary to the WCA button: that path fills in a
    real competition record, and this one exists for people who have

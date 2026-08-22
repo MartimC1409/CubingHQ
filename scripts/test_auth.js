@@ -25,7 +25,8 @@ function eq(label, got, want) {
 }
 
 const MODULES = ['../api/auth/_signup.js', '../api/auth/_login.js', '../api/auth/_me.js',
-    '../api/auth/_link-wca.js', '../api/auth/_unlink-wca.js', '../api/_lib/auth.js',
+    '../api/auth/_link-wca.js', '../api/auth/_unlink-wca.js', '../api/auth/_avatar.js',
+    '../api/_lib/auth.js',
     '../api/_lib/accounts.js', '../api/_lib/session.js', '../api/_lib/rtdb.js',
     '../api/_lib/firebase-auth.js', '../api/_lib/ratelimit.js', '../api/_lib/http.js'];
 
@@ -384,6 +385,100 @@ async function call(handlerPath, req, env) {
     installWcaFetch();
     r = await call('../api/auth/_unlink-wca.js', { headers: { authorization: `Bearer ${anaToken}` } });
     eq('unlinking an unlinked account is a no-op, not a failure', r.status, 200);
+
+    /* ---- the profile picture -------------------------------------- */
+
+    // An email account had no picture and fell back to the WCA's grey
+    // silhouette — a stock image of nobody, fetched from someone else's
+    // server. It can upload one now, which means this endpoint decides
+    // what counts as a picture, and that value is later written into
+    // other people's pages.
+
+    const jpeg = (bytes = [0xFF, 0xD8, 0xFF, 0xE0, 0x01, 0x02]) =>
+        'data:image/jpeg;base64,' + Buffer.from(bytes).toString('base64');
+
+    installWcaFetch();
+    r = await call('../api/auth/_avatar.js', {
+        headers: { authorization: `Bearer ${anaToken}` }, body: { avatar: jpeg() },
+    });
+    eq('a picture is accepted', r.status, 200);
+    check('and stored on the account', String(store[`accounts/${anaUid}`].avatar).startsWith('data:image/jpeg'),
+        String(store[`accounts/${anaUid}`].avatar).slice(0, 40));
+
+    // The one that matters: an SVG is a document, and a document can
+    // carry script. It is an image by MIME type and not by nature.
+    installWcaFetch();
+    r = await call('../api/auth/_avatar.js', {
+        headers: { authorization: `Bearer ${anaToken}` },
+        body: { avatar: 'data:image/svg+xml;base64,' + Buffer.from('<svg onload="alert(1)"/>').toString('base64') },
+    });
+    eq('an SVG is refused', r.status, 400);
+    eq('as a bad picture', r.body.error.code, 'bad_avatar');
+
+    for (const [what, value] of [
+        ['a remote URL', 'https://example.com/me.png'],
+        ['a javascript: URL', 'javascript:alert(1)'],
+        ['an HTML data URI', 'data:text/html;base64,' + Buffer.from('<script>').toString('base64')],
+        ['a PNG that is not a PNG', 'data:image/png;base64,' + Buffer.from([1, 2, 3, 4]).toString('base64')],
+        ['an empty image', 'data:image/jpeg;base64,'],
+    ]) {
+        installWcaFetch();
+        r = await call('../api/auth/_avatar.js', {
+            headers: { authorization: `Bearer ${anaToken}` }, body: { avatar: value },
+        });
+        eq(`${what} is refused`, r.status, 400);
+    }
+
+    installWcaFetch();
+    r = await call('../api/auth/_avatar.js', {
+        headers: { authorization: `Bearer ${anaToken}` },
+        body: { avatar: jpeg(new Array(120 * 1024).fill(0xFF).map((v, i) => (i < 3 ? [0xFF, 0xD8, 0xFF][i] : v))) },
+    });
+    eq('an oversized picture is refused', r.status, 400);
+
+    installWcaFetch();
+    r = await call('../api/auth/_avatar.js', { headers: {}, body: { avatar: jpeg() } });
+    eq('a picture without a session is refused', r.status, 401);
+
+    // Clearing is the only way back to no picture, so it must work.
+    installWcaFetch();
+    r = await call('../api/auth/_avatar.js', {
+        headers: { authorization: `Bearer ${anaToken}` }, body: { avatar: null },
+    });
+    eq('a picture can be removed', r.status, 200);
+    eq('and the account carries none', r.body.user.avatar, null);
+
+    /* ---- /me carries the profile, not just the token --------------- */
+
+    installWcaFetch();
+    await call('../api/auth/_avatar.js', {
+        headers: { authorization: `Bearer ${anaToken}` }, body: { avatar: jpeg() },
+    });
+    installWcaFetch();
+    r = await call('../api/auth/_me.js', {
+        method: 'GET', headers: { authorization: `Bearer ${anaToken}` },
+    });
+    eq('me still answers', r.status, 200);
+    check('with the picture, which is not in the token',
+        String(r.body.user.avatar || '').startsWith('data:image/jpeg'),
+        String(r.body.user.avatar).slice(0, 40));
+    check('and the token itself never carries one',
+        !String(anaToken).includes('data:image'),
+        'a picture in a token would travel on every request');
+
+    // Storage failing must not sign anybody out: the token is the
+    // authority on WHO they are, the record only on what they look like.
+    const savedFetch = global.fetch;
+    global.fetch = async (url, opts) => {
+        if (String(url).includes('worldcubeassociation.org')) return savedFetch(url, opts);
+        throw new Error('storage down');
+    };
+    r = await call('../api/auth/_me.js', {
+        method: 'GET', headers: { authorization: `Bearer ${anaToken}` },
+    });
+    eq('me survives storage being down', r.status, 200);
+    eq('still naming the right account', r.body.user.uid, anaUid);
+    global.fetch = savedFetch;
 
     /* ---- a deployment with no storage ------------------------------ */
 

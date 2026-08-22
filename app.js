@@ -377,24 +377,33 @@
         }
         let navBtn = $('#nav-login-btn') || $('#nav-profile-btn');
         if (navBtn) {
-            const avatarUrl = state.userProfile.avatar?.url || 'https://www.worldcubeassociation.org/assets/missing_avatar_thumb-12654dd6f1aa6d458e80d41e6c4ea6cf79b7c53d1010e6fb3eb18ce86d9ed8df.png';
-            
+            // In order: a picture the account uploaded, the WCA's picture
+            // for a WCA sign-in, then their initials. The old fallback was
+            // the WCA's grey silhouette — a picture of nobody, fetched
+            // from someone else's server to say we had nothing.
+            const uploaded = state.userProfile.avatarUrl;
+            const fromWca = state.userProfile.avatar?.url;
+
             // Clone the button to remove old login listeners
             const newBtn = navBtn.cloneNode(true);
-            newBtn.innerHTML = `<img src="${avatarUrl}" alt="Profile" class="nav-avatar">`;
+            const picture = uploaded || fromWca;
+            newBtn.innerHTML = picture
+                ? `<img src="${esc(picture)}" alt="" class="nav-avatar">`
+                : `<span class="nav-avatar nav-avatar--initials" aria-hidden="true">${esc(initialsOf(state.userProfile.name))}</span>`;
             newBtn.title = "Profile";
             newBtn.id = 'nav-profile-btn';
             navBtn.parentNode.replaceChild(newBtn, navBtn);
             
             newBtn.addEventListener('click', async () => {
-                if (state.userProfile && state.userProfile.wca_id) {
+                // An email account has no statistics view to live in, so
+                // this is where its picture, its WCA link and its logout
+                // button are. A WCA sign-in already has all three in the
+                // statistics view and goes straight there.
+                if (state.userProfile && state.userProfile.source === 'email') {
+                    openAccountModal();
+                } else if (state.userProfile && state.userProfile.wca_id) {
                     await lookupWCAProfile(state.userProfile.wca_id, true);
                     switchView('statistics');
-                } else if (state.userProfile && state.userProfile.source === 'email') {
-                    // An email account with nothing linked used to get a
-                    // dead end here — a toast naming a problem and
-                    // offering no way out of it. This is that way out.
-                    openLinkWcaModal();
                 } else {
                     showToast(i18nT('toast.noWcaLinked', 'No WCA ID linked to this account.'), 'info');
                 }
@@ -440,6 +449,7 @@
             // linked email account behaves like a WCA sign-in everywhere
             // that matters — stats, records, and the battle identity.
             wca_id: user.wcaId || null,
+            avatarUrl: user.avatar || null,
             source: 'email',
         }, extra || {});
     }
@@ -523,6 +533,159 @@
         closeLoginModal();
         showToast(i18nT('toast.welcomeBack', 'Welcome back, {name}!')
             .replace('{name}', String(body.user.name || 'Cuber').split(' ')[0]), 'success');
+    }
+
+    // ----- The account panel -----
+    let _accountOpener = null;
+
+    /** "Ana Silva" -> "AS". One letter is fine; zero falls back. */
+    function initialsOf(name) {
+        const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return '?';
+        const first = parts[0][0] || '';
+        const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+        return (first + last).toUpperCase();
+    }
+
+    function renderAccountModal() {
+        const p = state.userProfile;
+        if (!p) return;
+
+        const avatar = $('#account-avatar');
+        if (avatar) {
+            const picture = p.avatarUrl || p.avatar?.url;
+            if (picture) {
+                avatar.style.backgroundImage = `url("${picture.replace(/"/g, '%22')}")`;
+                avatar.textContent = '';
+            } else {
+                avatar.style.backgroundImage = '';
+                avatar.textContent = initialsOf(p.name);
+            }
+        }
+        const clear = $('#account-avatar-clear');
+        if (clear) clear.style.display = p.avatarUrl ? '' : 'none';
+
+        const title = $('#account-title');
+        if (title) title.textContent = p.name || 'Your account';
+        const email = $('#account-email');
+        if (email) email.textContent = p.email || '';
+
+        const linked = !!p.wca_id;
+        const linkedRow = $('#account-wca-linked');
+        if (linkedRow) linkedRow.style.display = linked ? '' : 'none';
+        const wcaId = $('#account-wca-id');
+        if (wcaId) wcaId.textContent = p.wca_id || '';
+        const linkBtn = $('#account-link');
+        if (linkBtn) linkBtn.style.display = linked ? 'none' : '';
+        const statsBtn = $('#account-stats');
+        if (statsBtn) statsBtn.style.display = linked ? '' : 'none';
+
+        const err = $('#account-avatar-error');
+        if (err) { err.textContent = ''; err.style.display = 'none'; }
+    }
+
+    function openAccountModal() {
+        const modal = $('#account-modal');
+        if (!modal) return;
+        renderAccountModal();
+        _accountOpener = document.activeElement;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.lu-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closeAccountModal() {
+        const modal = $('#account-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (_accountOpener && document.contains(_accountOpener)) _accountOpener.focus();
+        _accountOpener = null;
+    }
+
+    function showAccountError(message) {
+        const el = $('#account-avatar-error');
+        if (el) { el.textContent = message; el.style.display = 'block'; }
+    }
+
+    // Resized here rather than on the server, because the alternative is
+    // sending a 4MB phone photo through a serverless request body to
+    // produce an 84px circle. A canvas does it before anything leaves
+    // the device.
+    const AVATAR_PX = 256;
+    const AVATAR_QUALITY = 0.82;
+
+    function fileToSquareDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                try {
+                    // Centre crop to a square, so a portrait photo does not
+                    // arrive squashed into a circle.
+                    const side = Math.min(img.width, img.height);
+                    const sx = (img.width - side) / 2;
+                    const sy = (img.height - side) / 2;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = AVATAR_PX;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, sx, sy, side, side, 0, 0, AVATAR_PX, AVATAR_PX);
+                    resolve(canvas.toDataURL('image/jpeg', AVATAR_QUALITY));
+                } catch (e) { reject(e); }
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('not an image')); };
+            img.src = url;
+        });
+    }
+
+    async function saveAvatar(dataUrl) {
+        const token = storedAuthToken();
+        if (!token) return;
+
+        let body = null;
+        try {
+            const res = await fetch('/api/auth/avatar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ avatar: dataUrl }),
+            });
+            body = await res.json().catch(() => null);
+        } catch (e) {
+            console.error('[auth] saving the picture failed', e);
+        }
+
+        if (!body || !body.user) {
+            showAccountError((body && body.error && body.error.message)
+                || i18nT('account.pictureFailed', "That picture couldn't be saved. Try another one."));
+            return;
+        }
+        setAccountProfile(body.user);
+        updateUIAfterLogin();
+        renderAccountModal();
+    }
+
+    async function pickAvatar(file) {
+        if (!file) return;
+        let dataUrl;
+        try {
+            dataUrl = await fileToSquareDataUrl(file);
+        } catch (e) {
+            showAccountError(i18nT('account.pictureUnreadable', "That file couldn't be read as an image."));
+            return;
+        }
+        await saveAvatar(dataUrl);
+    }
+
+    function signOut() {
+        localStorage.removeItem('wca_access_token');
+        try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* private mode */ }
+        state.userProfile = null;
+        closeAccountModal();
+        restoreLoginNavButton();
+        switchView('home');
+        showToast(i18nT('toast.loggedOut', 'Logged out successfully'), 'success');
     }
 
     // ----- Linking a WCA account to an email account -----
@@ -991,11 +1154,51 @@
                 e.preventDefault();
                 closeLinkWcaModal();
             }
+            if (e.key === 'Escape' && $('#account-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closeAccountModal();
+            }
         });
 
         if ($('#wca-login-btn')) {
             $('#wca-login-btn').addEventListener('click', handleWCALogin);
         }
+
+        // The account panel.
+        if ($('#account-close')) $('#account-close').addEventListener('click', closeAccountModal);
+        if ($('#account-logout')) $('#account-logout').addEventListener('click', signOut);
+        if ($('#account-link')) $('#account-link').addEventListener('click', () => {
+            closeAccountModal();
+            openLinkWcaModal();
+        });
+        if ($('#account-stats')) $('#account-stats').addEventListener('click', async () => {
+            closeAccountModal();
+            if (state.userProfile && state.userProfile.wca_id) {
+                await lookupWCAProfile(state.userProfile.wca_id, true);
+                switchView('statistics');
+            }
+        });
+        if ($('#account-unlink')) $('#account-unlink').addEventListener('click', () => {
+            if (window.confirm(i18nT('link.confirmUnlink',
+                'Unlink your WCA account? Your CubingHQ account, email and password stay as they are.'))) {
+                unlinkWca().then(renderAccountModal);
+            }
+        });
+        if ($('#account-avatar-btn') && $('#account-avatar-input')) {
+            $('#account-avatar-btn').addEventListener('click', () => $('#account-avatar-input').click());
+            $('#account-avatar-input').addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                // Cleared so choosing the same file twice still fires.
+                e.target.value = '';
+                pickAvatar(file);
+            });
+        }
+        if ($('#account-avatar-clear')) {
+            $('#account-avatar-clear').addEventListener('click', () => saveAvatar(null));
+        }
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#account-modal')) closeAccountModal();
+        });
 
         // Linking a WCA account to an email account.
         if ($('#unlink-wca-btn')) {
@@ -1055,17 +1258,9 @@
         }
 
         if ($('#logout-btn')) {
-            $('#logout-btn').addEventListener('click', () => {
-                localStorage.removeItem('wca_access_token');
-                // The session token is a bearer token with no server-side
-                // revocation, so forgetting it here is what signing out
-                // means. It expires on its own regardless.
-                try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* private mode */ }
-                state.userProfile = null;
-                restoreLoginNavButton();
-                switchView('home');
-                showToast(i18nT('toast.loggedOut', 'Logged out successfully'), 'success');
-            });
+            // Same signOut the account panel uses. Two buttons meaning
+            // the same thing should not be able to mean different things.
+            $('#logout-btn').addEventListener('click', signOut);
         }
 
         // Theme (click + keyboard). theme.js binds the same button to open
