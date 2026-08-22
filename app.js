@@ -715,9 +715,23 @@
     }
 
     // ========== PREMIUM PLAN ==========
+    //
+    // Off. There is no billing and no entitlement behind any of this, so
+    // the nav entry is withdrawn and the modal markup sits in an inert
+    // <template> in index.html. Turning it back on means both: this flag,
+    // and unwrapping that template.
+    //
+    // It is not merely unfinished, it said so on the page — an "UNDER
+    // CONSTRUCTION" badge over real prices, next to a button that
+    // announced a trial and did nothing but write to localStorage.
+    // Google's AdSense policies name a site under construction as not
+    // ready to carry ads, and this was the only part of CubingHQ making
+    // that claim about itself.
+    const PREMIUM_ENABLED = false;
     let _premiumOpener = null;
     let _linkOpener = null;
     function openPremiumModal() {
+        if (!PREMIUM_ENABLED) return;
         const modal = $('#premium-modal');
         if (!modal) return;
         _premiumOpener = document.activeElement;
@@ -747,17 +761,6 @@
             : '£5.99 <span>/ month</span>';
     }
 
-    function startPremiumTrial() {
-        if (!state.userProfile) {
-            closePremiumModal();
-            openLoginModal();
-            showToast('Sign in first to start your Premium trial.', 'info');
-            return;
-        }
-        localStorage.setItem('cubinghq_premium_trial', 'started');
-        closePremiumModal();
-        showToast('Your Premium trial is ready to start — welcome aboard!', 'success');
-    }
 
     // Turn the profile button in the nav back into the Login button,
     // restoring the original markup (the person icon and the .nav-btn
@@ -1031,18 +1034,25 @@
             if ($(sel)) $(sel).addEventListener('input', clearAuthError);
         });
 
-        if ($('#nav-premium-btn')) $('#nav-premium-btn').addEventListener('click', openPremiumModal);
-        if ($('#premium-close-btn')) $('#premium-close-btn').addEventListener('click', closePremiumModal);
-        if ($('#premium-upgrade-btn')) $('#premium-upgrade-btn').addEventListener('click', () => {
-            showToast('Premium is under construction — your free tools are available now.', 'info');
-        });
-        if ($('#premium-free-btn')) $('#premium-free-btn').addEventListener('click', () => showToast('You are on the Free plan.', 'info'));
-        $$('.premium-billing-option').forEach(button => {
-            button.addEventListener('click', () => setPremiumBilling(button.dataset.period));
-        });
-        window.addEventListener('click', (e) => {
-            if (e.target === $('#premium-modal')) closePremiumModal();
-        });
+        if (PREMIUM_ENABLED && $('#nav-premium-btn')) {
+            $('#nav-premium-btn').addEventListener('click', openPremiumModal);
+        }
+        // The rest only exist once the markup is out of its <template>.
+        // Guarded on the flag rather than on the elements being missing,
+        // so nothing here quietly depends on the feature staying off.
+        if (PREMIUM_ENABLED) {
+            if ($('#premium-close-btn')) $('#premium-close-btn').addEventListener('click', closePremiumModal);
+            if ($('#premium-upgrade-btn')) $('#premium-upgrade-btn').addEventListener('click', () => {
+                showToast('Premium is under construction — your free tools are available now.', 'info');
+            });
+            if ($('#premium-free-btn')) $('#premium-free-btn').addEventListener('click', () => showToast('You are on the Free plan.', 'info'));
+            $$('.premium-billing-option').forEach(button => {
+                button.addEventListener('click', () => setPremiumBilling(button.dataset.period));
+            });
+            window.addEventListener('click', (e) => {
+                if (e.target === $('#premium-modal')) closePremiumModal();
+            });
+        }
 
         if ($('#logout-btn')) {
             $('#logout-btn').addEventListener('click', () => {
