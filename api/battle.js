@@ -24,8 +24,7 @@
 
 const { sendJson, sendError, readBody } = require('./_lib/http.js');
 const { authorize, hasCredential, CREDENTIAL_VAR } = require('./_lib/firebase-auth.js');
-const session = require('./_lib/session.js');
-const { requireUser } = require('./_lib/auth.js');
+const { resolveSignedInUser } = require('./_lib/identity.js');
 const rate = require('./_lib/ratelimit.js');
 
 // The public instance the site has always used. A deployment can point
@@ -69,25 +68,11 @@ const CREATE_LIMIT = { max: 6, windowMs: 60 * 1000 };
    HMAC, locally and instantly; anything else is tried as a WCA access
    token, which costs a round trip to the WCA and is cached there.
    Checked in that order so the common case never leaves the process. */
-async function requireSignedIn(req) {
-    const header = req.headers.authorization || req.headers.Authorization || '';
-    const match = /^Bearer\s+(.+)$/i.exec(String(header).trim());
-    if (!match) throw bad(401, 'sign_in_required', 'Sign in to create a battle room.');
-
-    const token = match[1].trim();
-    const ours = session.verify(token);
-    if (ours) return { uid: ours.uid, name: ours.name };
-
-    try {
-        const wca = await requireUser(req);
-        return { uid: wca.uid, name: wca.name };
-    } catch (e) {
-        // A WCA outage must not read as "your sign-in is invalid" — the
-        // person did nothing wrong and retrying is the right advice.
-        if (e && e.status === 503) throw bad(503, 'sign_in_unavailable',
-            "Couldn't check your sign-in just now. Try again shortly.");
-        throw bad(401, 'sign_in_required', 'Sign in to create a battle room.');
-    }
+function requireSignedIn(req) {
+    return resolveSignedInUser(req, {
+        required: 'Sign in to create a battle room.',
+        unavailable: "Couldn't check your sign-in just now. Try again shortly.",
+    });
 }
 
 function bad(status, code, message) {

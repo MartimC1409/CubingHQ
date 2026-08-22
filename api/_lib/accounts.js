@@ -360,10 +360,49 @@ async function publicProfile(uid) {
     };
 }
 
+/**
+ * The account record behind an identity, creating a minimal one if
+ * none exists.
+ *
+ * Signing in with an email always makes a row here (accounts.create).
+ * Signing in with the WCA never has: that path issues no CubingHQ
+ * session at all, just verifies a WCA token per request, so there was
+ * never a moment to write one. Friends and groups need somewhere to
+ * read a name and a picture from, so the first time such a sign-in
+ * touches either, a stand-in row is created from what the WCA already
+ * told us — nothing the person had to type twice.
+ *
+ * `identity` is whatever resolveSignedInUser produced: real fields
+ * for an email session, WCA-sourced ones for a bare WCA token.
+ */
+async function ensureAccount(identity) {
+    if (!rtdb.isConfigured()) throw notConfigured();
+
+    let account = await findByUid(identity.uid);
+    if (account) return account;
+
+    const record = {
+        name: (identity.name || 'Cuber').slice(0, NAME_MAX),
+        email: identity.email || null,
+        wcaId: identity.wcaId || null,
+        createdAt: Date.now(),
+        lastLoginAt: Date.now(),
+        // Distinguishes a real account from this stand-in: nobody has
+        // set a password, and `email` above is always null for it — the
+        // WCA branch of resolveSignedInUser never carries one — so a
+        // later email signup can never collide with it.
+        provisional: true,
+    };
+    try { await rtdb.set(`accounts/${identity.uid}`, record); } catch (e) {
+        throw new AccountError(503, 'storage', 'Your account could not be prepared. Try again shortly.');
+    }
+    return Object.assign({ uid: identity.uid }, record);
+}
+
 module.exports = {
     normalizeEmail, checkPassword, cleanName, uidFor,
     hashPassword, verifyPassword, find, create, authenticate,
     findByUid, accountForWcaId, linkWca, unlinkWca, normalizeWcaId,
-    setAvatar, publicProfile,
+    setAvatar, publicProfile, ensureAccount,
     AccountError, PASSWORD_MIN, PASSWORD_MAX, NAME_MAX,
 };
