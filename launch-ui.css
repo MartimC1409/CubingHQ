@@ -1404,6 +1404,78 @@ select.form-select {
 }
 .lu-dialog-skip:hover { color: var(--clr-text); }
 
+/* ----- Email + password sign-in, inside the login dialog ---------
+   Kept visually secondary to the WCA button: that path fills in a
+   real competition record, and this one exists for people who have
+   no WCA account or would rather not connect it. */
+.lu-auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 14px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+}
+.lu-auth-divider::before,
+.lu-auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--clr-border);
+}
+
+.lu-auth-form { text-align: left; }
+
+.lu-auth-field { margin-bottom: 10px; }
+.lu-auth-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--clr-text-secondary);
+}
+.lu-auth-field input {
+    width: 100%;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--clr-text);
+    background: var(--lu-muted);
+    border: 1px solid var(--clr-border);
+    border-radius: 10px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.lu-auth-field input:focus {
+    outline: none;
+    border-color: var(--clr-text-secondary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.18);
+}
+
+.lu-auth-hint {
+    margin: 5px 0 0;
+    font-size: 0.72rem;
+    color: var(--clr-text-muted);
+}
+
+.lu-auth-error {
+    margin: 4px 0 10px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: #ff6b6b;
+}
+
+.lu-auth-submit { width: 100%; margin-top: 4px; }
+
+.lu-auth-toggle {
+    width: 100%;
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--clr-text-secondary);
+}
+.lu-auth-toggle:hover { color: var(--clr-text); }
+
 .lu-dialog-note {
     margin: 18px 0 0;
     font-size: 0.72rem;

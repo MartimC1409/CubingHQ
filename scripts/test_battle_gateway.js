@@ -22,8 +22,10 @@ function eq(label, got, want) {
     check(label, Object.is(got, want), `got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
 }
 
-const MODULES = ['../api/battle.js', '../api/_lib/firebase-auth.js', '../api/_lib/http.js'];
-const ENV_KEYS = ['FIREBASE_DB_URL', 'FIREBASE_DB_SECRET', 'FIREBASE_SERVICE_ACCOUNT_JSON'];
+const MODULES = ['../api/battle.js', '../api/_lib/firebase-auth.js', '../api/_lib/http.js',
+    '../api/_lib/session.js', '../api/_lib/auth.js', '../api/_lib/ratelimit.js'];
+const ENV_KEYS = ['FIREBASE_DB_URL', 'FIREBASE_DB_SECRET', 'FIREBASE_SERVICE_ACCOUNT_JSON',
+    'AUTH_SIGNING_SECRET'];
 
 const DB = 'https://db.example.com';
 
@@ -40,6 +42,19 @@ function installFetch({ status = 200, body = '{"name":"-NroomId"}', token = 'ya2
             return {
                 ok: true, status: 200,
                 text: async () => JSON.stringify({ access_token: token, expires_in: 3600 }),
+            };
+        }
+        // The WCA, for the other kind of sign-in the gateway accepts.
+        // It answers 401 to a token it does not know, which is what makes
+        // "any string in an Authorization header" not a sign-in.
+        if (u.includes('worldcubeassociation.org')) {
+            const bearer = String((opts.headers && opts.headers.Authorization) || '');
+            if (bearer !== 'Bearer wca-access-token') {
+                return { ok: false, status: 401, json: async () => ({ error: 'Not authorized' }) };
+            }
+            return {
+                ok: true, status: 200,
+                json: async () => ({ me: { id: 42, wca_id: '2019TEST01', name: 'Test Cuber' } }),
             };
         }
         return { ok: status >= 200 && status < 300, status, text: async () => body };
@@ -68,7 +83,24 @@ async function call(env, req) {
     return { status, body: payload };
 }
 
-const SECRET_ENV = { FIREBASE_DB_URL: DB, FIREBASE_DB_SECRET: 'legacy-secret' };
+const SECRET_ENV = {
+    FIREBASE_DB_URL: DB,
+    FIREBASE_DB_SECRET: 'legacy-secret',
+    AUTH_SIGNING_SECRET: 'test-signing-secret',
+};
+
+/**
+ * Creating a room requires an account, so almost every call below
+ * carries one. Built with the real session library under the same
+ * secret the handler will verify with.
+ */
+function signedIn(name = 'Ana') {
+    delete require.cache[require.resolve('../api/_lib/session.js')];
+    Object.assign(process.env, SECRET_ENV);
+    const token = require('../api/_lib/session.js').issue({ uid: 'acct_abc', name });
+    return { authorization: `Bearer ${token}` };
+}
+const AUTH = signedIn();
 
 // A throwaway key, generated here rather than checked in, so the service
 // account path is exercised for real: the JWT is actually signed.
@@ -94,13 +126,84 @@ const room = {
     /* ---- the reported failure ------------------------------------ */
 
     installFetch();
-    let r = await call(SECRET_ENV, { body: { method: 'POST', path: '/battle/rooms', data: room } });
+    let r = await call(SECRET_ENV, { headers: AUTH, body: { method: 'POST', path: '/battle/rooms', data: room } });
     eq('creating a room succeeds', r.status, 200);
     eq('and returns the pushed id', r.body.name, '-NroomId');
     eq('one call reaches the database', sent.length, 1);
     eq('as a POST', sent[0].method, 'POST');
     check('to the room path', sent[0].url.startsWith(`${DB}/battle/rooms.json`), sent[0].url);
     check('carrying the room', JSON.parse(sent[0].body).name === 'Test room');
+
+    /* ---- creating a room requires an account --------------------- */
+
+    // The rule the user asked for: rooms belong to someone. Everything
+    // else about a battle stays open, so a room a signed-in person opens
+    // is still somewhere a guest can play.
+
+    installFetch();
+    r = await call(SECRET_ENV, { body: { method: 'POST', path: '/battle/rooms', data: room } });
+    eq('a guest cannot create a room', r.status, 401);
+    eq('and is told to sign in', r.body.error.code, 'sign_in_required');
+    eq('the database is never touched', sent.length, 0);
+
+    for (const header of ['', 'Bearer', 'Bearer ', 'Basic abc', 'Bearer not-a-token',
+        'Bearer v1.eyJ1aWQiOiJhY2N0X2ZvcmdlZCJ9.no-signature']) {
+        installFetch();
+        r = await call(SECRET_ENV, {
+            headers: { authorization: header },
+            body: { method: 'POST', path: '/battle/rooms', data: room },
+        });
+        eq(`${JSON.stringify(header)} does not create a room`, r.status, 401);
+        // Only database calls count — a malformed bearer may cost one
+        // question to the WCA, which is the point of checking ours first.
+        eq('and never reaches the database',
+            sent.filter(x => x.url.startsWith(DB)).length, 0);
+    }
+
+    // A token signed with someone else's secret is not a sign-in here.
+    delete require.cache[require.resolve('../api/_lib/session.js')];
+    Object.assign(process.env, { AUTH_SIGNING_SECRET: 'a different secret' });
+    const foreign = require('../api/_lib/session.js').issue({ uid: 'acct_abc', name: 'Mallory' });
+    installFetch();
+    r = await call(SECRET_ENV, {
+        headers: { authorization: `Bearer ${foreign}` },
+        body: { method: 'POST', path: '/battle/rooms', data: room },
+    });
+    eq('a token signed elsewhere is refused', r.status, 401);
+
+    // The other sign-in: a WCA access token, verified against the WCA.
+    installFetch();
+    r = await call(SECRET_ENV, {
+        headers: { authorization: 'Bearer wca-access-token' },
+        body: { method: 'POST', path: '/battle/rooms', data: room },
+    });
+    eq('a WCA sign-in creates a room too', r.status, 200);
+    check('by asking the WCA who it is',
+        sent.some(x => x.url.includes('worldcubeassociation.org')));
+
+    // And our own token must not cost a WCA round trip.
+    installFetch();
+    r = await call(SECRET_ENV, { headers: AUTH, body: { method: 'POST', path: '/battle/rooms', data: room } });
+    eq('an account sign-in creates a room', r.status, 200);
+    check('without asking the WCA anything',
+        !sent.some(x => x.url.includes('worldcubeassociation.org')));
+
+    // Everything that is NOT room creation stays open to guests.
+    const GUEST_OK = [
+        ['GET', '/battle/rooms'],
+        ['GET', '/battle/rooms/-NroomId'],
+        ['PATCH', '/battle/rooms/-NroomId/members/g_abc'],
+        ['PUT', '/battle/rooms/-NroomId/solves/3x3/0/g_abc'],
+        ['DELETE', '/battle/rooms/-NroomId/members/g_abc'],
+        ['POST', '/battle_chats/-NroomId'],
+    ];
+    for (const [method, path] of GUEST_OK) {
+        installFetch({ body: 'null' });
+        const payload = { method, path };
+        if (method !== 'GET' && method !== 'DELETE') payload.data = { t: 1 };
+        r = await call(SECRET_ENV, { body: payload });
+        eq(`a guest may still ${method} ${path}`, r.status, 200);
+    }
 
     /* ---- the rest of the client's calls -------------------------- */
 
@@ -126,17 +229,18 @@ const room = {
     r = await call(SECRET_ENV, {
         body: { method: 'POST', path: '/battle_chats/-NroomId', data: { text: 'hi', timestamp: 1 } },
     });
-    eq('chat is allowed too', r.status, 200);
+    eq('chat needs no account — guests can talk', r.status, 200);
 
     /* ---- credentials --------------------------------------------- */
 
     installFetch();
-    r = await call(SECRET_ENV, { body: { method: 'POST', path: '/battle/rooms', data: room } });
+    r = await call(SECRET_ENV, { headers: AUTH, body: { method: 'POST', path: '/battle/rooms', data: room } });
     check('the legacy secret goes in the query', sent[0].url.includes('auth=legacy-secret'), sent[0].url);
 
     installFetch();
-    r = await call({ FIREBASE_DB_URL: DB, FIREBASE_SERVICE_ACCOUNT_JSON: SERVICE_ACCOUNT },
-        { body: { method: 'POST', path: '/battle/rooms', data: room } });
+    r = await call({ FIREBASE_DB_URL: DB, FIREBASE_SERVICE_ACCOUNT_JSON: SERVICE_ACCOUNT,
+        AUTH_SIGNING_SECRET: 'test-signing-secret' },
+        { headers: AUTH, body: { method: 'POST', path: '/battle/rooms', data: room } });
     eq('a service account works', r.status, 200);
     const dbCall = sent.find(s => s.url.startsWith(DB));
     check('the token is a header, not a URL', !!dbCall.headers.Authorization
@@ -150,7 +254,8 @@ const room = {
     r = await call({
         FIREBASE_DB_URL: DB,
         FIREBASE_SERVICE_ACCOUNT_JSON: Buffer.from(SERVICE_ACCOUNT).toString('base64'),
-    }, { body: { method: 'POST', path: '/battle/rooms', data: room } });
+        AUTH_SIGNING_SECRET: 'test-signing-secret',
+    }, { headers: AUTH, body: { method: 'POST', path: '/battle/rooms', data: room } });
     eq('a base64 service account works too', r.status, 200);
 
     // No credential at all: still relayed, because a deployment whose
@@ -255,7 +360,7 @@ const room = {
     // The client keys off this: 'denied' is a server setting, and telling
     // someone to try again is then actively wrong advice.
     installFetch({ status: 401, body: '{"error":"Permission denied"}' });
-    r = await call(SECRET_ENV, { body: { method: 'POST', path: '/battle/rooms', data: room } });
+    r = await call(SECRET_ENV, { headers: AUTH, body: { method: 'POST', path: '/battle/rooms', data: room } });
     eq('a refusal stays a refusal', r.status, 403);
     eq('with its own code', r.body.error.code, 'denied');
     check('and no database wording leaks into the message',
@@ -277,7 +382,10 @@ const room = {
     const drive = async (body, ip) => {
         let status = 0;
         const res = { statusCode: 0, setHeader() { }, end() { status = this.statusCode; } };
-        await handler({ method: 'POST', headers: { 'x-forwarded-for': ip }, socket: {}, body }, res);
+        await handler({
+            method: 'POST', socket: {}, body,
+            headers: Object.assign({ 'x-forwarded-for': ip }, AUTH),
+        }, res);
         return status;
     };
 
@@ -321,7 +429,12 @@ const room = {
             end(b) { payload = b || ''; status = this.statusCode; },
         };
         await gateway({
-            method: 'POST', headers: {}, socket: {},
+            method: 'POST', socket: {},
+            // Relayed, not dropped: the Authorization header the client
+            // attaches is the whole basis of the room-creation gate.
+            headers: Object.assign({}, opts.headers || {},
+                opts.headers && opts.headers.Authorization
+                    ? { authorization: opts.headers.Authorization } : {}),
             body: JSON.parse(opts.body),
         }, res);
         return {
@@ -336,6 +449,9 @@ const room = {
             RTDB: DB,
             console: { error() { }, warn() { }, log() { } },
             JSON, Error, Object, Date, Promise, fetch: browserFetch,
+            // app.js attaches this to every battle call; creating a room
+            // is refused without it.
+            authToken: () => AUTH.authorization.replace(/^Bearer /, ''),
         };
         vm.runInNewContext(helpers + '\nthis.api = { fbGet, fbSet, fbUpdate, fbPush, fbDelete, fbError };',
             ctx, { filename: 'app.js:fb' });
@@ -364,6 +480,25 @@ const room = {
     eq('and records no failure', api.fbError(), null);
     eq('one write reached the database', dbCalls.length, 1);
 
+    // The gate, through the real client: no token, no room.
+    const anon = (() => {
+        const ctx = {
+            RTDB: DB, console: { error() { }, warn() { }, log() { } },
+            JSON, Error, Object, Date, Promise, fetch: browserFetch,
+            authToken: () => null,
+        };
+        vm.runInNewContext(helpers + '\nthis.api = { fbGet, fbSet, fbUpdate, fbPush, fbDelete, fbError };',
+            ctx, { filename: 'app.js:fb' });
+        return ctx.api;
+    })();
+    gateway._resetLimits();
+    eq('end to end: a guest cannot create a room',
+        await anon.fbPush('/battle/rooms', room), null);
+    eq('and the client calls it a refusal, not a retry', anon.fbError(), 'denied');
+    check('a guest can still read the lobby', (await anon.fbGet('/battle/rooms')) !== null);
+    check('and still send chat', !!(await anon.fbPush('/battle_chats/-Nreal', { text: 'hi' })));
+
+    api = client();
     const lobby = await api.fbGet('/battle/rooms');
     check('end to end: the lobby reads back the room', !!lobby && !!lobby['-Nreal'],
         JSON.stringify(lobby));

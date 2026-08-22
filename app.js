@@ -383,6 +383,159 @@
         }
     }
 
+    // ========== EMAIL + PASSWORD ACCOUNTS ==========
+    //
+    // Sits alongside the WCA sign-in rather than replacing it. The two
+    // produce the same thing as far as the rest of the app is concerned:
+    // a `state.userProfile` with a name and a stable id. Only the battle
+    // room gate and the API header care which one it came from, and only
+    // because a session token and a WCA token verify differently on the
+    // server.
+    const AUTH_TOKEN_KEY = 'chq_auth_token';
+
+    function storedAuthToken() {
+        try { return localStorage.getItem(AUTH_TOKEN_KEY) || null; } catch (e) { return null; }
+    }
+
+    /**
+     * The bearer token for our own API, whichever sign-in is in use.
+     *
+     * The server tries the cheap local check first and falls back to
+     * asking the WCA, so it does not need to be told which kind this is.
+     */
+    function authToken() {
+        const session = storedAuthToken();
+        if (session) return session;
+        try { return localStorage.getItem('wca_access_token') || null; } catch (e) { return null; }
+    }
+
+    function isSignedIn() { return !!state.userProfile; }
+
+    function setAccountProfile(user) {
+        state.userProfile = {
+            uid: user.uid,
+            name: user.name || 'Cuber',
+            email: user.email || null,
+            wca_id: null,
+            source: 'email',
+        };
+    }
+
+    /** Turns a stored token back into a signed-in state on page load. */
+    async function restoreAccountSession() {
+        const token = storedAuthToken();
+        if (!token) return false;
+        try {
+            const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+            if (!res.ok) {
+                // 401 means expired or revoked; anything else is our
+                // problem, and forgetting the token would sign someone out
+                // for a server hiccup.
+                if (res.status === 401) localStorage.removeItem(AUTH_TOKEN_KEY);
+                return false;
+            }
+            const body = await res.json();
+            if (!body || !body.user) return false;
+            setAccountProfile(body.user);
+            updateUIAfterLogin();
+            return true;
+        } catch (e) {
+            console.error('[auth] could not restore session', e);
+            return false;
+        }
+    }
+
+    /** Shared by the sign-in and sign-up submissions. */
+    async function submitAccountForm(mode) {
+        const emailEl = $('#auth-email');
+        const passwordEl = $('#auth-password');
+        const nameEl = $('#auth-name');
+        const button = $('#auth-submit-btn');
+        if (!emailEl || !passwordEl || !button) return;
+
+        const email = emailEl.value.trim();
+        const password = passwordEl.value;
+        if (!email) { showAuthError(i18nT('auth.needEmail', 'Enter your email address.'), emailEl); return; }
+        if (!password) { showAuthError(i18nT('auth.needPassword', 'Enter your password.'), passwordEl); return; }
+
+        clearAuthError();
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = i18nT('auth.working', 'One moment...');
+
+        let body = null, status = 0;
+        try {
+            const payload = { email, password };
+            if (mode === 'signup' && nameEl && nameEl.value.trim()) payload.name = nameEl.value.trim();
+            const res = await fetch(`/api/auth/${mode === 'signup' ? 'signup' : 'login'}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            status = res.status;
+            body = await res.json().catch(() => null);
+        } catch (e) {
+            console.error('[auth] request failed', e);
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
+        }
+
+        if (!body || !body.token || !body.user) {
+            // The server's message is written to be shown, so prefer it
+            // over anything invented here — it is the only one that knows
+            // whether this was a wrong password, a taken address or a
+            // deployment with accounts switched off.
+            const message = (body && body.error && body.error.message)
+                || (status === 0
+                    ? i18nT('auth.offline', "Couldn't reach the server. Check your connection.")
+                    : i18nT('auth.failed', 'That did not work. Try again.'));
+            showAuthError(message);
+            return;
+        }
+
+        try { localStorage.setItem(AUTH_TOKEN_KEY, body.token); } catch (e) { /* private mode */ }
+        setAccountProfile(body.user);
+        updateUIAfterLogin();
+        closeLoginModal();
+        showToast(i18nT('toast.welcomeBack', 'Welcome back, {name}!')
+            .replace('{name}', String(body.user.name || 'Cuber').split(' ')[0]), 'success');
+    }
+
+    function showAuthError(message, focusEl) {
+        const el = $('#auth-error');
+        if (el) { el.textContent = message; el.style.display = 'block'; }
+        if (focusEl) focusEl.focus();
+    }
+
+    function clearAuthError() {
+        const el = $('#auth-error');
+        if (el) { el.textContent = ''; el.style.display = 'none'; }
+    }
+
+    /** Switches the modal between "sign in" and "create account". */
+    function setAuthMode(mode) {
+        const signup = mode === 'signup';
+        clearAuthError();
+        const nameField = $('#auth-name-field');
+        if (nameField) nameField.style.display = signup ? 'block' : 'none';
+        const submit = $('#auth-submit-btn');
+        if (submit) {
+            submit.textContent = signup
+                ? i18nT('auth.createAccount', 'Create account')
+                : i18nT('auth.signIn', 'Sign in');
+            submit.dataset.mode = mode;
+        }
+        const toggle = $('#auth-toggle-btn');
+        if (toggle) {
+            toggle.textContent = signup
+                ? i18nT('auth.haveAccount', 'Already have an account? Sign in')
+                : i18nT('auth.noAccount', "No account? Create one");
+        }
+        const hint = $('#auth-password-hint');
+        if (hint) hint.style.display = signup ? 'block' : 'none';
+    }
+
     function handleWCALogin(e) {
         if (e) e.preventDefault();
         const url = `${WCA_OAUTH_URL}?client_id=${WCA_CLIENT_ID}&redirect_uri=${encodeURIComponent(OAUTH_REDIRECT_URI)}&response_type=token&scope=public`;
@@ -485,6 +638,9 @@
     function init() {
         checkOAuthCallback();
         fetchWCAProfile();
+        // Only when the WCA path is not already in play, so a fresh OAuth
+        // return is never overwritten by a stale account session.
+        if (!localStorage.getItem('wca_access_token')) restoreAccountSession();
         loadTheme();
         loadHistory();
         bindEvents();
@@ -660,6 +816,25 @@
             $('#wca-login-btn').addEventListener('click', handleWCALogin);
         }
 
+        // Email + password sign-in.
+        if ($('#auth-form')) {
+            $('#auth-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const mode = ($('#auth-submit-btn') && $('#auth-submit-btn').dataset.mode) || 'login';
+                submitAccountForm(mode);
+            });
+            setAuthMode('login');
+        }
+        if ($('#auth-toggle-btn')) {
+            $('#auth-toggle-btn').addEventListener('click', () => {
+                const current = ($('#auth-submit-btn') && $('#auth-submit-btn').dataset.mode) || 'login';
+                setAuthMode(current === 'signup' ? 'login' : 'signup');
+            });
+        }
+        ['#auth-email', '#auth-password', '#auth-name'].forEach(sel => {
+            if ($(sel)) $(sel).addEventListener('input', clearAuthError);
+        });
+
         if ($('#nav-premium-btn')) $('#nav-premium-btn').addEventListener('click', openPremiumModal);
         if ($('#premium-close-btn')) $('#premium-close-btn').addEventListener('click', closePremiumModal);
         if ($('#premium-upgrade-btn')) $('#premium-upgrade-btn').addEventListener('click', () => {
@@ -676,6 +851,10 @@
         if ($('#logout-btn')) {
             $('#logout-btn').addEventListener('click', () => {
                 localStorage.removeItem('wca_access_token');
+                // The session token is a bearer token with no server-side
+                // revocation, so forgetting it here is what signing out
+                // means. It expires on its own regardless.
+                try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* private mode */ }
                 state.userProfile = null;
                 restoreLoginNavButton();
                 switchView('home');
@@ -2238,6 +2417,13 @@
         redraw(updateGoalTracker);
         redraw(renderLeaderboard);
         redraw(renderHistory);
+        // The sign-in form's two buttons are written by setAuthMode, not
+        // by their data-i18n attributes, so a language change would put
+        // "Sign in" on a form that is still in create-account mode.
+        redraw(() => {
+            const submit = $('#auth-submit-btn');
+            if (submit) setAuthMode(submit.dataset.mode || 'login');
+        });
         if (battleState.lastLobbyData) redraw(() => renderBattleLobby(battleState.lastLobbyData));
         if (battleState.currentRoomData) redraw(() => renderBattleRoomView(battleState.currentRoomData));
         document.dispatchEvent(new CustomEvent('cs-algorithms-relabel'));
@@ -4664,9 +4850,16 @@
         let r;
         try {
             if (isBattlePath) {
+                // Creating a room needs an account; everything else here
+                // is open to guests. The header goes on every call rather
+                // than only that one, so the server can tell who is acting
+                // without the client deciding when it matters.
+                const headers = { 'Content-Type': 'application/json' };
+                const token = (typeof authToken === 'function') && authToken();
+                if (token) headers.Authorization = `Bearer ${token}`;
                 r = await fetch('/api/battle', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ method, path, data })
                 });
             } else {
@@ -4726,7 +4919,15 @@
 
     // ----- User identity -----
     function getBattleUserId() {
-        if (state.userProfile && state.userProfile.wca_id) return 'wca_' + state.userProfile.wca_id;
+        // Must match what the server derives for the same person, or the
+        // creator of a room would not be recognised as its host. WCA ids
+        // are uppercase in the API and the server uppercases too; an
+        // account uid comes straight back from sign-in; a WCA account
+        // with no competition record yet still has an account id.
+        const p = state.userProfile;
+        if (p && p.wca_id) return 'wca_' + String(p.wca_id).toUpperCase();
+        if (p && p.uid) return p.uid;
+        if (p && p.id) return 'wcauser_' + p.id;
         let id = localStorage.getItem('battle_uid');
         if (!id) { id = 'g_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); localStorage.setItem('battle_uid', id); }
         return id;
@@ -5005,6 +5206,16 @@
 
         // Create room
         $('#battle-create-room-btn').addEventListener('click', () => {
+            // Rooms belong to an account. Joining, solving and chatting
+            // stay open to guests, so this is the only door with a lock
+            // on it — and the server enforces the same rule, because a
+            // check that lives only in the browser is not a rule.
+            if (!isSignedIn()) {
+                showToast(i18nT('toast.signInToCreate',
+                    'Sign in to create a battle room — joining one stays open to everyone.'), 'info');
+                openLoginModal();
+                return;
+            }
             $('#battle-room-name-input').value = '';
             $('#battle-room-password').value = '';
             clearCreateRoomError();

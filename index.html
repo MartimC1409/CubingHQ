@@ -203,6 +203,34 @@
             <button id="wca-login-btn" class="lu-btn lu-btn-default lu-btn-lg lu-dialog-cta" data-i18n="login.wca">
                 Continue with WCA
             </button>
+
+            <div class="lu-auth-divider"><span data-i18n="auth.or">or use an email address</span></div>
+
+            <form id="auth-form" class="lu-auth-form" novalidate>
+                <div id="auth-name-field" class="lu-auth-field" style="display:none;">
+                    <label for="auth-name" data-i18n="auth.name">Display name</label>
+                    <input id="auth-name" type="text" autocomplete="nickname" maxlength="40"
+                           placeholder="Cuber" data-i18n-placeholder="auth.namePlaceholder">
+                </div>
+                <div class="lu-auth-field">
+                    <label for="auth-email" data-i18n="auth.email">Email</label>
+                    <input id="auth-email" type="email" autocomplete="email" maxlength="254"
+                           placeholder="you@example.com" required>
+                </div>
+                <div class="lu-auth-field">
+                    <label for="auth-password" data-i18n="auth.password">Password</label>
+                    <input id="auth-password" type="password" autocomplete="current-password"
+                           maxlength="200" required>
+                    <p id="auth-password-hint" class="lu-auth-hint" style="display:none;"
+                       data-i18n="auth.passwordHint">At least 8 characters.</p>
+                </div>
+                <p id="auth-error" class="lu-auth-error" role="alert" style="display:none;"></p>
+                <button id="auth-submit-btn" type="submit" class="lu-btn lu-btn-default lu-auth-submit"
+                        data-mode="login" data-i18n="auth.signIn">Sign in</button>
+            </form>
+            <button id="auth-toggle-btn" type="button" class="lu-btn lu-btn-ghost lu-auth-toggle"
+                    data-i18n="auth.noAccount">No account? Create one</button>
+
             <button id="login-skip-btn" class="lu-btn lu-btn-ghost lu-dialog-skip" data-i18n="login.skip">Keep browsing without an account</button>
 
             <p class="lu-dialog-note" data-i18n="login.note">CubingHQ is an unofficial fan project. Signing in only reads your public WCA data — we never post anything.</p>

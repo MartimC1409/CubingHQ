@@ -24,6 +24,9 @@
 
 const { sendJson, sendError, readBody } = require('./_lib/http.js');
 const { authorize, hasCredential, CREDENTIAL_VAR } = require('./_lib/firebase-auth.js');
+const session = require('./_lib/session.js');
+const { requireUser } = require('./_lib/auth.js');
+const rate = require('./_lib/ratelimit.js');
 
 // The public instance the site has always used. A deployment can point
 // somewhere else with FIREBASE_DB_URL; it does not have to, because a
@@ -51,35 +54,40 @@ const MAX_DEPTH = 12;
    them: app.js already refuses more than one room every 30s, but
    that check lives in the browser.
 
-   Per instance and in memory, which is the honest description — a
-   platform running several instances multiplies these. That is fine
+   Per instance and in memory (see _lib/ratelimit.js), which is fine
    for what they are for: making a flood cost something, not gating
    correctness. Reads are not limited; the lobby polls every 4s. */
 const WRITE_LIMIT = { max: 120, windowMs: 60 * 1000 };
 const CREATE_LIMIT = { max: 6, windowMs: 60 * 1000 };
-const buckets = new Map();
 
-function clientIp(req) {
-    const fwd = req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip']);
-    const first = String(fwd || '').split(',')[0].trim();
-    return first || (req.socket && req.socket.remoteAddress) || 'unknown';
-}
+/* ----- Who may create a room -------------------------------------
+   Creating a room is the one battle action that requires an account.
+   Joining, solving and chatting stay open to guests, so a room a
+   signed-in person opens is still somewhere anyone can play.
 
-function rateLimit(key, limit) {
-    const now = Date.now();
-    // Bounded so a spray of forged addresses cannot grow this without
-    // limit; the oldest entry goes, and the worst case is a limiter that
-    // forgets someone, which is the failure mode to prefer here.
-    if (buckets.size > 5000) buckets.delete(buckets.keys().next().value);
+   Either sign-in counts. A session token is ours and verifies with an
+   HMAC, locally and instantly; anything else is tried as a WCA access
+   token, which costs a round trip to the WCA and is cached there.
+   Checked in that order so the common case never leaves the process. */
+async function requireSignedIn(req) {
+    const header = req.headers.authorization || req.headers.Authorization || '';
+    const match = /^Bearer\s+(.+)$/i.exec(String(header).trim());
+    if (!match) throw bad(401, 'sign_in_required', 'Sign in to create a battle room.');
 
-    const hits = (buckets.get(key) || []).filter(t => now - t < limit.windowMs);
-    if (hits.length >= limit.max) {
-        buckets.set(key, hits);
-        return false;
+    const token = match[1].trim();
+    const ours = session.verify(token);
+    if (ours) return { uid: ours.uid, name: ours.name };
+
+    try {
+        const wca = await requireUser(req);
+        return { uid: wca.uid, name: wca.name };
+    } catch (e) {
+        // A WCA outage must not read as "your sign-in is invalid" — the
+        // person did nothing wrong and retrying is the right advice.
+        if (e && e.status === 503) throw bad(503, 'sign_in_unavailable',
+            "Couldn't check your sign-in just now. Try again shortly.");
+        throw bad(401, 'sign_in_required', 'Sign in to create a battle room.');
     }
-    hits.push(now);
-    buckets.set(key, hits);
-    return true;
 }
 
 function bad(status, code, message) {
@@ -255,16 +263,20 @@ async function handler(req, res) {
             throw bad(403, 'forbidden_path', 'That database path is not allowed.');
         }
 
+        const isCreate = method === 'POST' && segs.join('/') === 'battle/rooms';
+
         if (method !== 'GET') {
-            const ip = clientIp(req);
-            const isCreate = method === 'POST' && segs.join('/') === 'battle/rooms';
-            const ok = rateLimit(`w:${ip}`, WRITE_LIMIT)
-                && (!isCreate || rateLimit(`c:${ip}`, CREATE_LIMIT));
+            const ip = rate.clientIp(req);
+            const ok = rate.take(`battle-w:${ip}`, WRITE_LIMIT)
+                && (!isCreate || rate.take(`battle-c:${ip}`, CREATE_LIMIT));
             if (!ok) {
                 throw bad(429, 'rate_limited',
                     'That is a lot of requests at once — give it a minute.');
             }
         }
+
+        // After the cheap checks, before the database is touched.
+        if (isCreate) await requireSignedIn(req);
 
         let data = body.data;
         if (method === 'GET' || method === 'DELETE') {
@@ -289,4 +301,4 @@ async function handler(req, res) {
 
 module.exports = handler;
 /** Test seam: forgets every rate-limit bucket. */
-module.exports._resetLimits = () => buckets.clear();
+module.exports._resetLimits = () => rate._reset();
