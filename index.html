@@ -216,23 +216,52 @@
                     <input id="auth-email" type="email" autocomplete="email" maxlength="254"
                            placeholder="you@example.com" required>
                 </div>
-                <div class="lu-auth-field">
+                <div id="auth-password-field" class="lu-auth-field">
                     <label for="auth-password" data-i18n="auth.password">Password</label>
                     <input id="auth-password" type="password" autocomplete="current-password"
                            maxlength="200" required>
                     <p id="auth-password-hint" class="lu-auth-hint" style="display:none;"
                        data-i18n="auth.passwordHint">At least 8 characters.</p>
                 </div>
+                <p id="auth-reset-sent" class="lu-auth-hint" style="display:none;" data-i18n="auth.resetSent">If that email has an account, a reset link is on its way — check your inbox.</p>
                 <p id="auth-error" class="lu-auth-error" role="alert" style="display:none;"></p>
                 <button id="auth-submit-btn" type="submit" class="lu-btn lu-btn-default lu-auth-submit"
                         data-mode="login" data-i18n="auth.signIn">Sign in</button>
             </form>
+            <button id="auth-forgot-link" type="button" class="lu-btn lu-btn-ghost lu-auth-toggle" data-i18n="auth.forgotPassword">Forgot your password?</button>
             <button id="auth-toggle-btn" type="button" class="lu-btn lu-btn-ghost lu-auth-toggle"
                     data-i18n="auth.noAccount">No account? Create one</button>
 
             <button id="login-skip-btn" class="lu-btn lu-btn-ghost lu-dialog-skip" data-i18n="login.skip">Keep browsing without an account</button>
 
             <p class="lu-dialog-note" data-i18n="login.note">CubingHQ is an unofficial fan project. Your email is only used to sign you in — we never post anything.</p>
+        </div>
+    </div>
+
+    <!-- ========== SET NEW PASSWORD MODAL ==========
+         Reached only from the link an email carries — see
+         checkPasswordResetLink in app.js. Its two fields (uid, token)
+         are hidden inputs filled from that link, never typed.
+    -->
+    <div id="reset-password-modal" class="modal auth-modal" style="display:none;">
+        <div class="lu-dialog lu-appear-zoom" role="dialog" aria-modal="true" aria-labelledby="reset-password-title" tabindex="-1">
+            <button id="reset-password-close" class="lu-dialog-close" aria-label="Close" data-i18n-aria="aria.close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <h2 id="reset-password-title" class="lu-dialog-title" data-i18n="auth.setNewPassword">Set a new password</h2>
+            <form id="reset-password-form" class="lu-auth-form" novalidate>
+                <div class="lu-auth-field">
+                    <label for="reset-password-new" data-i18n="auth.newPassword">New password</label>
+                    <input id="reset-password-new" type="password" autocomplete="new-password" maxlength="200" required>
+                    <p class="lu-auth-hint" data-i18n="auth.passwordHint">At least 8 characters.</p>
+                </div>
+                <div class="lu-auth-field">
+                    <label for="reset-password-confirm" data-i18n="auth.confirmPassword">Confirm password</label>
+                    <input id="reset-password-confirm" type="password" autocomplete="new-password" maxlength="200" required>
+                </div>
+                <p id="reset-password-error" class="lu-auth-error" role="alert" style="display:none;"></p>
+                <button id="reset-password-submit" type="submit" class="lu-btn lu-btn-default lu-auth-submit" data-i18n="auth.setNewPassword">Set a new password</button>
+            </form>
         </div>
     </div>
 
@@ -2117,7 +2146,7 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=f88196bf"></script>
+    <script src="i18n.js?v=168df4d3"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=db71e576"></script>
@@ -2141,7 +2170,7 @@
     <script src="ambient-noise.js?v=b03aa034"></script>
     <!-- Must precede app.js: the battle chat filters on both send and render. -->
     <script src="content-filter.js?v=a5e71610"></script>
-    <script src="app.js?v=1cecf2d1"></script>
+    <script src="app.js?v=20b04d05"></script>
     <script src="mobile-nav.js?v=9c5da4eb"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->

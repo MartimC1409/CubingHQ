@@ -55,13 +55,16 @@ function sign(payload) {
 
 /**
  * A token for this user.
- * @param user { uid, email, name, wcaId? }
+ * @param user { uid, email, name, wcaId?, passwordChangedAt? }
  *
  * `wcaId` is present once an account has linked a WCA account. It is
  * carried here so the rest of the server can see the link without a
  * database read, and re-issued on every sign-in — which is also why
  * linking hands back a new token rather than editing the old one: a
  * signed token cannot be amended, only replaced.
+ *
+ * `passwordChangedAt`, likewise, is what lets a token be recognised as
+ * stale after a password reset — see the note on `pwv` below.
  */
 function issue(user, now = Date.now()) {
     const claims = {
@@ -69,6 +72,11 @@ function issue(user, now = Date.now()) {
         email: user.email || null,
         name: user.name || 'Cuber',
         wcaId: user.wcaId || null,
+        // Named short and separately from passwordChangedAt on purpose:
+        // this is a version stamp compared for equality, not a time to
+        // be read or reasoned about, and giving it its own name stops
+        // a future change from quietly starting to treat it as one.
+        pwv: user.passwordChangedAt || 0,
         exp: now + TTL_MS,
     };
     const payload = Buffer.from(JSON.stringify(claims), 'utf8').toString('base64url');
@@ -106,7 +114,25 @@ function verify(token, now = Date.now()) {
         email: claims.email || null,
         name: claims.name || 'Cuber',
         wcaId: claims.wcaId || null,
+        pwv: Number.isFinite(claims.pwv) ? claims.pwv : 0,
     };
+}
+
+/**
+ * Whether a session predates the account's current password.
+ *
+ * verify() alone cannot know this — checking would mean a database
+ * read on every call, which is the whole cost this design exists to
+ * avoid. So it stays a signature-and-expiry check everywhere, and
+ * THIS function exists for the few call sites that already touch the
+ * account row anyway (today: only /api/auth/me) and can compare for
+ * free. A token from before a reset then stops working the next time
+ * that endpoint is asked — not instantly everywhere, which would need
+ * the database read this design does not make.
+ */
+function isStaleAfterPasswordChange(claims, accountPasswordChangedAt) {
+    const current = accountPasswordChangedAt || 0;
+    return current > 0 && (claims.pwv || 0) !== current;
 }
 
 /** True when a session could be signed at all. */
@@ -114,4 +140,4 @@ function isConfigured() {
     try { signingKey(); return true; } catch (e) { return false; }
 }
 
-module.exports = { issue, verify, isConfigured, TTL_MS };
+module.exports = { issue, verify, isConfigured, isStaleAfterPasswordChange, TTL_MS };
