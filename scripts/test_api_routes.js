@@ -178,6 +178,9 @@ async function call(route, req) {
     r = await call(authRoute, { url: '/api/auth/link-wca', method: 'GET', headers: {} });
     eq('/link-wca refuses a GET', r.status, 405);
 
+    r = await call(authRoute, { url: '/api/auth/avatar', headers: {} });
+    eq('/avatar requires a session', r.status, 401);
+
     // A hyphenated segment is the case a naive `[a-z]+` route match
     // would drop on the floor.
     eq('a hyphenated endpoint is read whole',
