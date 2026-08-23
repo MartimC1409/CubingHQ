@@ -5449,6 +5449,8 @@
         selectedCompare: new Set(),
         openGroupId: null,
         wcaCache: new Map(),   // wcaId -> personal_records, or null on failure
+        compareType: 'both',   // 'both' | 'single' | 'average' — which result the table shows
+        lastCompared: null,    // the people[] last passed to renderComparison, for the type toggle to redraw without a fresh compare click
     };
 
     async function friendsApi(action, { method = 'GET', body, query = '' } = {}) {
@@ -5676,6 +5678,11 @@
         const wrap = $('#friends-compare-table-wrap');
         const section = $('#friends-compare-section');
         if (!wrap || !section) return;
+        // Kept so the Single/Average/Both chips can redraw the same
+        // comparison without asking the person to reselect and click
+        // "Compare" again — WCA results are already cached by wcaId, so
+        // this costs nothing extra even for a fresh fetch.
+        friendsState.lastCompared = people;
         section.style.display = 'block';
         wrap.innerHTML = `<div class="records-loading-state"><span>${esc(i18nT('friends.loadingResults', 'Fetching results…'))}</span></div>`;
 
@@ -5704,12 +5711,20 @@
                 if (pr && pr.single && pr.single.best && eventId !== '333mbf') bestSingle = Math.min(bestSingle, pr.single.best);
                 if (pr && pr.average && pr.average.best) bestAvg = Math.min(bestAvg, pr.average.best);
             });
+            const showSingle = friendsState.compareType !== 'average';
+            const showAvg = friendsState.compareType !== 'single';
             const cells = withWca.map((p, i) => {
                 const pr = records[i] && records[i][eventId];
                 const single = pr && pr.single ? formatWcaBest(eventId, pr.single.best, false) : null;
                 const avg = pr && pr.average ? formatWcaBest(eventId, pr.average.best, true) : null;
                 const singleIsBest = pr && pr.single && pr.single.best === bestSingle && eventId !== '333mbf';
                 const avgIsBest = pr && pr.average && pr.average.best === bestAvg;
+
+                // "Both" stacks single over a smaller average, matching the
+                // per-person statistics table's own layout. Picking one
+                // shows just that value, still highlighted the same way.
+                if (!showAvg) return `<td class="${singleIsBest ? 'compare-best' : ''}">${esc(single || '—')}</td>`;
+                if (!showSingle) return `<td class="${avgIsBest ? 'compare-best' : ''}">${esc(avg || '—')}</td>`;
                 return `<td class="${singleIsBest ? 'compare-best' : ''}">${esc(single || '—')}${avg ? `<br><small class="${avgIsBest ? 'compare-best' : ''}">${esc(avg)}</small>` : ''}</td>`;
             }).join('');
             return `<tr><td>${esc(EVENT_NAMES[eventId] || eventId)}</td>${cells}</tr>`;
@@ -5907,6 +5922,14 @@
         if ($('#friends-compare-close')) $('#friends-compare-close').addEventListener('click', () => {
             const section = $('#friends-compare-section');
             if (section) section.style.display = 'none';
+        });
+        $$('#friends-compare-type-group .records-filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                $$('#friends-compare-type-group .records-filter-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                friendsState.compareType = chip.dataset.type;
+                if (friendsState.lastCompared) renderComparison(friendsState.lastCompared);
+            });
         });
         if ($('#friends-create-group-btn')) $('#friends-create-group-btn').addEventListener('click', openCreateGroupModal);
         if ($('#create-group-close')) $('#create-group-close').addEventListener('click', closeCreateGroupModal);
