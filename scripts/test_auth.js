@@ -26,7 +26,7 @@ function eq(label, got, want) {
 
 const MODULES = ['../api/auth/_signup.js', '../api/auth/_login.js', '../api/auth/_me.js',
     '../api/auth/_link-wca.js', '../api/auth/_unlink-wca.js', '../api/auth/_avatar.js',
-    '../api/_lib/auth.js',
+    '../api/_lib/auth.js', '../api/_lib/mailer.js',
     '../api/_lib/accounts.js', '../api/_lib/session.js', '../api/_lib/rtdb.js',
     '../api/_lib/firebase-auth.js', '../api/_lib/ratelimit.js', '../api/_lib/http.js'];
 
@@ -39,9 +39,15 @@ const ENV = {
 /** The database: a plain object keyed by path. */
 let store = {};
 let writes = [];
+let sentMail = [];
 
 function installFetch() {
+    sentMail = [];
     global.fetch = async (url, opts = {}) => {
+        if (String(url).includes('api.resend.com')) {
+            sentMail.push(JSON.parse(opts.body));
+            return { ok: true, status: 200, text: async () => '{"id":"mail_1"}' };
+        }
         const path = decodeURIComponent(String(url).split('/.json')[0])
             .replace('https://db.example.com/', '').split('.json')[0];
         const method = opts.method || 'GET';
@@ -186,6 +192,39 @@ async function call(handlerPath, req, env) {
     // No display name: derived from the address rather than left blank.
     r = await call('../api/auth/_signup.js', { body: { email: 'solo@example.com', password: 'a good password' } });
     eq('a nameless signup still gets a name', r.body.user.name, 'solo');
+
+    /* ---- the welcome email ------------------------------------------ */
+
+    // Mail is off by default in this test's ENV, matching a deployment
+    // that has not set it up: signup must still work, and must not even
+    // try to send.
+    check('no mail was attempted without a mailer configured', sentMail.length === 0, sentMail.length);
+
+    const WITH_MAIL = Object.assign({}, ENV, {
+        RESEND_API_KEY: 'test-resend-key', MAIL_FROM: 'CubingHQ <noreply@example.com>',
+    });
+    r = await call('../api/auth/_signup.js',
+        { body: { email: 'welcome@example.com', password: 'a good password', name: 'Wendy' } }, WITH_MAIL);
+    eq('signup still succeeds with mail configured', r.status, 200);
+    eq('and a welcome email goes out', sentMail.length, 1);
+    eq('to the address just signed up', sentMail[0].to[0], 'welcome@example.com');
+    check('addressed to them by name', sentMail[0].html.includes('Wendy'), sentMail[0].html);
+    check('mentioning that linking WCA is optional, not required',
+        /wca/i.test(sentMail[0].text) && /not required/i.test(sentMail[0].text), sentMail[0].text);
+
+    // A send failure must not fail the signup — the account is real and
+    // already created by the time mail is even attempted.
+    const fetchBeforeMailFailure = global.fetch;
+    global.fetch = async (url, opts) => {
+        if (String(url).includes('api.resend.com')) return { ok: false, status: 500, text: async () => 'boom' };
+        return fetchBeforeMailFailure(url, opts);
+    };
+    r = await call('../api/auth/_signup.js',
+        { body: { email: 'resilient@example.com', password: 'a good password' } }, WITH_MAIL);
+    eq('signup succeeds even when the welcome email fails to send', r.status, 200);
+    check('and the account really was created',
+        !!store[`accounts/${accounts.uidFor('resilient@example.com')}`]);
+    global.fetch = fetchBeforeMailFailure;
 
     /* ---- login ---------------------------------------------------- */
 
