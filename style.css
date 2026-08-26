@@ -2229,6 +2229,27 @@ body {
     white-space: nowrap;
 }
 
+/* A record whose time is live but whose holder has not been confirmed
+   yet. Deliberately quiet — it is a note about the data, not a warning,
+   and it must not compete with the rows that do have a name. */
+.rec-holder-pending {
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--clr-text-muted);
+    white-space: normal;
+    cursor: help;
+}
+
+/* An event with no average at all. Set apart from the time styles so it
+   never reads as a value that failed to load. */
+.rec-na {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 0.78rem;
+    color: var(--clr-text-muted);
+    cursor: help;
+}
+
 /* Expand icon */
 .rec-expand-icon {
     color: var(--clr-text-muted);

@@ -135,7 +135,7 @@
     // There used to be: two index-aligned lists built from real cubers, which
     // were then shuffled together. Random pairing re-emitted actual people —
     // "Max Park", "Feliks Zemdegs", "Yiheng Wang" are all reachable, and
-    // Yiheng Wang is in this file's own WORLD_RECORDS — with invented times
+    // Yiheng Wang holds a world record in world-records.js — with invented times
     // attached to them on a leaderboard. Filling a field with a real person's
     // name and made-up results is not something a simulator should do.
     //
@@ -177,76 +177,11 @@
     }
 
     // Hardcoded WCA World Records (verified July 2026)
-    const WORLD_RECORDS = {
-        '333': {
-            single: { time: 2.76, holder: 'Teodor Zajder', country: 'PL', competition: 'GLS Big Cubes Gdańsk 2026' },
-            average: { time: 3.51, holder: 'Yiheng Wang', country: 'CN', competition: 'Hefei Cubing League 3x3 III 2026' }
-        },
-        '222': {
-            single: { time: 0.39, holder: 'Ziyu Ye', country: 'CN', competition: 'Hefei Open 2025' },
-            average: { time: 0.86, holder: 'Sujan Feist', country: 'US', competition: 'Kids America Christmas Clash OH 2025' }
-        },
-        '444': {
-            single: { time: 15.18, holder: 'Tymon Kolasiński', country: 'PL', competition: 'Spanish Championship 2025' },
-            average: { time: 18.56, holder: 'Tymon Kolasiński', country: 'PL', competition: 'Seoul Winter 2026' }
-        },
-        '555': {
-            single: { time: 29.49, holder: 'Tymon Kolasiński', country: 'PL', competition: 'All Rounders Katowice I 2026' },
-            average: { time: 33.73, holder: 'Tymon Kolasiński', country: 'PL', competition: 'All Rounders Katowice I 2026' }
-        },
-        '666': {
-            single: { time: 57.69, holder: 'Max Park', country: 'US', competition: 'Burbank Big Cubes 2025' },
-            average: { time: 64.94, holder: 'Lim Hung', country: 'MY', competition: 'UniKL MIAT Cube Open 2026' }
-        },
-        '777': {
-            single: { time: 92.07, holder: 'Max Park', country: 'US', competition: 'West Coast Cubing Western Championship 2026' },
-            average: { time: 96.86, holder: 'Max Park', country: 'US', competition: 'Nub Open Trabuco Hills Fall 2025' }
-        },
-        '333oh': {
-            single: { time: 5.66, holder: 'Dhruva Sai Meruva', country: 'IN', competition: 'Swiss Nationals 2024' },
-            average: { time: 6.99, holder: 'Zhen Chen', country: 'CN', competition: 'Wuhu Open 2026' }
-        },
-        '333bf': {
-            single: { time: 11.67, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' },
-            average: { time: 14.05, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' }
-        },
-        '333fm': {
-            single: { time: 16, holder: 'Sebastiano Tronto', country: 'IT', competition: 'FMC 2019', isMoves: true },
-            average: { time: 19.00, holder: 'Brian Johnson', country: 'US', competition: 'Evanston FMC Spring 2026', isMoves: true }
-        },
-        '333mbf': {
-            single: { time: '63/65 58:23', holder: 'Graham Siggins', country: 'US', competition: 'Cubing in a Corn Maze 2025', isMulti: true },
-            average: null
-        },
-        'pyram': {
-            single: { time: 0.73, holder: 'Simon Kellum', country: 'US', competition: 'Middleton Meetup Thursday 2023' },
-            average: { time: 1.14, holder: 'Lingkun Jiang', country: 'CN', competition: 'Zhengzhou Zest 2025' }
-        },
-        'skewb': {
-            single: { time: 0.73, holder: 'Vojtěch Grohmann', country: 'CZ', competition: 'Głuszyca Open 2026' },
-            average: { time: 1.52, holder: 'Carter Kucala', country: 'US', competition: 'CubingUSA Heartland Championship 2024' }
-        },
-        'sq1': {
-            single: { time: 2.85, holder: 'Brian Johnson', country: 'US', competition: 'Evanston Qualifier 2026' },
-            average: { time: 4.63, holder: 'Sameer Aggarwal', country: 'US', competition: 'Cubing in Southern Oregon 2025' }
-        },
-        'minx': {
-            single: { time: 21.85, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Start of Summer Beijing 2026' },
-            average: { time: 24.38, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Tashkent Open 2025' }
-        },
-        'clock': {
-            single: { time: 1.53, holder: 'Lachlan Gibson', country: 'AU', competition: 'Shepplife Open 2025' },
-            average: { time: 2.26, holder: 'Lachie Gibson', country: 'AU', competition: 'Lachie Gibson Clock Average 2025' }
-        },
-        '444bf': {
-            single: { time: 51.96, holder: 'Stanley Chapel', country: 'US', competition: '4BLD in a Madison Hall 2023' },
-            average: { time: 59.39, holder: 'Stanley Chapel', country: 'US', competition: 'New York Multimate PBQ II 2025' }
-        },
-        '555bf': {
-            single: { time: 118.59, holder: 'Stanley Chapel', country: 'US', competition: 'Multi Mayhem VA 2026' },
-            average: { time: 147.63, holder: 'Stanley Chapel', country: 'US', competition: 'Michigan Cubing Club Epsilon 2019' }
-        }
-    };
+    // Curated holder metadata, shared with admin_records.html so the page
+    // that edits the data and the page that renders it can never drift
+    // apart again. The empty fallback keeps the records view rendering
+    // live times if the script is ever missing.
+    const WORLD_RECORDS = (typeof window !== 'undefined' && window.WorldRecords) || {};
 
     // ========== STATE ==========
     // Synthesized in ambient-noise.js rather than streamed from a file. Same
@@ -1973,9 +1908,47 @@
         return { time: raw / 100 }; // centiseconds -> seconds
     }
 
+    /**
+     * One side of a live record entry, normalised to a raw value and, if
+     * the feed happens to carry one, the holder.
+     *
+     * The v0 endpoint has only ever returned bare numbers, which is the
+     * whole reason holder names are typed by hand — and why every record
+     * that changes hands loses its name until someone notices. If the feed
+     * ever carries a name, take it: a live name cannot be stale, so it
+     * always beats the curated one and the treadmill ends on its own.
+     *
+     * Strict about what it accepts. An unrecognised object yields nothing
+     * rather than an undefined value, because `undefined / 100` is NaN and
+     * a NaN would render into the table as a time.
+     */
+    function liveSide(entry) {
+        if (typeof entry === 'number') return { raw: entry };
+        if (!entry || typeof entry !== 'object') return null;
+
+        const raw = [entry.value, entry.best, entry.result, entry.time]
+            .find(v => typeof v === 'number' && isFinite(v));
+        if (raw === undefined) return null;
+
+        const holder = entry.name || entry.personName
+            || (entry.person && entry.person.name) || null;
+        if (!holder) return { raw };
+
+        return {
+            raw,
+            meta: {
+                holder,
+                country: entry.country || entry.countryId
+                    || (entry.person && entry.person.country) || '',
+                competition: entry.competition || entry.competitionId || '',
+            },
+        };
+    }
+
     // Live record TIMES from the official WCA API. (The v0 endpoint has no
     // holder names, so holder/competition metadata comes from our stored
-    // list and is refreshed via the admin page.)
+    // list and is refreshed via the admin page — see liveSide for what
+    // happens if that ever changes.)
     async function fetchLiveWcaRecords() {
         if (liveWcaRecords) return liveWcaRecords;
         try {
@@ -2028,8 +2001,10 @@
 
         const meta = isWorld ? stored : null;
         const rec = { single: null, average: null };
-        const liveSingle = wcaRawToDisplay(eventId, live.single, false);
-        const liveAvg = wcaRawToDisplay(eventId, live.average, true);
+        const liveS = liveSide(live.single);
+        const liveA = liveSide(live.average);
+        const liveSingle = liveS ? wcaRawToDisplay(eventId, liveS.raw, false) : null;
+        const liveAvg = liveA ? wcaRawToDisplay(eventId, liveA.raw, true) : null;
 
         // The live feed carries times but no names — the v0 endpoint has none —
         // so holder and competition can only come from the stored list. That is
@@ -2048,10 +2023,13 @@
             return stale ? {} : side;
         };
 
+        // A live name, where one exists, is layered over the curated one:
+        // it cannot be stale, so it always wins.
         if (liveSingle) {
             rec.single = Object.assign(
                 { holder: '—', country: '', competition: '' },
                 metaFor(meta && meta.single, liveSingle),
+                (liveS && liveS.meta) || {},
                 liveSingle,
             );
         } else if (isWorld) {
@@ -2061,6 +2039,7 @@
             rec.average = Object.assign(
                 { holder: '—', country: '', competition: '' },
                 metaFor(meta && meta.average, liveAvg),
+                (liveA && liveA.meta) || {},
                 liveAvg,
             );
         } else if (isWorld) {
@@ -2182,9 +2161,18 @@
         document.dispatchEvent(new CustomEvent('cs-algorithms-relabel'));
     });
 
+    // Events that have no average under WCA rules. A blank cell for these is
+    // not a gap in the data — there is nothing to hold — and rendering it in
+    // the same style as a time invites the reader to treat it as one.
+    const NO_AVERAGE_EVENTS = new Set(['333mbf']);
+
     // Format one side of a record for the table. FMC counts moves: a single is
     // a whole number, a mean always carries two decimals (WCA convention).
-    function formatRecordValue(rec, isAverage) {
+    function formatRecordValue(rec, isAverage, eventId) {
+        if (isAverage && NO_AVERAGE_EVENTS.has(eventId)) {
+            return `<span class="rec-na" title="${esc(i18nT('records.noAverageHint',
+                'This event is ranked by single only.'))}">${esc(i18nT('records.noAverage', 'n/a'))}</span>`;
+        }
         if (!rec) return '—';
         if (rec.isMulti) return rec.time;
         if (rec.isMoves) {
@@ -2194,8 +2182,24 @@
         return formatTime(rec.time);
     }
 
-    function formatRecordHolder(rec) {
-        if (!rec || !rec.holder || rec.holder === '—') return '—';
+    /**
+     * The holder cell.
+     *
+     * A bare dash here reads as broken data, and it is not: the times come
+     * live from the WCA while the names come from a list maintained by hand,
+     * so whenever a record changes hands the name is deliberately dropped
+     * rather than credit the previous holder with someone else's result (see
+     * metaFor). Saying that outright is the difference between a page that
+     * looks stale and one that looks wrong.
+     */
+    function formatRecordHolder(rec, eventId, isAverage) {
+        if (isAverage && NO_AVERAGE_EVENTS.has(eventId)) return '';
+        if (!rec) return '—';
+        if (!rec.holder || rec.holder === '—') {
+            return `<span class="rec-holder-pending" title="${esc(i18nT('records.pendingHint',
+                'The time is live from the WCA. The holder is confirmed by hand and has not caught up yet.'))}">`
+                + `${esc(i18nT('records.pending', 'new record — holder not confirmed'))}</span>`;
+        }
         return `${countryFlagImg(rec.country)} ${rec.holder}`;
     }
 
@@ -2247,10 +2251,10 @@
                 <td class="rec-event">
                     <span class="rec-event-name">${EVENT_NAMES[eventId]}</span>
                 </td>
-                <td class="rec-time rec-single" data-label="${level} ${esc(i18nT('records.col.single', 'Single'))}">${formatRecordValue(rec.single, false)}</td>
-                <td class="rec-holder rec-holder-single">${formatRecordHolder(rec.single)}</td>
-                <td class="rec-time rec-average" data-label="${level} ${esc(i18nT('records.col.average', 'Average'))}">${formatRecordValue(rec.average, true)}</td>
-                <td class="rec-holder rec-holder-average">${formatRecordHolder(rec.average)}</td>
+                <td class="rec-time rec-single" data-label="${level} ${esc(i18nT('records.col.single', 'Single'))}">${formatRecordValue(rec.single, false, eventId)}</td>
+                <td class="rec-holder rec-holder-single">${formatRecordHolder(rec.single, eventId, false)}</td>
+                <td class="rec-time rec-average" data-label="${level} ${esc(i18nT('records.col.average', 'Average'))}">${formatRecordValue(rec.average, true, eventId)}</td>
+                <td class="rec-holder rec-holder-average">${formatRecordHolder(rec.average, eventId, true)}</td>
                 <td class="rec-expand-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></td>
             `;
             tr.addEventListener('click', () => toggleRecordDetail(eventId, tr, rec));
@@ -2313,9 +2317,9 @@
         strip.innerHTML = [
             card(regionIcon, esc(regionName), i18nT('records.stat.region', 'Region')),
             card('🧩', String(rendered.length), i18nT('records.stat.events', 'Events with records')),
-            card('⚡', bestSingle ? `${formatRecordValue(bestSingle, false)} <small>${esc(EVENT_NAMES[bestSingleEvent.eventId])}</small>` : '—',
+            card('⚡', bestSingle ? `${formatRecordValue(bestSingle, false, bestSingleEvent.eventId)} <small>${esc(EVENT_NAMES[bestSingleEvent.eventId])}</small>` : '—',
                  i18nT('records.stat.fastestSingle', 'Fastest single')),
-            card('📊', bestAverage ? `${formatRecordValue(bestAverage, true)} <small>${esc(EVENT_NAMES[bestAvgEvent.eventId])}</small>` : '—',
+            card('📊', bestAverage ? `${formatRecordValue(bestAverage, true, bestAvgEvent.eventId)} <small>${esc(EVENT_NAMES[bestAvgEvent.eventId])}</small>` : '—',
                  i18nT('records.stat.fastestAverage', 'Fastest average')),
         ].join('');
     }

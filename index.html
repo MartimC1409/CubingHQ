@@ -52,8 +52,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=12">
-    <link rel="stylesheet" href="launch-ui.css?v=7">
+    <link rel="stylesheet" href="style.css?v=13">
+    <link rel="stylesheet" href="launch-ui.css?v=8">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -443,14 +443,6 @@
                 <div class="cube-decor cube-decor--d"></div>
 
                 <div class="lu-container lu-hero-inner">
-                    <button type="button" class="lu-badge lu-appear" onclick="document.getElementById('nav-coach-btn').click()">
-                        <span class="lu-badge-muted" data-i18n="hero.badge">The CubingHQ AI Coach is here</span>
-                        <span class="lu-badge-link">
-                            <span data-i18n="hero.badge.cta">Try it</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                        </span>
-                    </button>
-
                     <h1 class="lu-hero-title lu-appear">
                         <span data-i18n="hero.title.a">Your personal</span>
                         <em data-i18n="hero.title.b">AI speedcubing coach.</em>
@@ -1846,7 +1838,7 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=17"></script>
+    <script src="i18n.js?v=18"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=1"></script>
@@ -1870,7 +1862,10 @@
     <script src="ambient-noise.js?v=1"></script>
     <!-- Must precede app.js: the battle chat filters on both send and render. -->
     <script src="content-filter.js?v=1"></script>
-    <script src="app.js?v=20"></script>
+    <!-- Must precede app.js: WORLD_RECORDS is read at IIFE init. Shared with
+         admin_records.html so the two can never drift apart again. -->
+    <script src="world-records.js?v=1"></script>
+    <script src="app.js?v=21"></script>
     <script src="mobile-nav.js?v=2"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->

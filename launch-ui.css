@@ -374,33 +374,6 @@ body {
 /* ============================================================
    8. BADGES
    ============================================================ */
-.lu-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    border-radius: 999px;
-    border: 1px solid var(--lu-border);
-    padding: 5px 12px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--clr-text);
-    text-decoration: none;
-    transition: border-color var(--transition-fast), background-color var(--transition-fast);
-}
-.lu-badge:hover { border-color: color-mix(in oklab, var(--brand) 40%, var(--lu-border)); }
-.lu-badge-muted { color: var(--clr-text-secondary); font-weight: 500; }
-.lu-badge-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--brand);
-}
-.lu-badge-brand {
-    border-color: transparent;
-    background: color-mix(in oklab, var(--brand) 20%, transparent);
-    color: var(--brand);
-}
-
 /* The app's own hero badge, re-skinned as a Launch UI pill */
 .hero-badge {
     display: inline-flex;
