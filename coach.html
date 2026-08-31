@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AI Coach — CubingHQ</title>
-    <meta name="description" content="Your personal AI speedcubing coach. Upload your solves, set a goal, and get a training plan built around your actual performance.">
+    <title>AI Coach (Under Construction) — CubingHQ</title>
+    <meta name="description" content="The AI Coach is being rebuilt. Everything else on CubingHQ — the timer, simulator, stats, records and battles — is unaffected.">
+    <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="https://cubinghq.online/coach.html">
-    <meta property="og:title" content="AI Coach — CubingHQ">
-    <meta property="og:description" content="Upload your solves, set your goal and get a personalised training plan built around your actual performance.">
+    <meta property="og:title" content="AI Coach (Under Construction) — CubingHQ">
+    <meta property="og:description" content="The AI Coach is being rebuilt. Check back soon.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cubinghq.online/coach.html">
     <meta property="og:site_name" content="CubingHQ">
@@ -45,20 +46,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=13">
-    <link rel="stylesheet" href="launch-ui.css?v=8">
-    <link rel="stylesheet" href="coach.css?v=2">
-
-    <!-- Pinned to a major version: an unpinned CDN tag would let a
-         breaking release land on the live site without a deploy. -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <link rel="stylesheet" href="style.css?v=8ca4e91d">
+    <link rel="stylesheet" href="launch-ui.css?v=a21f46ee">
+    <link rel="stylesheet" href="coach.css?v=4e903281">
 
     <style>
         body { overflow: auto; min-height: 100vh; }
         .cs-navbar-spacer { height: 64px; }
     </style>
 
-    <script src="analytics.js?v=1"></script>
+    <script src="analytics.js?v=820df5ea"></script>
     <script defer src="/_vercel/insights/script.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
@@ -122,6 +119,11 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
             Battle
         </button>
+        <button class="nav-btn nav-btn--friends" id="nav-friends-btn" title="Friends" data-i18n="nav.friends" data-i18n-title="nav.friends">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span id="friends-badge" class="friends-nav-badge" style="display:none;">0</span>
+            Friends
+        </button>
         <button class="nav-btn" id="nav-login-btn" title="Login" data-i18n="nav.login" data-i18n-title="nav.login">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             Login
@@ -135,351 +137,32 @@
     <div class="cs-navbar-spacer"></div>
 
     <main id="app-main">
-        <div class="coach-shell">
-
-            <!-- Shown while the store decides between onboarding and the
-                 dashboard, so neither flashes before we know which. -->
-            <div id="coach-boot" class="coach-empty">
-                <div class="coach-thinking-bar"><i></i></div>
-                <p class="coach-sub" data-i18n="coach.boot">Loading your coaching profile…</p>
+        <div class="coach-shell" style="max-width: 640px; padding-top: 64px; padding-bottom: 96px;">
+            <div class="coach-card" style="text-align: center; padding: 48px 32px;">
+                <div class="coach-eyebrow" style="justify-content: center; display: flex;">AI COACH</div>
+                <h1 style="font-size: 1.8rem; font-weight: 700; margin: 12px 0 8px;" data-i18n="coach.underConstruction.title">Under construction</h1>
+                <p style="color: var(--clr-text-secondary); font-size: 1rem; line-height: 1.6; max-width: 460px; margin: 0 auto 28px;" data-i18n="coach.underConstruction.body">
+                    We're rebuilding the AI Coach to make it more reliable. It isn't
+                    available right now — nothing you've done elsewhere on CubingHQ
+                    is affected, and no coaching data has been lost.
+                </p>
+                <button class="lu-btn lu-btn-default" id="coach-back-home-btn" data-i18n="coach.underConstruction.backHome">Back to CubingHQ</button>
             </div>
-
-            <!-- ============ ONBOARDING ============ -->
-            <section id="coach-onboarding" hidden>
-                <div class="coach-steps" id="coach-step-dots" aria-hidden="true"></div>
-
-                <!-- 1. Welcome -->
-                <div class="coach-step is-active" data-step="welcome">
-                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.intro">CubingHQ AI Coach</p>
-                    <h1 class="coach-h1" data-i18n="coach.welcome.title">Meet your CubingHQ Coach.</h1>
-                    <p class="coach-sub" style="margin-top:14px;max-width:56ch" data-i18n="coach.welcome.body">
-                        I'll analyse your current level, understand your goals and build your
-                        training around what will actually help you improve.
-                    </p>
-                    <div class="coach-step-actions">
-                        <button class="coach-btn coach-btn--primary coach-btn--lg" data-next data-i18n="coach.welcome.cta">
-                            Start my coaching journey
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 2. Event -->
-                <div class="coach-step" data-step="event">
-                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.event">Step 1 · Event</p>
-                    <h2 class="coach-h1" data-i18n="coach.event.title">What do you want to get faster at?</h2>
-                    <p class="coach-sub" style="margin-top:10px" data-i18n="coach.event.body">
-                        Pick your main event. Training is built around this one; you can add others later.
-                    </p>
-                    <div class="coach-chips" id="coach-event-chips" style="margin-top:20px"></div>
-                    <div class="coach-step-actions">
-                        <button class="coach-btn coach-btn--quiet" data-back data-i18n="coach.back">Back</button>
-                        <div class="coach-spacer"></div>
-                        <button class="coach-btn coach-btn--primary" data-next disabled data-i18n="coach.continue">Continue</button>
-                    </div>
-                </div>
-
-                <!-- 3. Current level -->
-                <div class="coach-step" data-step="level">
-                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.level">Step 2 · Where you are</p>
-                    <h2 class="coach-h1" data-i18n="coach.level.title">Tell me roughly where you're at.</h2>
-                    <p class="coach-sub" style="margin-top:10px;max-width:58ch" data-i18n="coach.level.body">
-                        All optional — if you upload your solves next, I'll measure this properly
-                        rather than relying on what you remember.
-                    </p>
-                    <div class="coach-card" style="margin-top:20px">
-                        <div class="coach-grid-2">
-                            <!-- Options are filled from the chosen event, so a
-                                 Megaminx solver is not offered CFOP. Hidden
-                                 entirely for events with no method axis. -->
-                            <label class="coach-field" id="coach-method-field">
-                                <span data-i18n="coach.level.method">Method</span>
-                                <select class="coach-select" id="coach-method"></select>
-                            </label>
-                            <label class="coach-field">
-                                <span data-i18n="coach.level.experience">How long have you been cubing?</span>
-                                <select class="coach-select" id="coach-experience">
-                                    <option value="">Prefer not to say</option>
-                                    <option value="under-6-months">Under 6 months</option>
-                                    <option value="6-12-months">6–12 months</option>
-                                    <option value="1-3-years">1–3 years</option>
-                                    <option value="3-plus-years">3+ years</option>
-                                </select>
-                            </label>
-                        </div>
-                        <div class="coach-grid-2">
-                            <label class="coach-field">
-                                <span data-i18n="coach.level.frequency">How often do you practise?</span>
-                                <select class="coach-select" id="coach-frequency">
-                                    <option value="">Prefer not to say</option>
-                                    <option value="daily">Most days</option>
-                                    <option value="few-times-week">A few times a week</option>
-                                    <option value="weekly">About once a week</option>
-                                    <option value="occasionally">Now and then</option>
-                                </select>
-                            </label>
-                            <label class="coach-field">
-                                <span data-i18n="coach.level.average">Current average, if you know it</span>
-                                <input class="coach-input" id="coach-current-avg" inputmode="decimal"
-                                       placeholder="e.g. 14.5 or 1:02.3" autocomplete="off">
-                                <small data-i18n="coach.level.averageHint">Seconds, or mm:ss for longer events.</small>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="coach-step-actions">
-                        <button class="coach-btn coach-btn--quiet" data-back data-i18n="coach.back">Back</button>
-                        <div class="coach-spacer"></div>
-                        <button class="coach-btn coach-btn--primary" data-next data-i18n="coach.continue">Continue</button>
-                    </div>
-                </div>
-
-                <!-- 4. Import -->
-                <div class="coach-step" data-step="import">
-                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.import">Step 3 · Your solves</p>
-                    <h2 class="coach-h1" data-i18n="coach.import.title">Upload your solve history.</h2>
-                    <!-- data-i18n-html, not data-i18n: this line contains markup,
-                         and the plain variant would append the key as text. -->
-                    <p class="coach-sub" style="margin-top:10px;max-width:60ch" data-i18n-html="coach.import.body">
-                        This is what makes the coaching yours rather than generic. In csTimer,
-                        use <strong>Export → Export to file</strong>, then drop the file here.
-                    </p>
-
-                    <div id="coach-import-idle" style="margin-top:20px">
-                        <div class="coach-drop" id="coach-drop" role="button" tabindex="0"
-                             aria-label="Choose a solve history file to upload">
-                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            <p style="font-weight:600" data-i18n="coach.import.drop">Drop your export here, or choose a file</p>
-                            <p class="coach-sub" style="font-size:13px;margin-top:5px" data-i18n="coach.import.formats">
-                                csTimer JSON, a CubingHQ backup, CSV, or a plain list of times
-                            </p>
-                            <input type="file" id="coach-file" accept=".json,.csv,.txt,application/json,text/csv,text/plain" hidden>
-                        </div>
-                        <div id="coach-import-error" style="margin-top:14px"></div>
-                        <p style="margin-top:16px">
-                            <button class="coach-btn coach-btn--quiet" id="coach-import-from-timer" data-i18n="coach.import.fromTimer">
-                                Use my CubingHQ timer sessions instead
-                            </button>
-                        </p>
-                    </div>
-
-                    <!-- The preview is the safeguard: nothing is saved until
-                         the user confirms these numbers look right. -->
-                    <div id="coach-import-preview" hidden style="margin-top:20px"></div>
-
-                    <div class="coach-step-actions">
-                        <button class="coach-btn coach-btn--quiet" data-back data-i18n="coach.back">Back</button>
-                        <div class="coach-spacer"></div>
-                        <button class="coach-btn coach-btn--ghost" data-next data-i18n="coach.import.skip">Skip for now</button>
-                    </div>
-                </div>
-
-                <!-- 5. Goal -->
-                <div class="coach-step" data-step="goal">
-                    <p class="coach-eyebrow" data-i18n="coach.eyebrow.goal">Step 4 · Your goal</p>
-                    <h2 class="coach-h1" data-i18n="coach.goal.title">What are you aiming for?</h2>
-                    <p class="coach-sub" style="margin-top:10px;max-width:58ch" data-i18n="coach.goal.body">
-                        Pick the number you want to hit, and what it's measured on. This is what
-                        every progress figure will be judged against.
-                    </p>
-
-                    <div class="coach-card" style="margin-top:20px">
-                        <p class="coach-eyebrow" data-i18n="coach.goal.target">Target</p>
-                        <div class="coach-chips" id="coach-goal-chips"></div>
-
-                        <div class="coach-grid-2" style="margin-top:18px">
-                            <label class="coach-field">
-                                <span data-i18n="coach.goal.custom">Custom target</span>
-                                <input class="coach-input" id="coach-goal-custom" inputmode="decimal"
-                                       placeholder="e.g. 9.5" autocomplete="off">
-                            </label>
-                            <label class="coach-field">
-                                <span data-i18n="coach.goal.metric">Measured on</span>
-                                <select class="coach-select" id="coach-goal-metric">
-                                    <option value="ao100">Average of 100</option>
-                                    <option value="ao50">Average of 50</option>
-                                    <option value="ao12">Average of 12</option>
-                                    <option value="ao5">Average of 5</option>
-                                    <option value="single">Best single</option>
-                                </select>
-                                <small data-i18n="coach.goal.metricHint">
-                                    Ao100 is the honest measure of your everyday speed. A single is one lucky solve.
-                                </small>
-                            </label>
-                        </div>
-
-                        <label class="coach-field" style="margin-bottom:0">
-                            <span data-i18n="coach.goal.date">Target date (optional)</span>
-                            <input class="coach-input" type="date" id="coach-goal-date">
-                        </label>
-                    </div>
-
-                    <div id="coach-goal-reality" style="margin-top:14px"></div>
-
-                    <div class="coach-step-actions">
-                        <button class="coach-btn coach-btn--quiet" data-back data-i18n="coach.back">Back</button>
-                        <div class="coach-spacer"></div>
-                        <button class="coach-btn coach-btn--primary coach-btn--lg" id="coach-finish" disabled data-i18n="coach.goal.cta">
-                            Build my plan
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 6. Working -->
-                <div class="coach-step" data-step="analysing">
-                    <div class="coach-card">
-                        <div class="coach-thinking">
-                            <div class="coach-thinking-bar"><i></i></div>
-                            <p class="coach-thinking-stage" id="coach-stage"></p>
-                            <div class="coach-thinking-log" id="coach-stage-log"></div>
-                        </div>
-                    </div>
-                    <div id="coach-analysing-error" style="margin-top:16px"></div>
-                </div>
-            </section>
-
-            <!-- ============ MAIN APP ============ -->
-            <section id="coach-app" hidden>
-                <div class="coach-greeting">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
-                        <div>
-                            <h1 class="coach-h1" id="coach-greeting-title">Welcome back.</h1>
-                            <p class="coach-sub" id="coach-greeting-sub" style="margin-top:6px"></p>
-                        </div>
-                        <span class="coach-sync" id="coach-sync" data-state="local-only"><i></i><span></span></span>
-                    </div>
-                </div>
-
-                <div class="coach-tabs" role="tablist" aria-label="Coach sections">
-                    <button class="coach-tab" role="tab" aria-selected="true" data-panel="today" data-i18n="coach.tab.today">Today</button>
-                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="progress" data-i18n="coach.tab.progress">Progress</button>
-                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="plan" data-i18n="coach.tab.plan">Roadmap</button>
-                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="chat" data-i18n="coach.tab.chat">Ask the Coach</button>
-                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="video" data-i18n="coach.tab.video">Solve video</button>
-                    <button class="coach-tab" role="tab" aria-selected="false" data-panel="data" data-i18n="coach.tab.data">Your data</button>
-                </div>
-
-                <div class="coach-panel is-active" data-panel="today" role="tabpanel">
-                    <div class="coach-dash">
-                        <div class="coach-col">
-                            <div class="coach-card" id="coach-today-card"></div>
-                            <div class="coach-card" id="coach-insight-card"></div>
-                        </div>
-                        <div class="coach-col">
-                            <div class="coach-card" id="coach-goal-card"></div>
-                            <div class="coach-card" id="coach-streak-card"></div>
-                            <div class="coach-card" id="coach-milestones-card"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="coach-panel" data-panel="progress" role="tabpanel">
-                    <div class="coach-card coach-card--flush" style="margin-bottom:20px">
-                        <div style="padding:18px 20px 0">
-                            <h2 class="coach-h2" data-i18n="coach.trend.title">Performance trend</h2>
-                            <p class="coach-sub" style="font-size:13.5px" id="coach-trend-summary"></p>
-                        </div>
-                        <div class="coach-chart-wrap"><canvas id="coach-chart"></canvas></div>
-                        <div class="coach-chart-controls" id="coach-chart-controls"></div>
-                    </div>
-                    <div class="coach-card" id="coach-stats-card"></div>
-                </div>
-
-                <div class="coach-panel" data-panel="plan" role="tabpanel">
-                    <div class="coach-card" id="coach-roadmap-card"></div>
-                </div>
-
-                <div class="coach-panel" data-panel="chat" role="tabpanel">
-                    <div class="coach-card coach-card--flush">
-                        <div class="coach-chat">
-                            <div class="coach-chat-log" id="coach-chat-log" aria-live="polite"></div>
-                            <div class="coach-suggestions" id="coach-suggestions"></div>
-                            <form class="coach-chat-form" id="coach-chat-form">
-                                <input class="coach-input" id="coach-chat-input" autocomplete="off"
-                                       placeholder="Ask your coach anything…" data-i18n-placeholder="coach.chat.placeholder">
-                                <button class="coach-btn coach-btn--primary" type="submit" id="coach-chat-send"
-                                        aria-label="Send" data-i18n-aria="coach.chat.send">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="coach-panel" data-panel="video" role="tabpanel">
-                    <div class="coach-card">
-                        <h2 class="coach-h2" data-i18n="coach.video.title">Upload a solve</h2>
-                        <p class="coach-sub" style="margin-top:8px;max-width:62ch"
-                           data-i18n="coach.video.body">
-                            Your times show how long a solve took, not what your hands did.
-                            A short clip lets me see pauses, regrips, rotations and turning —
-                            the things I otherwise have to tell you I can't assess.
-                        </p>
-                        <p class="coach-muted coach-small" style="margin-top:12px;max-width:62ch"
-                           data-i18n="coach.video.privacy">
-                            The video goes straight from this device to the analysis service.
-                            It is never stored on CubingHQ, and only what I saw is kept.
-                        </p>
-
-                        <div style="margin-top:20px">
-                            <input type="file" id="coach-video-file" accept="video/*" hidden>
-                            <button class="coach-btn coach-btn--primary" id="coach-video-pick"
-                                    data-i18n="coach.video.pick">Choose a video</button>
-                        </div>
-
-                        <p class="coach-video-status" id="coach-video-status" hidden></p>
-                    </div>
-
-                    <div id="coach-video-result" style="margin-top:20px" hidden></div>
-                </div>
-
-                <div class="coach-panel" data-panel="data" role="tabpanel">
-                    <div class="coach-card" style="margin-bottom:20px">
-                        <h2 class="coach-h2" data-i18n="coach.data.sessions">Imported sessions</h2>
-                        <div id="coach-sessions-list" style="margin-top:12px"></div>
-                        <div style="margin-top:16px">
-                            <button class="coach-btn coach-btn--ghost" id="coach-add-session" data-i18n="coach.data.add">
-                                Import another session
-                            </button>
-                        </div>
-                    </div>
-                    <div class="coach-card">
-                        <h2 class="coach-h2" data-i18n="coach.data.privacy">Your coaching data</h2>
-                        <p class="coach-sub" style="margin-top:8px;max-width:62ch" id="coach-privacy-note"></p>
-                        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-                            <button class="coach-btn coach-btn--ghost" id="coach-delete-history" data-i18n="coach.data.deleteHistory">
-                                Delete coaching history
-                            </button>
-                            <button class="coach-btn coach-btn--danger" id="coach-reset-all" data-i18n="coach.data.resetAll">
-                                Reset everything
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
         </div>
     </main>
 
     <!-- Shared site scripts, in dependency order. -->
-    <script src="i18n.js?v=18"></script>
-    <script src="theme.js?v=1"></script>
-    <script src="cube-stats.js?v=2"></script>
-    <script src="scramble-engine.js?v=3"></script>
-    <script src="solve-analysis.js?v=1"></script>
+    <script src="i18n.js?v=fc69502f"></script>
+    <script src="theme.js?v=db71e576"></script>
+    <script src="cube-stats.js?v=b80cf414"></script>
+    <script src="scramble-engine.js?v=b4dfd5f7"></script>
+    <script src="solve-analysis.js?v=b4c9c90e"></script>
 
-    <!-- Coach modules. Pure logic first, then services, then UI. -->
-    <script src="coach-cstimer.js?v=2"></script>
-    <script src="coach-analytics.js?v=2"></script>
-    <script src="coach-evidence.js?v=2"></script>
-    <script src="coach-api.js?v=5"></script>
-    <script src="coach-store.js?v=2"></script>
-    <script src="coach-chart.js?v=2"></script>
-    <script src="coach-ui.js?v=2"></script>
-    <script src="coach-onboarding.js?v=2"></script>
-    <script src="coach-training.js?v=2"></script>
-    <script src="coach-chat.js?v=2"></script>
-    <script src="coach-video.js?v=5"></script>
-    <script src="coach-dashboard.js?v=2"></script>
-    <script src="coach-app.js?v=2"></script>
+    <!-- Coach modules are not loaded on this page while it is under
+         construction — see the note at the top of <main>. Nothing here
+         attaches to that markup any more; loading them would just be
+         dead weight, and coach-video.js in particular would otherwise
+         pull in a WASM-backed encoder for a feature nobody can reach. -->
 
     <script>
         // Wire the shared navbar on this standalone page: the Coach button
@@ -495,6 +178,7 @@
                 'nav-algorithms-btn':   'index.html#algorithms',
                 'nav-history-btn':      'index.html#history',
                 'nav-battle-btn':       'index.html#battle',
+                'nav-friends-btn':      'index.html#friends',
                 'nav-login-btn':        'index.html#home',
             };
             for (const [id, href] of Object.entries(NAV_MAP)) {
@@ -503,12 +187,14 @@
             }
             const logo = document.getElementById('nav-logo');
             if (logo) logo.addEventListener('click', () => { window.location.href = 'index.html'; });
+            const backHome = document.getElementById('coach-back-home-btn');
+            if (backHome) backHome.addEventListener('click', () => { window.location.href = 'index.html'; });
         })();
     </script>
 
     <!-- Loaded last: it moves the secondary nav buttons into the mobile
          sheet, and the wiring above must have run first. -->
-    <script src="mobile-nav.js?v=3"></script>
+    <script src="mobile-nav.js?v=9c5da4eb"></script>
 
     <script>
         if ('serviceWorker' in navigator) {

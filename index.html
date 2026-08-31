@@ -52,8 +52,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=13">
-    <link rel="stylesheet" href="launch-ui.css?v=8">
+    <link rel="stylesheet" href="style.css?v=8ca4e91d">
+    <link rel="stylesheet" href="launch-ui.css?v=a21f46ee">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -63,7 +63,7 @@
          the AdSense tag on purpose: the defaults have to reach the dataLayer
          before either Google tag reads them, or the first pageview races the
          consent dialogue. See analytics.js. -->
-    <script src="analytics.js?v=1"></script>
+    <script src="analytics.js?v=820df5ea"></script>
 
     <!-- Google AdSense Verification & Auto Ads -->
     <meta name="google-adsense-account" content="ca-pub-1447384831345579">
@@ -112,6 +112,9 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v1a4 4 0 0 0-1 7.87V17a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-1.13A4 4 0 0 0 17 8V7a5 5 0 0 0-5-5z"/><path d="M9 22h6"/></svg>
             Coach
         </button>
+        <!-- Premium is not a shippable feature yet: there is no billing and
+             no account entitlement behind it. The entry point is withdrawn
+             until there is. See the <template> below for the markup. -->
         <button class="nav-btn" id="nav-home-btn" title="Home" data-i18n="nav.home" data-i18n-title="nav.home">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Home
@@ -144,6 +147,12 @@
         <button class="nav-btn nav-btn--battle" id="nav-battle-btn" title="Battle" data-i18n="nav.battle" data-i18n-title="nav.battle">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
             Battle
+        </button>
+        <!-- Friends Button -->
+        <button class="nav-btn nav-btn--friends" id="nav-friends-btn" title="Friends" data-i18n="nav.friends" data-i18n-title="nav.friends">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span id="friends-badge" class="friends-nav-badge" style="display:none;">0</span>
+            Friends
         </button>
         <!-- Login Button -->
         <button class="nav-btn" id="nav-login-btn" title="Login" data-i18n="nav.login" data-i18n-title="nav.login">
@@ -179,7 +188,133 @@
             </div>
 
             <h2 id="login-title" class="lu-dialog-title" data-i18n="login.welcome">Sign in to CubingHQ</h2>
-            <p class="lu-dialog-sub" data-i18n="login.subtitle">Connect your WCA account to make the simulator yours — it takes one click.</p>
+            <p class="lu-dialog-sub" data-i18n="login.subtitle">Create a free account with your email — link your WCA account any time afterward.</p>
+
+            <ul class="lu-dialog-perks">
+                <li>
+                    <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
+                    <span data-i18n="login.perk.sync">Solves and sessions sync across your devices</span>
+                </li>
+                <li>
+                    <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
+                    <span data-i18n="signup.perk.friends">Add friends and compare results once you're signed in</span>
+                </li>
+                <li>
+                    <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
+                    <span data-i18n="signup.perk.link">Link your WCA account whenever you're ready</span>
+                </li>
+            </ul>
+
+            <form id="auth-form" class="lu-auth-form" novalidate>
+                <div id="auth-name-field" class="lu-auth-field" style="display:none;">
+                    <label for="auth-name" data-i18n="auth.name">Display name</label>
+                    <input id="auth-name" type="text" autocomplete="nickname" maxlength="40"
+                           placeholder="Cuber" data-i18n-placeholder="auth.namePlaceholder">
+                </div>
+                <div class="lu-auth-field">
+                    <label for="auth-email" data-i18n="auth.email">Email</label>
+                    <input id="auth-email" type="email" autocomplete="email" maxlength="254"
+                           placeholder="you@example.com" required>
+                </div>
+                <div id="auth-password-field" class="lu-auth-field">
+                    <label for="auth-password" data-i18n="auth.password">Password</label>
+                    <input id="auth-password" type="password" autocomplete="current-password"
+                           maxlength="200" required>
+                    <p id="auth-password-hint" class="lu-auth-hint" style="display:none;"
+                       data-i18n="auth.passwordHint">At least 8 characters.</p>
+                </div>
+                <p id="auth-reset-sent" class="lu-auth-hint" style="display:none;" data-i18n="auth.resetSent">If that email has an account, a reset link is on its way — check your inbox.</p>
+                <p id="auth-error" class="lu-auth-error" role="alert" style="display:none;"></p>
+                <button id="auth-submit-btn" type="submit" class="lu-btn lu-btn-default lu-auth-submit"
+                        data-mode="login" data-i18n="auth.signIn">Sign in</button>
+            </form>
+            <button id="auth-forgot-link" type="button" class="lu-btn lu-btn-ghost lu-auth-toggle" data-i18n="auth.forgotPassword">Forgot your password?</button>
+            <button id="auth-toggle-btn" type="button" class="lu-btn lu-btn-ghost lu-auth-toggle"
+                    data-i18n="auth.noAccount">No account? Create one</button>
+
+            <button id="login-skip-btn" class="lu-btn lu-btn-ghost lu-dialog-skip" data-i18n="login.skip">Keep browsing without an account</button>
+
+            <p class="lu-dialog-note" data-i18n="login.note">CubingHQ is an unofficial fan project. Your email is only used to sign you in — we never post anything.</p>
+        </div>
+    </div>
+
+    <!-- ========== SET NEW PASSWORD MODAL ==========
+         Reached only from the link an email carries — see
+         checkPasswordResetLink in app.js. Its two fields (uid, token)
+         are hidden inputs filled from that link, never typed.
+    -->
+    <div id="reset-password-modal" class="modal auth-modal" style="display:none;">
+        <div class="lu-dialog lu-appear-zoom" role="dialog" aria-modal="true" aria-labelledby="reset-password-title" tabindex="-1">
+            <button id="reset-password-close" class="lu-dialog-close" aria-label="Close" data-i18n-aria="aria.close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <h2 id="reset-password-title" class="lu-dialog-title" data-i18n="auth.setNewPassword">Set a new password</h2>
+            <form id="reset-password-form" class="lu-auth-form" novalidate>
+                <div class="lu-auth-field">
+                    <label for="reset-password-new" data-i18n="auth.newPassword">New password</label>
+                    <input id="reset-password-new" type="password" autocomplete="new-password" maxlength="200" required>
+                    <p class="lu-auth-hint" data-i18n="auth.passwordHint">At least 8 characters.</p>
+                </div>
+                <div class="lu-auth-field">
+                    <label for="reset-password-confirm" data-i18n="auth.confirmPassword">Confirm password</label>
+                    <input id="reset-password-confirm" type="password" autocomplete="new-password" maxlength="200" required>
+                </div>
+                <p id="reset-password-error" class="lu-auth-error" role="alert" style="display:none;"></p>
+                <button id="reset-password-submit" type="submit" class="lu-btn lu-btn-default lu-auth-submit" data-i18n="auth.setNewPassword">Set a new password</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== ACCOUNT MODAL ==========
+         Where an email account lives. A WCA sign-in has the statistics
+         view for this — its picture, its name and its logout button all
+         sit there — but an account made with an email address had
+         nowhere at all: the profile button led to a dead end, and there
+         was no way to sign out without clearing storage by hand.
+    -->
+    <div id="account-modal" class="modal auth-modal" style="display:none;">
+        <div class="lu-dialog lu-appear-zoom" role="dialog" aria-modal="true" aria-labelledby="account-title" tabindex="-1">
+            <button id="account-close" class="lu-dialog-close" aria-label="Close" data-i18n-aria="aria.close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+
+            <div class="lu-dialog-glow" aria-hidden="true"></div>
+
+            <div class="account-avatar-block">
+                <div id="account-avatar" class="account-avatar" aria-hidden="true"></div>
+                <button id="account-avatar-btn" class="lu-btn lu-btn-ghost account-avatar-btn" data-i18n="account.changePicture">Change picture</button>
+                <button id="account-avatar-clear" class="lu-btn lu-btn-ghost account-avatar-btn" style="display:none;" data-i18n="account.removePicture">Remove</button>
+                <input id="account-avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+            </div>
+
+            <h2 id="account-title" class="lu-dialog-title account-name">Your account</h2>
+            <p id="account-email" class="lu-dialog-sub"></p>
+
+            <div id="account-wca-linked" class="account-row" style="display:none;">
+                <span data-i18n="account.linkedTo">Linked to WCA</span>
+                <strong id="account-wca-id"></strong>
+                <button id="account-unlink" class="lu-btn lu-btn-ghost account-inline-btn" data-i18n="link.unlink">Unlink WCA account</button>
+            </div>
+
+            <button id="account-link" class="lu-btn lu-btn-default lu-dialog-cta" data-i18n="account.linkWca">Link your WCA account</button>
+            <button id="account-stats" class="lu-btn lu-btn-default lu-dialog-cta" style="display:none;" data-i18n="account.viewStats">View my WCA stats</button>
+            <button id="account-logout" class="lu-btn lu-btn-ghost lu-dialog-skip" data-i18n="account.logout">Log out</button>
+
+            <p id="account-avatar-error" class="lu-auth-error" role="alert" style="display:none;"></p>
+        </div>
+    </div>
+
+    <!-- ========== LINK WCA ACCOUNT MODAL ========== -->
+    <div id="link-wca-modal" class="modal auth-modal" style="display:none;">
+        <div class="lu-dialog lu-appear-zoom" role="dialog" aria-modal="true" aria-labelledby="link-wca-title" tabindex="-1">
+            <button id="link-wca-close" class="lu-dialog-close" aria-label="Close" data-i18n-aria="aria.close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+
+            <div class="lu-dialog-glow" aria-hidden="true"></div>
+
+            <h2 id="link-wca-title" class="lu-dialog-title" data-i18n="link.title">Link your WCA account</h2>
+            <p class="lu-dialog-sub" data-i18n="link.subtitle">You signed up with an email address. Linking your WCA account adds your official results to it — your account, email and password stay exactly as they are.</p>
 
             <ul class="lu-dialog-perks">
                 <li>
@@ -188,22 +323,87 @@
                 </li>
                 <li>
                     <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
-                    <span data-i18n="login.perk.sync">Solves and sessions sync across your devices</span>
+                    <span data-i18n="login.perk.stats">See your official WCA profile, medals and records</span>
                 </li>
                 <li>
                     <span class="lu-perk-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
-                    <span data-i18n="login.perk.stats">See your official WCA profile, medals and records</span>
+                    <span data-i18n="link.perk.battle">Other cubers see your WCA ID in battle rooms</span>
                 </li>
             </ul>
 
-            <button id="wca-login-btn" class="lu-btn lu-btn-default lu-btn-lg lu-dialog-cta" data-i18n="login.wca">
+            <button id="link-wca-start" class="lu-btn lu-btn-default lu-btn-lg lu-dialog-cta" data-i18n="login.wca">
                 Continue with WCA
             </button>
-            <button id="login-skip-btn" class="lu-btn lu-btn-ghost lu-dialog-skip" data-i18n="login.skip">Keep browsing without an account</button>
+            <button id="link-wca-cancel" class="lu-btn lu-btn-ghost lu-dialog-skip" data-i18n="link.notNow">Not now</button>
 
-            <p class="lu-dialog-note" data-i18n="login.note">CubingHQ is an unofficial fan project. Signing in only reads your public WCA data — we never post anything.</p>
+            <p class="lu-dialog-note" data-i18n="link.note">You can unlink it at any time, and one WCA account can be linked to one CubingHQ account.</p>
         </div>
     </div>
+
+    <!-- ========== PREMIUM PLAN MODAL ==========
+         Held in a <template> rather than deleted. Template content is
+         inert: parsed, but never rendered, never in the DOM and never
+         read out — so the pricing and the "under construction" notice
+         are not part of the page while the feature is not real.
+
+         This wrapper was lost once already, in a merge that resolved an
+         index.html conflict by taking one side whole. The check in
+         scripts/test_no_under_construction.js exists so that a second
+         time fails a test rather than reaching a reviewer.
+    -->
+    <template id="premium-plan-markup">
+    <div id="premium-modal" class="modal premium-modal" style="display:none;">
+        <div class="premium-dialog" role="dialog" aria-modal="true" aria-labelledby="premium-title" tabindex="-1">
+            <button id="premium-close-btn" class="premium-close" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div class="premium-eyebrow"><span class="premium-star">✦</span> CUBINGHQ PREMIUM <span class="premium-construction-badge">UNDER CONSTRUCTION</span></div>
+            <h2 id="premium-title">More progress. Less friction.</h2>
+            <p class="premium-subtitle">Keep the tools you love free. Premium gives serious solvers a clearer path from session data to faster solves.</p>
+            <div class="premium-notice" role="status">
+                <span aria-hidden="true">🚧</span>
+                Premium is under construction. These plans are previews while we finish billing and account support.
+            </div>
+
+            <div class="premium-billing" role="group" aria-label="Billing period">
+                <button class="premium-billing-option active" data-period="monthly">Monthly</button>
+                <button class="premium-billing-option" data-period="yearly">Yearly <span>Save 25%</span></button>
+            </div>
+
+            <div class="premium-plans">
+                <article class="premium-plan premium-plan--free">
+                    <div class="premium-plan-heading"><div><p class="premium-plan-kicker">STARTER</p><h3>Free</h3></div><span class="premium-plan-tag">Always free</span></div>
+                    <p class="premium-price">£0 <span>/ forever</span></p>
+                    <p class="premium-plan-copy">Everything you need to build a consistent solving habit.</p>
+                    <ul class="premium-feature-list">
+                        <li><span>✓</span> Timer, scrambles &amp; competition simulation</li>
+                        <li><span>✓</span> Basic stats, history and session tracking</li>
+                        <li><span>✓</span> Algorithms, drills and community battles</li>
+                        <li><span>✓</span> Public WCA records and competition calendar</li>
+                    </ul>
+                    <button class="premium-plan-button premium-plan-button--secondary" id="premium-free-btn">Current plan</button>
+                </article>
+                <article class="premium-plan premium-plan--premium">
+                    <div class="premium-popular">MOST POPULAR</div>
+                    <div class="premium-plan-heading"><div><p class="premium-plan-kicker">FOR SERIOUS SOLVERS</p><h3>Premium</h3></div><span class="premium-crown">✦</span></div>
+                    <p class="premium-price" id="premium-price">£5.99 <span>/ month</span></p>
+                    <p class="premium-plan-copy">Turn every solve into a useful next step with the full CubingHQ toolkit.</p>
+                    <ul class="premium-feature-list">
+                        <li><span>✓</span> Ad-free focus across CubingHQ</li>
+                        <li><span>✓</span> Unlimited solve history and deep analytics</li>
+                        <li><span>✓</span> Unlimited AI Coach chats and roadmaps</li>
+                        <li><span>✓</span> Video solve reviews with actionable feedback</li>
+                        <li><span>✓</span> Advanced training plans and progress insights</li>
+                    </ul>
+                    <button class="premium-plan-button premium-plan-button--primary" id="premium-upgrade-btn" disabled>Coming soon <span>✦</span></button>
+                    <p class="premium-fine-print">Premium sign-ups will open when construction is complete.</p>
+                </article>
+            </div>
+            <p class="premium-footnote">Your free tools stay free. Premium supports the servers and coaching work that keep CubingHQ improving.</p>
+        </div>
+    </div>
+    </template>
+    </template>
 
     <main id="app-main">
         <!-- ========== TIMER VIEW (csTimer Clone) ========== -->
@@ -1185,7 +1385,7 @@
                     <div style="font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.8;">📊</div>
                     <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--clr-text); margin-bottom: var(--space-sm);" data-i18n="stats.noProfile">No Profile Loaded</h2>
                     <p style="color: var(--clr-text-muted); font-size: 1.1rem; max-width: 400px; margin: 0 auto; line-height: 1.6;" data-i18n="stats.noProfileDesc">
-                        Log in with WCA or look up a WCA ID on the setup page to view official statistics!
+                        Sign in and link your WCA account, or look up a WCA ID on the setup page, to view official statistics!
                     </p>
                 </div>
                 <div id="stats-content" style="display: none;">
@@ -1203,6 +1403,9 @@
                             <button id="logout-btn" class="btn btn-secondary btn-sm" style="border: 1px solid rgba(255,100,100,0.5); color: #ff8888;">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: text-bottom;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                                 Logout
+                            </button>
+                            <button id="unlink-wca-btn" class="btn btn-secondary btn-sm" style="display: none; margin-left: 0.5rem;" data-i18n="link.unlink">
+                                Unlink WCA account
                             </button>
                         </div>
                         
@@ -1562,6 +1765,111 @@
             </div>
         </div>
 
+        <!-- ========== FRIENDS VIEW ==========
+             Static shell only. Every list — requests, friends, groups,
+             the comparison table — is built in app.js the same way the
+             battle lobby and records table are: the server (or, for a
+             comparison, the WCA's own public API) is the source of
+             truth, and this container is emptied and rewritten from it.
+        -->
+        <div id="friends-view" class="view">
+            <div class="friends-container">
+                <div class="friends-header">
+                    <h1 data-i18n="friends.title">Friends</h1>
+                    <p class="friends-subtitle" data-i18n="friends.subtitle">Add friends by email or WCA ID, then compare your official results side by side.</p>
+                </div>
+
+                <div id="friends-signed-out" class="friends-empty-state" style="display:none;">
+                    <p data-i18n="friends.signInFirst">Sign in to add friends and compare results.</p>
+                    <button id="friends-signin-btn" class="lu-btn lu-btn-default" data-i18n="auth.signIn" style="margin-top:12px;">Sign in</button>
+                </div>
+
+                <div id="friends-signed-in">
+                    <div class="friends-add-row">
+                        <input id="friend-add-input" type="text" maxlength="254"
+                               data-i18n-placeholder="friends.addPlaceholder"
+                               placeholder="Email address or WCA ID">
+                        <button id="friend-add-btn" class="lu-btn lu-btn-default" data-i18n="friends.add">Add friend</button>
+                    </div>
+                    <p id="friend-add-error" class="lu-auth-error" role="alert" style="display:none;"></p>
+
+                    <section id="friend-requests-section" style="display:none;">
+                        <h2 data-i18n="friends.requests">Requests</h2>
+                        <div id="friend-requests-list" class="friends-list"></div>
+                    </section>
+
+                    <section>
+                        <div class="friends-section-head">
+                            <h2 data-i18n="friends.yourFriends">Your friends</h2>
+                            <button id="friends-compare-btn" class="lu-btn lu-btn-ghost" style="display:none;" data-i18n="friends.compareSelected">Compare selected</button>
+                        </div>
+                        <div id="friends-list" class="friends-list"></div>
+                        <p id="friends-empty" class="friends-empty-state" style="display:none;" data-i18n="friends.noFriendsYet">No friends yet — add one above.</p>
+                    </section>
+
+                    <section id="friends-compare-section" style="display:none;">
+                        <div class="friends-section-head">
+                            <h2 data-i18n="friends.comparison">Comparison</h2>
+                            <button id="friends-compare-close" class="lu-btn lu-btn-ghost" data-i18n="friends.close">Close</button>
+                        </div>
+                        <div class="records-filter-field" style="margin-bottom:12px;">
+                            <span class="records-filter-label" data-i18n="records.filter.type">Show</span>
+                            <div id="friends-compare-type-group" class="records-chip-group" role="group" aria-label="Compare single or average" data-i18n-aria="aria.filterType">
+                                <button type="button" class="records-filter-chip active" data-type="both" data-i18n="records.type.both">Both</button>
+                                <button type="button" class="records-filter-chip" data-type="single" data-i18n="records.type.single">Single</button>
+                                <button type="button" class="records-filter-chip" data-type="average" data-i18n="records.type.average">Average</button>
+                            </div>
+                        </div>
+                        <div id="friends-compare-table-wrap" class="table-responsive"></div>
+                    </section>
+
+                    <section>
+                        <div class="friends-section-head">
+                            <h2 data-i18n="friends.groups">Groups</h2>
+                            <button id="friends-create-group-btn" class="lu-btn lu-btn-ghost" data-i18n="friends.newGroup">New group</button>
+                        </div>
+                        <div id="friends-groups-list" class="friends-list"></div>
+                        <p id="friends-groups-empty" class="friends-empty-state" style="display:none;" data-i18n="friends.noGroupsYet">No groups yet.</p>
+                    </section>
+
+                    <section id="friends-group-detail-section" style="display:none;">
+                        <div class="friends-section-head">
+                            <h2 id="friends-group-detail-title"></h2>
+                            <div class="friends-group-detail-actions">
+                                <button id="friends-group-compare-btn" class="lu-btn lu-btn-default" data-i18n="friends.compareGroup">Compare group</button>
+                                <button id="friends-group-delete-btn" class="lu-btn lu-btn-ghost" style="display:none;" data-i18n="friends.deleteGroup">Delete group</button>
+                                <button id="friends-group-close-btn" class="lu-btn lu-btn-ghost" data-i18n="friends.close">Close</button>
+                            </div>
+                        </div>
+                        <div id="friends-group-add-row" class="friends-add-row" style="display:none;">
+                            <select id="friends-group-add-select"></select>
+                            <button id="friends-group-add-btn" class="lu-btn lu-btn-ghost" data-i18n="friends.addToGroup">Add</button>
+                        </div>
+                        <div id="friends-group-members-list" class="friends-list"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== CREATE GROUP MODAL ========== -->
+        <div id="create-group-modal" class="modal auth-modal" style="display:none;">
+            <div class="lu-dialog lu-appear-zoom" role="dialog" aria-modal="true" aria-labelledby="create-group-title" tabindex="-1">
+                <button id="create-group-close" class="lu-dialog-close" aria-label="Close" data-i18n-aria="aria.close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <h2 id="create-group-title" class="lu-dialog-title" data-i18n="friends.newGroup">New group</h2>
+                <div class="lu-auth-field">
+                    <label for="create-group-name" data-i18n="friends.groupName">Group name</label>
+                    <input id="create-group-name" type="text" maxlength="40" data-i18n-placeholder="friends.groupNamePlaceholder" placeholder="Weekend crew">
+                </div>
+                <p class="lu-dialog-sub" data-i18n="friends.pickMembers">Pick from your friends list.</p>
+                <div id="create-group-members" class="friends-list friends-list--picker"></div>
+                <p id="create-group-error" class="lu-auth-error" role="alert" style="display:none;"></p>
+                <button id="create-group-submit" class="lu-btn lu-btn-default lu-dialog-cta" data-i18n="friends.createGroup">Create group</button>
+            </div>
+        </div>
+
+
         <!-- ====== CREATE ROOM MODAL ====== -->
         <div id="battle-create-modal" class="battle-modal-overlay" style="display:none;">
             <div class="battle-modal-card">
@@ -1838,35 +2146,35 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=18"></script>
+    <script src="i18n.js?v=fc69502f"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
-    <script src="theme.js?v=1"></script>
+    <script src="theme.js?v=db71e576"></script>
     <!-- Holds a screen wake lock for as long as the site is open, so a phone
          doesn't dim and lock partway through a solve. Standalone. -->
-    <script src="wake-lock.js?v=1"></script>
-    <script src="wca-countries.js?v=1"></script>
-    <script src="scramble-engine.js?v=3"></script>
-    <script src="square1-drawer.js?v=3"></script>
-    <script src="algorithms.js?v=4"></script>
-    <script src="algorithms-extra.js?v=5"></script>
-    <link rel="stylesheet" href="timer.css?v=7">
-    <script src="cube-stats.js?v=2"></script>
-    <script src="timer.js?v=8"></script>
-    <script src="timer-mobile.js?v=1"></script>
-    <script src="solve-analysis.js?v=1"></script>
-    <script src="smartcube.js?v=2"></script>
-    <script src="cube-decor.js?v=1"></script>
-    <script src="motion.js?v=2"></script>
+    <script src="wake-lock.js?v=88cc357d"></script>
+    <script src="wca-countries.js?v=4955b1d7"></script>
+    <script src="scramble-engine.js?v=b4dfd5f7"></script>
+    <script src="square1-drawer.js?v=ee28d843"></script>
+    <script src="algorithms.js?v=2970aa48"></script>
+    <script src="algorithms-extra.js?v=3b7f7147"></script>
+    <link rel="stylesheet" href="timer.css?v=b3dad843">
+    <script src="cube-stats.js?v=b80cf414"></script>
+    <script src="timer.js?v=1edada1b"></script>
+    <script src="timer-mobile.js?v=52b08b9b"></script>
+    <script src="solve-analysis.js?v=b4c9c90e"></script>
+    <script src="smartcube.js?v=f4c0f850"></script>
+    <script src="cube-decor.js?v=1b2ff241"></script>
+    <script src="motion.js?v=8fdec7b5"></script>
     <!-- Must precede app.js: app.js calls window.createAmbientNoise() at init. -->
-    <script src="ambient-noise.js?v=1"></script>
+    <script src="ambient-noise.js?v=b03aa034"></script>
     <!-- Must precede app.js: the battle chat filters on both send and render. -->
-    <script src="content-filter.js?v=1"></script>
+    <script src="content-filter.js?v=a5e71610"></script>
     <!-- Must precede app.js: WORLD_RECORDS is read at IIFE init. Shared with
          admin_records.html so the two can never drift apart again. -->
-    <script src="world-records.js?v=1"></script>
-    <script src="app.js?v=21"></script>
-    <script src="mobile-nav.js?v=2"></script>
+    <script src="world-records.js?v=6e1ddabb"></script>
+    <script src="app.js?v=1c4d956e"></script>
+    <script src="mobile-nav.js?v=9c5da4eb"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->
     <script>

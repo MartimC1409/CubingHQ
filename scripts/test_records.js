@@ -164,8 +164,12 @@ eq('worldwide falls back to the stored record', rec.single.holder, 'Teodor Zajde
 const admin = fs.readFileSync(path.join(ROOT, 'admin_records.html'), 'utf8');
 check('the admin page no longer inlines its own copy',
     !/const WORLD_RECORDS = \{\s*\n\s*'333'/.test(admin));
+// Versioned like every other asset: main stamps a content hash into each
+// ?v= so a changed file cannot be served from a stale cache, and a
+// reference without one silently opts out of that.
 check('it loads the shared module instead',
-    /<script src="world-records\.js"><\/script>/.test(admin));
+    /<script src="world-records\.js\?v=[a-f0-9]{8}"><\/script>/.test(admin),
+    (admin.match(/world-records\.js[^"]*/) || ['not found'])[0]);
 check('and app.js reads the same module',
     /window\.WorldRecords/.test(SRC));
 check('which index.html loads before app.js',

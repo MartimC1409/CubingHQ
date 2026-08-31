@@ -257,8 +257,14 @@
                 window._justLoggedIn = true;
                 // Remove token from URL
                 window.history.replaceState(null, null, window.location.pathname);
+                // Returned so the caller can tell a fresh redirect from a
+                // token that has been sitting in storage since last time —
+                // which is the difference between linking an account and
+                // simply still being signed in.
+                return token;
             }
         }
+        return null;
     }
 
     async function fetchWCAProfile() {
@@ -275,6 +281,9 @@
                 updateUIAfterLogin();
                 showToast(i18nT('toast.welcomeBack', 'Welcome back, {name}!').replace('{name}', data.me.name.split(' ')[0]), 'success');
                 closeLoginModal();
+                // Populates the friends badge and lists for this session,
+                // without waiting for someone to open the Friends view.
+                reloadFriendsList();
 
                 // Automatically load their WCA stats if they have a WCA ID
                 if (state.userProfile.wca_id) {
@@ -296,19 +305,41 @@
 
     function updateUIAfterLogin() {
         if (!state.userProfile) return;
+        // Only an email account has a link to undo. A WCA sign-in has
+        // nothing to unlink — it IS the WCA account, and offering it
+        // there would read as a way to delete something.
+        const unlinkBtn = $('#unlink-wca-btn');
+        if (unlinkBtn) {
+            const linked = state.userProfile.source === 'email' && !!state.userProfile.wca_id;
+            unlinkBtn.style.display = linked ? '' : 'none';
+        }
         let navBtn = $('#nav-login-btn') || $('#nav-profile-btn');
         if (navBtn) {
-            const avatarUrl = state.userProfile.avatar?.url || 'https://www.worldcubeassociation.org/assets/missing_avatar_thumb-12654dd6f1aa6d458e80d41e6c4ea6cf79b7c53d1010e6fb3eb18ce86d9ed8df.png';
-            
+            // In order: a picture the account uploaded, the WCA's picture
+            // for a WCA sign-in, then their initials. The old fallback was
+            // the WCA's grey silhouette — a picture of nobody, fetched
+            // from someone else's server to say we had nothing.
+            const uploaded = state.userProfile.avatarUrl;
+            const fromWca = state.userProfile.avatar?.url;
+
             // Clone the button to remove old login listeners
             const newBtn = navBtn.cloneNode(true);
-            newBtn.innerHTML = `<img src="${avatarUrl}" alt="Profile" class="nav-avatar">`;
+            const picture = uploaded || fromWca;
+            newBtn.innerHTML = picture
+                ? `<img src="${esc(picture)}" alt="" class="nav-avatar">`
+                : `<span class="nav-avatar nav-avatar--initials" aria-hidden="true">${esc(initialsOf(state.userProfile.name))}</span>`;
             newBtn.title = "Profile";
             newBtn.id = 'nav-profile-btn';
             navBtn.parentNode.replaceChild(newBtn, navBtn);
             
             newBtn.addEventListener('click', async () => {
-                if (state.userProfile && state.userProfile.wca_id) {
+                // An email account has no statistics view to live in, so
+                // this is where its picture, its WCA link and its logout
+                // button are. A WCA sign-in already has all three in the
+                // statistics view and goes straight there.
+                if (state.userProfile && state.userProfile.source === 'email') {
+                    openAccountModal();
+                } else if (state.userProfile && state.userProfile.wca_id) {
                     await lookupWCAProfile(state.userProfile.wca_id, true);
                     switchView('statistics');
                 } else {
@@ -316,6 +347,620 @@
                 }
             });
         }
+    }
+
+    // ========== EMAIL + PASSWORD ACCOUNTS ==========
+    //
+    // Sits alongside the WCA sign-in rather than replacing it. The two
+    // produce the same thing as far as the rest of the app is concerned:
+    // a `state.userProfile` with a name and a stable id. Only the battle
+    // room gate and the API header care which one it came from, and only
+    // because a session token and a WCA token verify differently on the
+    // server.
+    const AUTH_TOKEN_KEY = 'chq_auth_token';
+
+    function storedAuthToken() {
+        try { return localStorage.getItem(AUTH_TOKEN_KEY) || null; } catch (e) { return null; }
+    }
+
+    /**
+     * The bearer token for our own API, whichever sign-in is in use.
+     *
+     * The server tries the cheap local check first and falls back to
+     * asking the WCA, so it does not need to be told which kind this is.
+     */
+    function authToken() {
+        const session = storedAuthToken();
+        if (session) return session;
+        try { return localStorage.getItem('wca_access_token') || null; } catch (e) { return null; }
+    }
+
+    function isSignedIn() { return !!state.userProfile; }
+
+    function setAccountProfile(user, extra) {
+        state.userProfile = Object.assign({
+            uid: user.uid,
+            name: user.name || 'Cuber',
+            email: user.email || null,
+            // Present once a WCA account has been linked. The rest of the
+            // app reads wca_id and does not care how it got there, so a
+            // linked email account behaves like a WCA sign-in everywhere
+            // that matters — stats, records, and the battle identity.
+            wca_id: user.wcaId || null,
+            avatarUrl: user.avatar || null,
+            source: 'email',
+        }, extra || {});
+    }
+
+    /** Turns a stored token back into a signed-in state on page load. */
+    async function restoreAccountSession() {
+        const token = storedAuthToken();
+        if (!token) return false;
+        try {
+            const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+            if (!res.ok) {
+                // 401 means expired or revoked; anything else is our
+                // problem, and forgetting the token would sign someone out
+                // for a server hiccup.
+                if (res.status === 401) localStorage.removeItem(AUTH_TOKEN_KEY);
+                return false;
+            }
+            const body = await res.json();
+            if (!body || !body.user) return false;
+            setAccountProfile(body.user);
+            updateUIAfterLogin();
+            reloadFriendsList();
+            return true;
+        } catch (e) {
+            console.error('[auth] could not restore session', e);
+            return false;
+        }
+    }
+
+    /** Shared by the sign-in and sign-up submissions. */
+    async function submitAccountForm(mode) {
+        const emailEl = $('#auth-email');
+        const passwordEl = $('#auth-password');
+        const nameEl = $('#auth-name');
+        const button = $('#auth-submit-btn');
+        if (!emailEl || !passwordEl || !button) return;
+
+        const email = emailEl.value.trim();
+        if (!email) { showAuthError(i18nT('auth.needEmail', 'Enter your email address.'), emailEl); return; }
+
+        if (mode === 'reset-request') { await submitPasswordResetRequest(email, button); return; }
+
+        const password = passwordEl.value;
+        if (!password) { showAuthError(i18nT('auth.needPassword', 'Enter your password.'), passwordEl); return; }
+
+        clearAuthError();
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = i18nT('auth.working', 'One moment...');
+
+        let body = null, status = 0;
+        try {
+            const payload = { email, password };
+            if (mode === 'signup' && nameEl && nameEl.value.trim()) payload.name = nameEl.value.trim();
+            const res = await fetch(`/api/auth/${mode === 'signup' ? 'signup' : 'login'}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            status = res.status;
+            body = await res.json().catch(() => null);
+        } catch (e) {
+            console.error('[auth] request failed', e);
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
+        }
+
+        if (!body || !body.token || !body.user) {
+            // The server's message is written to be shown, so prefer it
+            // over anything invented here — it is the only one that knows
+            // whether this was a wrong password, a taken address or a
+            // deployment with accounts switched off.
+            const message = (body && body.error && body.error.message)
+                || (status === 0
+                    ? i18nT('auth.offline', "Couldn't reach the server. Check your connection.")
+                    : i18nT('auth.failed', 'That did not work. Try again.'));
+            showAuthError(message);
+            return;
+        }
+
+        try { localStorage.setItem(AUTH_TOKEN_KEY, body.token); } catch (e) { /* private mode */ }
+        setAccountProfile(body.user);
+        updateUIAfterLogin();
+        closeLoginModal();
+        showToast(i18nT('toast.welcomeBack', 'Welcome back, {name}!')
+            .replace('{name}', String(body.user.name || 'Cuber').split(' ')[0]), 'success');
+    }
+
+    /**
+     * Requests a reset link.
+     *
+     * The server answers success whether or not the address has an
+     * account — see request-reset.js — so this never has a "wrong
+     * email" branch to show. The modal stays open and the confirmation
+     * message replaces the usual close-and-toast, because there is
+     * nothing to sign in to yet.
+     */
+    async function submitPasswordResetRequest(email, button) {
+        clearAuthError();
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = i18nT('auth.working', 'One moment...');
+
+        let ok = false, message = null;
+        try {
+            const res = await fetch('/api/auth/request-reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const body = await res.json().catch(() => null);
+            ok = res.ok && body && body.sent === true;
+            if (!ok) message = body && body.error && body.error.message;
+        } catch (e) {
+            console.error('[auth] reset request failed', e);
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
+        }
+
+        if (!ok) {
+            showAuthError(message || i18nT('auth.offline', "Couldn't reach the server. Check your connection."));
+            return;
+        }
+        const sentMsg = $('#auth-reset-sent');
+        if (sentMsg) sentMsg.style.display = 'block';
+        $('#auth-email').value = '';
+    }
+
+    // ----- Setting a new password, from an emailed link -----
+    let _resetPasswordUid = null;
+    let _resetPasswordToken = null;
+
+    /**
+     * Reads #reset_uid=...&reset_token=... from the URL, the same way
+     * checkOAuthCallback reads the WCA's #access_token=. A hash
+     * fragment, not a query string, so the token never reaches this
+     * site's own access logs or a Referer header on the page it opens.
+     *
+     * @returns true if a reset link was present (and the modal opened)
+     */
+    function checkPasswordResetLink() {
+        const hash = window.location.hash;
+        if (!hash.includes('reset_uid=') || !hash.includes('reset_token=')) return false;
+
+        const params = new URLSearchParams(hash.substring(1));
+        const uid = params.get('reset_uid');
+        const token = params.get('reset_token');
+        window.history.replaceState(null, null, window.location.pathname);
+        if (!uid || !token) return false;
+
+        _resetPasswordUid = uid;
+        _resetPasswordToken = token;
+        openResetPasswordModal();
+        return true;
+    }
+
+    function openResetPasswordModal() {
+        const modal = $('#reset-password-modal');
+        if (!modal) return;
+        const err = $('#reset-password-error');
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        if ($('#reset-password-new')) $('#reset-password-new').value = '';
+        if ($('#reset-password-confirm')) $('#reset-password-confirm').value = '';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.lu-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closeResetPasswordModal() {
+        const modal = $('#reset-password-modal');
+        if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
+        _resetPasswordUid = null;
+        _resetPasswordToken = null;
+    }
+
+    async function submitNewPassword() {
+        const pw = ($('#reset-password-new') || {}).value || '';
+        const confirm = ($('#reset-password-confirm') || {}).value || '';
+        const errEl = $('#reset-password-error');
+        const button = $('#reset-password-submit');
+        const showErr = (msg) => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+        if (!pw) { showErr(i18nT('auth.needPassword', 'Enter your password.')); return; }
+        if (pw !== confirm) { showErr(i18nT('auth.passwordsDontMatch', "Those passwords don't match.")); return; }
+        if (!_resetPasswordUid || !_resetPasswordToken) {
+            showErr(i18nT('auth.resetLinkExpired', 'That reset link is invalid or has expired. Request a new one.'));
+            return;
+        }
+
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = i18nT('auth.working', 'One moment...');
+
+        let body = null, status = 0;
+        try {
+            const res = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: _resetPasswordUid, token: _resetPasswordToken, password: pw }),
+            });
+            status = res.status;
+            body = await res.json().catch(() => null);
+        } catch (e) {
+            console.error('[auth] reset-password failed', e);
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
+        }
+
+        if (!body || !body.token || !body.user) {
+            showErr((body && body.error && body.error.message)
+                || (status === 0
+                    ? i18nT('auth.offline', "Couldn't reach the server. Check your connection.")
+                    : i18nT('auth.failed', 'That did not work. Try again.')));
+            return;
+        }
+
+        try { localStorage.setItem(AUTH_TOKEN_KEY, body.token); } catch (e) { /* private mode */ }
+        setAccountProfile(body.user);
+        updateUIAfterLogin();
+        closeResetPasswordModal();
+        showToast(i18nT('toast.passwordReset', 'Password changed — you\'re signed in.'), 'success');
+    }
+
+    // ----- The account panel -----
+    let _accountOpener = null;
+
+    /** "Ana Silva" -> "AS". One letter is fine; zero falls back. */
+    function initialsOf(name) {
+        const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return '?';
+        const first = parts[0][0] || '';
+        const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+        return (first + last).toUpperCase();
+    }
+
+    function renderAccountModal() {
+        const p = state.userProfile;
+        if (!p) return;
+
+        const avatar = $('#account-avatar');
+        if (avatar) {
+            const picture = p.avatarUrl || p.avatar?.url;
+            if (picture) {
+                avatar.style.backgroundImage = `url("${picture.replace(/"/g, '%22')}")`;
+                avatar.textContent = '';
+            } else {
+                avatar.style.backgroundImage = '';
+                avatar.textContent = initialsOf(p.name);
+            }
+        }
+        const clear = $('#account-avatar-clear');
+        if (clear) clear.style.display = p.avatarUrl ? '' : 'none';
+
+        const title = $('#account-title');
+        if (title) title.textContent = p.name || 'Your account';
+        const email = $('#account-email');
+        if (email) email.textContent = p.email || '';
+
+        const linked = !!p.wca_id;
+        const linkedRow = $('#account-wca-linked');
+        if (linkedRow) linkedRow.style.display = linked ? '' : 'none';
+        const wcaId = $('#account-wca-id');
+        if (wcaId) wcaId.textContent = p.wca_id || '';
+        const linkBtn = $('#account-link');
+        if (linkBtn) linkBtn.style.display = linked ? 'none' : '';
+        const statsBtn = $('#account-stats');
+        if (statsBtn) statsBtn.style.display = linked ? '' : 'none';
+
+        const err = $('#account-avatar-error');
+        if (err) { err.textContent = ''; err.style.display = 'none'; }
+    }
+
+    function openAccountModal() {
+        const modal = $('#account-modal');
+        if (!modal) return;
+        renderAccountModal();
+        _accountOpener = document.activeElement;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.lu-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closeAccountModal() {
+        const modal = $('#account-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (_accountOpener && document.contains(_accountOpener)) _accountOpener.focus();
+        _accountOpener = null;
+    }
+
+    function showAccountError(message) {
+        const el = $('#account-avatar-error');
+        if (el) { el.textContent = message; el.style.display = 'block'; }
+    }
+
+    // Resized here rather than on the server, because the alternative is
+    // sending a 4MB phone photo through a serverless request body to
+    // produce an 84px circle. A canvas does it before anything leaves
+    // the device.
+    const AVATAR_PX = 256;
+    const AVATAR_QUALITY = 0.82;
+
+    function fileToSquareDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                try {
+                    // Centre crop to a square, so a portrait photo does not
+                    // arrive squashed into a circle.
+                    const side = Math.min(img.width, img.height);
+                    const sx = (img.width - side) / 2;
+                    const sy = (img.height - side) / 2;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = AVATAR_PX;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, sx, sy, side, side, 0, 0, AVATAR_PX, AVATAR_PX);
+                    resolve(canvas.toDataURL('image/jpeg', AVATAR_QUALITY));
+                } catch (e) { reject(e); }
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('not an image')); };
+            img.src = url;
+        });
+    }
+
+    async function saveAvatar(dataUrl) {
+        const token = storedAuthToken();
+        if (!token) return;
+
+        let body = null;
+        try {
+            const res = await fetch('/api/auth/avatar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ avatar: dataUrl }),
+            });
+            body = await res.json().catch(() => null);
+        } catch (e) {
+            console.error('[auth] saving the picture failed', e);
+        }
+
+        if (!body || !body.user) {
+            showAccountError((body && body.error && body.error.message)
+                || i18nT('account.pictureFailed', "That picture couldn't be saved. Try another one."));
+            return;
+        }
+        setAccountProfile(body.user);
+        updateUIAfterLogin();
+        renderAccountModal();
+    }
+
+    async function pickAvatar(file) {
+        if (!file) return;
+        let dataUrl;
+        try {
+            dataUrl = await fileToSquareDataUrl(file);
+        } catch (e) {
+            showAccountError(i18nT('account.pictureUnreadable', "That file couldn't be read as an image."));
+            return;
+        }
+        await saveAvatar(dataUrl);
+    }
+
+    function signOut() {
+        localStorage.removeItem('wca_access_token');
+        try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* private mode */ }
+        state.userProfile = null;
+        closeAccountModal();
+        restoreLoginNavButton();
+        switchView('home');
+        showToast(i18nT('toast.loggedOut', 'Logged out successfully'), 'success');
+
+        // Nothing left to show without a session — a stale badge count or
+        // a friends list from the account that just signed out would be
+        // shown to whoever uses this browser next.
+        friendsState.friends = [];
+        friendsState.incoming = [];
+        friendsState.outgoing = [];
+        friendsState.groups = [];
+        friendsState.selectedCompare.clear();
+        friendsState.openGroupId = null;
+        updateFriendsBadge();
+        const requestsSection = $('#friend-requests-section');
+        if (requestsSection) requestsSection.style.display = 'none';
+        const friendsList = $('#friends-list');
+        if (friendsList) friendsList.innerHTML = '';
+        const groupsList = $('#friends-groups-list');
+        if (groupsList) groupsList.innerHTML = '';
+    }
+
+    // ----- Linking a WCA account to an email account -----
+    //
+    // The WCA hands its token back through a redirect, and a redirect
+    // carries no memory of why it was started. So the intent is written
+    // down before leaving and read on the way back: without it, someone
+    // linking their account would return looking exactly like someone
+    // signing in with the WCA, and would be silently switched to a
+    // different identity instead of having one attached.
+    const LINK_INTENT_KEY = 'chq_wca_link_intent';
+
+    function openLinkWcaModal() {
+        const modal = $('#link-wca-modal');
+        if (!modal) return;
+        _linkOpener = document.activeElement;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.lu-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closeLinkWcaModal() {
+        const modal = $('#link-wca-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (_linkOpener && document.contains(_linkOpener)) _linkOpener.focus();
+        _linkOpener = null;
+    }
+
+    function startWcaLink() {
+        if (!storedAuthToken()) {
+            showToast(i18nT('toast.signInFirst', 'Sign in first.'), 'info');
+            return;
+        }
+        try { localStorage.setItem(LINK_INTENT_KEY, '1'); } catch (e) { /* private mode */ }
+        closeLinkWcaModal();
+        handleWCALogin();
+    }
+
+    /**
+     * Finishes a link after the WCA redirect.
+     *
+     * The WCA token is handed to the server and never kept: the account
+     * is identified by its own session, the competitor by the token, and
+     * what comes back is a new session token that knows about both.
+     */
+    async function completeWcaLink(wcaToken) {
+        try { localStorage.removeItem(LINK_INTENT_KEY); } catch (e) { /* private mode */ }
+
+        const sessionToken = storedAuthToken();
+        if (!sessionToken) return false;
+
+        let body = null;
+        try {
+            const res = await fetch('/api/auth/link-wca', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${sessionToken}`,
+                },
+                body: JSON.stringify({ wcaToken }),
+            });
+            body = await res.json().catch(() => null);
+        } catch (e) {
+            console.error('[auth] linking failed', e);
+        }
+
+        if (!body || !body.token || !body.user) {
+            showToast((body && body.error && body.error.message)
+                || i18nT('toast.linkFailed', "Couldn't link that WCA account. Try again."), 'error');
+            return false;
+        }
+
+        try { localStorage.setItem(AUTH_TOKEN_KEY, body.token); } catch (e) { /* private mode */ }
+        setAccountProfile(body.user);
+
+        // The avatar is the one thing the link response has no reason to
+        // carry, and it is what makes the nav button look right. Best
+        // effort: the link has already succeeded either way.
+        try {
+            const meRes = await fetch(`${WCA_API}/me`, { headers: { Authorization: `Bearer ${wcaToken}` } });
+            if (meRes.ok) {
+                const me = (await meRes.json()).me;
+                if (me && me.avatar) setAccountProfile(body.user, { avatar: me.avatar });
+            }
+        } catch (e) { /* the link stands without it */ }
+
+        updateUIAfterLogin();
+        showToast(i18nT('toast.wcaLinked', 'WCA account linked — your records are on the way.'), 'success');
+        if (body.user.wcaId) await lookupWCAProfile(body.user.wcaId, true);
+        return true;
+    }
+
+    async function unlinkWca() {
+        const sessionToken = storedAuthToken();
+        if (!sessionToken) return;
+        let body = null;
+        try {
+            const res = await fetch('/api/auth/unlink-wca', {
+                method: 'POST', headers: { Authorization: `Bearer ${sessionToken}` },
+            });
+            body = await res.json().catch(() => null);
+        } catch (e) { console.error('[auth] unlinking failed', e); }
+
+        if (!body || !body.token || !body.user) {
+            showToast(i18nT('toast.unlinkFailed', "Couldn't unlink that account. Try again."), 'error');
+            return;
+        }
+        try { localStorage.setItem(AUTH_TOKEN_KEY, body.token); } catch (e) { /* private mode */ }
+        // The WCA token was only ever held for the link; without one it
+        // is a stale credential for an account this browser no longer
+        // claims to be.
+        try { localStorage.removeItem('wca_access_token'); } catch (e) { /* private mode */ }
+        setAccountProfile(body.user);
+        updateUIAfterLogin();
+        showToast(i18nT('toast.wcaUnlinked', 'WCA account unlinked.'), 'success');
+    }
+
+    function showAuthError(message, focusEl) {
+        const el = $('#auth-error');
+        if (el) { el.textContent = message; el.style.display = 'block'; }
+        if (focusEl) focusEl.focus();
+    }
+
+    function clearAuthError() {
+        const el = $('#auth-error');
+        if (el) { el.textContent = ''; el.style.display = 'none'; }
+    }
+
+    /** Switches the modal between "sign in", "create account" and "forgot password". */
+    function setAuthMode(mode) {
+        const signup = mode === 'signup';
+        const resetRequest = mode === 'reset-request';
+        clearAuthError();
+
+        const resetSent = $('#auth-reset-sent');
+        if (resetSent) resetSent.style.display = 'none';
+
+        const nameField = $('#auth-name-field');
+        if (nameField) nameField.style.display = signup ? 'block' : 'none';
+
+        // Forgotten-password mode asks for an email only — there is no
+        // password to check yet, that is the whole point of being here.
+        const passwordField = $('#auth-password-field');
+        if (passwordField) passwordField.style.display = resetRequest ? 'none' : 'block';
+        const passwordInput = $('#auth-password');
+        if (passwordInput) passwordInput.required = !resetRequest;
+
+        const submit = $('#auth-submit-btn');
+        if (submit) {
+            submit.textContent = resetRequest
+                ? i18nT('auth.sendResetLink', 'Send reset link')
+                : signup
+                ? i18nT('auth.createAccount', 'Create account')
+                : i18nT('auth.signIn', 'Sign in');
+            submit.dataset.mode = mode;
+        }
+
+        const toggle = $('#auth-toggle-btn');
+        if (toggle) {
+            toggle.style.display = 'block';
+            toggle.textContent = resetRequest
+                ? i18nT('auth.backToSignIn', 'Back to sign in')
+                : signup
+                ? i18nT('auth.haveAccount', 'Already have an account? Sign in')
+                : i18nT('auth.noAccount', "No account? Create one");
+        }
+
+        // Only a reason to ask when there is a password on screen to
+        // have forgotten.
+        const forgotLink = $('#auth-forgot-link');
+        if (forgotLink) forgotLink.style.display = mode === 'login' ? 'block' : 'none';
+
+        const hint = $('#auth-password-hint');
+        if (hint) hint.style.display = signup ? 'block' : 'none';
     }
 
     function handleWCALogin(e) {
@@ -353,7 +998,58 @@
             _loginOpener.focus();
         }
         _loginOpener = null;
+        // Otherwise reopening the modal later can land back on "forgot
+        // password" or "create account" from whatever was left showing.
+        if ($('#auth-submit-btn')) setAuthMode('login');
     }
+
+    // ========== PREMIUM PLAN ==========
+    //
+    // Off. There is no billing and no entitlement behind any of this, so
+    // the nav entry is withdrawn and the modal markup sits in an inert
+    // <template> in index.html. Turning it back on means both: this flag,
+    // and unwrapping that template.
+    //
+    // It is not merely unfinished, it said so on the page — an "UNDER
+    // CONSTRUCTION" badge over real prices, next to a button that
+    // announced a trial and did nothing but write to localStorage.
+    // Google's AdSense policies name a site under construction as not
+    // ready to carry ads, and this was the only part of CubingHQ making
+    // that claim about itself.
+    const PREMIUM_ENABLED = false;
+    let _premiumOpener = null;
+    let _linkOpener = null;
+    function openPremiumModal() {
+        if (!PREMIUM_ENABLED) return;
+        const modal = $('#premium-modal');
+        if (!modal) return;
+        _premiumOpener = document.activeElement;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const dialog = modal.querySelector('.premium-dialog');
+        if (dialog) dialog.focus();
+    }
+
+    function closePremiumModal() {
+        const modal = $('#premium-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (_premiumOpener && document.contains(_premiumOpener)) _premiumOpener.focus();
+        _premiumOpener = null;
+    }
+
+    function setPremiumBilling(period) {
+        $$('.premium-billing-option').forEach(button => {
+            button.classList.toggle('active', button.dataset.period === period);
+        });
+        const price = $('#premium-price');
+        if (!price) return;
+        price.innerHTML = period === 'yearly'
+            ? '£4.49 <span>/ month, billed yearly</span>'
+            : '£5.99 <span>/ month</span>';
+    }
+
 
     // Turn the profile button in the nav back into the Login button,
     // restoring the original markup (the person icon and the .nav-btn
@@ -373,9 +1069,50 @@
         if (window.AppI18N) window.AppI18N.apply();
     }
 
-    function init() {
-        checkOAuthCallback();
+    /**
+     * Decides which sign-in this page load is resuming.
+     *
+     * Three cases share one redirect and one token in localStorage, so
+     * the order matters:
+     *
+     *   1. a WCA redirect that was started to LINK an account — the
+     *      token belongs to the account already signed in, and must not
+     *      replace it;
+     *   2. an email session to restore;
+     *   3. a WCA sign-in, which is what this always used to be.
+     */
+    async function bootSession() {
+        // Checked first and unconditionally: a reset link carries no
+        // access_token, so it cannot collide with the WCA branches
+        // below, and opening it does not depend on — or block —
+        // whatever else this page load turns out to be.
+        checkPasswordResetLink();
+
+        const returnedFromWca = checkOAuthCallback();
+        let linkIntent = false;
+        try { linkIntent = localStorage.getItem(LINK_INTENT_KEY) === '1'; } catch (e) { /* private mode */ }
+
+        if (returnedFromWca && linkIntent && storedAuthToken()) {
+            // Restore the account first: the link response names the
+            // user, but a failure part-way should still leave someone
+            // signed in as who they were.
+            await restoreAccountSession();
+            if (await completeWcaLink(returnedFromWca)) return;
+        }
+        // A stale flag would otherwise turn the next ordinary WCA login
+        // into a link attempt.
+        if (linkIntent && !returnedFromWca) {
+            try { localStorage.removeItem(LINK_INTENT_KEY); } catch (e) { /* private mode */ }
+        }
+
+        if (storedAuthToken()) {
+            if (await restoreAccountSession()) return;
+        }
         fetchWCAProfile();
+    }
+
+    function init() {
+        bootSession();
         loadTheme();
         loadHistory();
         bindEvents();
@@ -412,10 +1149,10 @@
     // ========== NAVIGATION (Hash-based Routing) ==========
     const VIEW_TO_HASH = {
         'home': '#home', 'setup': '#simulation', 'dashboard': '#simulation',
-        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle'
+        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle', 'friends': '#friends'
     };
     const HASH_TO_VIEW = {
-        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '': 'home'
+        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '#friends': 'friends', '': 'home'
     };
 
     function switchView(viewName, updateHash = true) {
@@ -457,6 +1194,8 @@
             $('#nav-algorithms-btn').classList.add('active');
         } else if (viewName === 'battle') {
             if ($('#nav-battle-btn')) $('#nav-battle-btn').classList.add('active');
+        } else if (viewName === 'friends') {
+            if ($('#nav-friends-btn')) $('#nav-friends-btn').classList.add('active');
         }
 
         // Update URL hash
@@ -482,6 +1221,7 @@
             if (targetView === 'competitions' && !state.upcomingCompsFetched) fetchUpcomingCompetitions();
             if (targetView === 'algorithms') initializeAlgorithmsUI();
             if (targetView === 'battle') initBattle();
+            if (targetView === 'friends') initFriends();
         }
     }
 
@@ -541,20 +1281,149 @@
                 e.preventDefault();
                 closeLoginModal();
             }
+            if (e.key === 'Escape' && $('#premium-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closePremiumModal();
+            }
+            if (e.key === 'Escape' && $('#link-wca-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closeLinkWcaModal();
+            }
+            if (e.key === 'Escape' && $('#account-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closeAccountModal();
+            }
+            if (e.key === 'Escape' && $('#create-group-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closeCreateGroupModal();
+            }
+            if (e.key === 'Escape' && $('#reset-password-modal')?.style.display !== 'none') {
+                e.preventDefault();
+                closeResetPasswordModal();
+            }
         });
 
-        if ($('#wca-login-btn')) {
-            $('#wca-login-btn').addEventListener('click', handleWCALogin);
+        // The account panel.
+        if ($('#account-close')) $('#account-close').addEventListener('click', closeAccountModal);
+        if ($('#account-logout')) $('#account-logout').addEventListener('click', signOut);
+        if ($('#account-link')) $('#account-link').addEventListener('click', () => {
+            closeAccountModal();
+            openLinkWcaModal();
+        });
+        if ($('#account-stats')) $('#account-stats').addEventListener('click', async () => {
+            closeAccountModal();
+            if (state.userProfile && state.userProfile.wca_id) {
+                await lookupWCAProfile(state.userProfile.wca_id, true);
+                switchView('statistics');
+            }
+        });
+        if ($('#account-unlink')) $('#account-unlink').addEventListener('click', () => {
+            if (window.confirm(i18nT('link.confirmUnlink',
+                'Unlink your WCA account? Your CubingHQ account, email and password stay as they are.'))) {
+                unlinkWca().then(renderAccountModal);
+            }
+        });
+        if ($('#account-avatar-btn') && $('#account-avatar-input')) {
+            $('#account-avatar-btn').addEventListener('click', () => $('#account-avatar-input').click());
+            $('#account-avatar-input').addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                // Cleared so choosing the same file twice still fires.
+                e.target.value = '';
+                pickAvatar(file);
+            });
+        }
+        if ($('#account-avatar-clear')) {
+            $('#account-avatar-clear').addEventListener('click', () => saveAvatar(null));
+        }
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#account-modal')) closeAccountModal();
+        });
+
+        // Linking a WCA account to an email account.
+        if ($('#unlink-wca-btn')) {
+            $('#unlink-wca-btn').addEventListener('click', () => {
+                // Reversible and cheap, but it does change who other
+                // players see in a battle room, so it asks first.
+                if (window.confirm(i18nT('link.confirmUnlink',
+                    'Unlink your WCA account? Your CubingHQ account, email and password stay as they are.'))) {
+                    unlinkWca();
+                }
+            });
+        }
+        if ($('#link-wca-start')) $('#link-wca-start').addEventListener('click', startWcaLink);
+        if ($('#link-wca-close')) $('#link-wca-close').addEventListener('click', closeLinkWcaModal);
+        if ($('#link-wca-cancel')) $('#link-wca-cancel').addEventListener('click', closeLinkWcaModal);
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#link-wca-modal')) closeLinkWcaModal();
+        });
+
+        // Email + password sign-in.
+        if ($('#auth-form')) {
+            $('#auth-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const mode = ($('#auth-submit-btn') && $('#auth-submit-btn').dataset.mode) || 'login';
+                submitAccountForm(mode);
+            });
+            setAuthMode('login');
+        }
+        if ($('#auth-toggle-btn')) {
+            $('#auth-toggle-btn').addEventListener('click', () => {
+                const current = ($('#auth-submit-btn') && $('#auth-submit-btn').dataset.mode) || 'login';
+                // Both signup and the forgotten-password screen lead back
+                // to sign-in; only sign-in itself offers to go the other
+                // way, to create-account.
+                setAuthMode(current === 'login' ? 'signup' : 'login');
+            });
+        }
+        if ($('#auth-forgot-link')) {
+            $('#auth-forgot-link').addEventListener('click', () => setAuthMode('reset-request'));
+        }
+        ['#auth-email', '#auth-password', '#auth-name'].forEach(sel => {
+            if ($(sel)) $(sel).addEventListener('input', clearAuthError);
+        });
+
+        // Setting a new password, from an emailed link.
+        if ($('#reset-password-form')) {
+            $('#reset-password-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitNewPassword();
+            });
+        }
+        if ($('#reset-password-close')) $('#reset-password-close').addEventListener('click', closeResetPasswordModal);
+        ['#reset-password-new', '#reset-password-confirm'].forEach(sel => {
+            if ($(sel)) $(sel).addEventListener('input', () => {
+                const err = $('#reset-password-error');
+                if (err) { err.style.display = 'none'; err.textContent = ''; }
+            });
+        });
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#reset-password-modal')) closeResetPasswordModal();
+        });
+
+        if (PREMIUM_ENABLED && $('#nav-premium-btn')) {
+            $('#nav-premium-btn').addEventListener('click', openPremiumModal);
+        }
+        // The rest only exist once the markup is out of its <template>.
+        // Guarded on the flag rather than on the elements being missing,
+        // so nothing here quietly depends on the feature staying off.
+        if (PREMIUM_ENABLED) {
+            if ($('#premium-close-btn')) $('#premium-close-btn').addEventListener('click', closePremiumModal);
+            if ($('#premium-upgrade-btn')) $('#premium-upgrade-btn').addEventListener('click', () => {
+                showToast('Premium is under construction — your free tools are available now.', 'info');
+            });
+            if ($('#premium-free-btn')) $('#premium-free-btn').addEventListener('click', () => showToast('You are on the Free plan.', 'info'));
+            $$('.premium-billing-option').forEach(button => {
+                button.addEventListener('click', () => setPremiumBilling(button.dataset.period));
+            });
+            window.addEventListener('click', (e) => {
+                if (e.target === $('#premium-modal')) closePremiumModal();
+            });
         }
 
         if ($('#logout-btn')) {
-            $('#logout-btn').addEventListener('click', () => {
-                localStorage.removeItem('wca_access_token');
-                state.userProfile = null;
-                restoreLoginNavButton();
-                switchView('home');
-                showToast(i18nT('toast.loggedOut', 'Logged out successfully'), 'success');
-            });
+            // Same signOut the account panel uses. Two buttons meaning
+            // the same thing should not be able to mean different things.
+            $('#logout-btn').addEventListener('click', signOut);
         }
 
         // Theme (click + keyboard). theme.js binds the same button to open
@@ -620,6 +1489,12 @@
             $('#nav-battle-btn').addEventListener('click', () => {
                 switchView('battle');
                 initBattle();
+            });
+        }
+        if ($('#nav-friends-btn')) {
+            $('#nav-friends-btn').addEventListener('click', () => {
+                switchView('friends');
+                initFriends();
             });
         }
         // Guest battle removed
@@ -2156,6 +3031,13 @@
         redraw(updateGoalTracker);
         redraw(renderLeaderboard);
         redraw(renderHistory);
+        // The sign-in form's two buttons are written by setAuthMode, not
+        // by their data-i18n attributes, so a language change would put
+        // "Sign in" on a form that is still in create-account mode.
+        redraw(() => {
+            const submit = $('#auth-submit-btn');
+            if (submit) setAuthMode(submit.dataset.mode || 'login');
+        });
         if (battleState.lastLobbyData) redraw(() => renderBattleLobby(battleState.lastLobbyData));
         if (battleState.currentRoomData) redraw(() => renderBattleRoomView(battleState.currentRoomData));
         document.dispatchEvent(new CustomEvent('cs-algorithms-relabel'));
@@ -4141,17 +5023,11 @@
     async function pollBattleChat() {
         if (!battleChatRoomId) return;
         try {
-            // Try server-side ordering first; fall back to plain GET if the DB
-            // rejects the orderBy (some RTDBs require an index rule for new paths).
-            let data = null;
-            try {
-                const r = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json?orderBy="timestamp"&limitToLast=50`);
-                if (r.ok) data = await r.json();
-            } catch (_) { /* fall through to plain GET */ }
-            if (data === null) {
-                const r2 = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json`);
-                if (r2.ok) data = await r2.json();
-            }
+            // Read through the same server-side gateway as room data. The
+            // gateway intentionally accepts paths only, so sort and cap the
+            // small chat payload in the browser instead of exposing Firebase
+            // credentials or depending on an RTDB index.
+            const data = await fbGet(`/battle_chats/${battleChatRoomId}`);
             if (data === null) {
                 updateBattleChatStatus(i18nT('battle.offline', 'offline'));
                 return;
@@ -4293,16 +5169,12 @@
                 text: text,
                 timestamp: Date.now()
             };
-            const res = await fetch(`${RTDB}/battle_chats/${battleChatRoomId}.json`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
+            const result = await fbPush(`/battle_chats/${battleChatRoomId}`, payload);
+            if (result && result.name) {
                 input.value = '';
                 pollBattleChat(); // immediate visual update
             } else {
-                console.error('Chat send failed:', res.status);
+                console.error('Chat send failed:', fbError());
             }
         } catch (e) {
             console.error('Failed to send chat message', e);
@@ -4538,6 +5410,555 @@
     }
 
 
+    // ========== FRIENDS & GROUPS ==========
+    //
+    // Friends, requests and groups are server state (/api/social) — the
+    // request has to reach both people, so it cannot live only in one
+    // browser's storage the way the timer's solve history does.
+    //
+    // The comparison itself is not server state at all. A personal-best
+    // table is public WCA data, fetched the same way the statistics view
+    // already fetches one person's — this just does it for several
+    // people at once and lines the rows up. Nothing about "who compared
+    // with whom" is stored anywhere.
+
+    /**
+     * This browser's uid, exactly as the server derives it for the
+     * social endpoints — used only to decide which buttons to show
+     * (leave vs. remove, the owner label). The server re-derives
+     * identity from the session on every call regardless, so a wrong
+     * answer here could only ever mis-draw a button, never grant an
+     * action the server would refuse.
+     *
+     * Deliberately NOT getBattleUserId(): that helper checks wca_id
+     * before uid, which is right for battles (a guest with no account
+     * needs an id from somewhere) and wrong here. An email account's
+     * `uid` is the server's real, stable session id even after linking
+     * a WCA account — checking wca_id first would return a DIFFERENT
+     * id than the one the server actually authorizes against.
+     */
+    function myFriendsUid() {
+        const p = state.userProfile;
+        if (p && p.uid) return p.uid;                          // an email account, linked or not
+        if (p && p.wca_id) return 'wca_' + String(p.wca_id).toUpperCase();   // a bare WCA sign-in
+        return null;
+    }
+
+    const friendsState = {
+        initialized: false,
+        friends: [],
+        incoming: [],
+        outgoing: [],
+        groups: [],
+        selectedCompare: new Set(),
+        openGroupId: null,
+        wcaCache: new Map(),   // wcaId -> personal_records, or null on failure
+        compareType: 'both',   // 'both' | 'single' | 'average' — which result the table shows
+        lastCompared: null,    // the people[] last passed to renderComparison, for the type toggle to redraw without a fresh compare click
+    };
+
+    async function friendsApi(action, { method = 'GET', body, query = '' } = {}) {
+        const token = authToken();
+        if (!token) return { ok: false, status: 401, body: null };
+        const headers = { Authorization: `Bearer ${token}` };
+        if (body !== undefined) headers['Content-Type'] = 'application/json';
+        let res, json = null;
+        try {
+            res = await fetch(`/api/social/${action}${query}`, {
+                method, headers, body: body !== undefined ? JSON.stringify(body) : undefined,
+            });
+            json = await res.json().catch(() => null);
+        } catch (e) {
+            console.error(`[friends] ${action} failed`, e);
+            return { ok: false, status: 0, body: null };
+        }
+        return { ok: res.ok, status: res.status, body: json };
+    }
+
+    function friendAvatarHtml(person) {
+        const picture = person.avatar && (person.avatar.url || person.avatar);
+        if (typeof picture === 'string' && picture) {
+            return `<div class="friend-row-avatar" style="background-image:url('${esc(picture)}')"></div>`;
+        }
+        return `<div class="friend-row-avatar">${esc(initialsOf(person.name))}</div>`;
+    }
+
+    function updateFriendsBadge() {
+        const badge = $('#friends-badge');
+        if (!badge) return;
+        const n = friendsState.incoming.length;
+        badge.textContent = n > 9 ? '9+' : String(n);
+        badge.style.display = n > 0 ? '' : 'none';
+    }
+
+    async function initFriends() {
+        const signedOut = $('#friends-signed-out');
+        const signedIn = $('#friends-signed-in');
+        if (!isSignedIn()) {
+            if (signedOut) signedOut.style.display = 'block';
+            if (signedIn) signedIn.style.display = 'none';
+            return;
+        }
+        if (signedOut) signedOut.style.display = 'none';
+        if (signedIn) signedIn.style.display = 'block';
+
+        if (!friendsState.initialized) {
+            friendsState.initialized = true;
+            bindFriendsEvents();
+            if ($('#friends-signin-btn')) $('#friends-signin-btn').addEventListener('click', openLoginModal);
+        }
+        await Promise.all([reloadFriendsList(), reloadGroupsList()]);
+    }
+
+    async function reloadFriendsList() {
+        const r = await friendsApi('list');
+        if (!r.ok || !r.body) return;
+        friendsState.friends = r.body.friends || [];
+        friendsState.incoming = r.body.incoming || [];
+        friendsState.outgoing = r.body.outgoing || [];
+        // A removed friend cannot stay selected for a comparison.
+        const friendUids = new Set(friendsState.friends.map(f => f.uid));
+        for (const uid of [...friendsState.selectedCompare]) {
+            if (!friendUids.has(uid)) friendsState.selectedCompare.delete(uid);
+        }
+        updateFriendsBadge();
+        renderFriendRequests();
+        renderFriendsList();
+    }
+
+    async function reloadGroupsList() {
+        const r = await friendsApi('list-groups');
+        if (!r.ok || !r.body) return;
+        friendsState.groups = r.body.groups || [];
+        renderGroupsList();
+        // A refresh while a group is open re-renders it too, so an edit
+        // by another tab (or a member who left) does not go stale.
+        if (friendsState.openGroupId) {
+            const still = friendsState.groups.find(g => g.groupId === friendsState.openGroupId);
+            if (still) renderGroupDetail(still); else closeGroupDetail();
+        }
+    }
+
+    function renderFriendRequests() {
+        const section = $('#friend-requests-section');
+        const list = $('#friend-requests-list');
+        if (!section || !list) return;
+        const incoming = friendsState.incoming;
+        section.style.display = incoming.length ? 'block' : 'none';
+        list.innerHTML = incoming.map(req => `
+            <div class="friend-row" data-uid="${esc(req.uid)}">
+                ${friendAvatarHtml(req)}
+                <div class="friend-row-info">
+                    <div class="friend-row-name">${esc(req.name)}</div>
+                    ${req.wcaId ? `<div class="friend-row-meta">${esc(req.wcaId)}</div>` : ''}
+                </div>
+                <div class="friend-row-actions">
+                    <button class="lu-btn lu-btn-default friend-accept-btn" data-uid="${esc(req.uid)}">${esc(i18nT('friends.accept', 'Accept'))}</button>
+                    <button class="lu-btn lu-btn-ghost friend-decline-btn" data-uid="${esc(req.uid)}">${esc(i18nT('friends.decline', 'Decline'))}</button>
+                </div>
+            </div>
+        `).join('');
+        list.querySelectorAll('.friend-accept-btn').forEach(btn => {
+            btn.addEventListener('click', () => respondToRequest(btn.dataset.uid, true));
+        });
+        list.querySelectorAll('.friend-decline-btn').forEach(btn => {
+            btn.addEventListener('click', () => respondToRequest(btn.dataset.uid, false));
+        });
+    }
+
+    async function respondToRequest(uid, accept) {
+        const r = accept
+            ? await friendsApi('accept', { method: 'POST', body: { fromUid: uid } })
+            : await friendsApi('decline', { method: 'POST', body: { uid } });
+        if (!r.ok) {
+            showToast((r.body && r.body.error && r.body.error.message)
+                || i18nT('friends.actionFailed', 'That did not work. Try again.'), 'error');
+            return;
+        }
+        await reloadFriendsList();
+    }
+
+    function renderFriendsList() {
+        const list = $('#friends-list');
+        const empty = $('#friends-empty');
+        const compareBtn = $('#friends-compare-btn');
+        if (!list) return;
+        const friends = friendsState.friends;
+        empty.style.display = friends.length ? 'none' : 'block';
+        list.innerHTML = friends.map(f => `
+            <div class="friend-row">
+                <label class="friend-row--picker" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; cursor:pointer;">
+                    <input type="checkbox" class="friend-compare-check" data-uid="${esc(f.uid)}" ${friendsState.selectedCompare.has(f.uid) ? 'checked' : ''}>
+                    ${friendAvatarHtml(f)}
+                    <span class="friend-row-info">
+                        <span class="friend-row-name">${esc(f.name)}</span>
+                        ${f.wcaId ? `<span class="friend-row-meta">${esc(f.wcaId)}</span>` : `<span class="friend-row-meta">${esc(i18nT('friends.noWca', 'No WCA ID linked'))}</span>`}
+                    </span>
+                </label>
+                <div class="friend-row-actions">
+                    <button class="lu-btn lu-btn-ghost friend-remove-btn" data-uid="${esc(f.uid)}" data-name="${esc(f.name)}">${esc(i18nT('friends.remove', 'Remove'))}</button>
+                </div>
+            </div>
+        `).join('');
+        list.querySelectorAll('.friend-compare-check').forEach(box => {
+            box.addEventListener('change', () => {
+                if (box.checked) friendsState.selectedCompare.add(box.dataset.uid);
+                else friendsState.selectedCompare.delete(box.dataset.uid);
+                if (compareBtn) compareBtn.style.display = friendsState.selectedCompare.size ? '' : 'none';
+            });
+        });
+        list.querySelectorAll('.friend-remove-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!window.confirm(i18nT('friends.confirmRemove', 'Remove {name} from your friends?').replace('{name}', btn.dataset.name))) return;
+                friendsApi('remove-friend', { method: 'POST', body: { uid: btn.dataset.uid } })
+                    .then(r => { if (r.ok) reloadFriendsList(); });
+            });
+        });
+        if (compareBtn) compareBtn.style.display = friendsState.selectedCompare.size ? '' : 'none';
+    }
+
+    async function addFriendSubmit() {
+        const input = $('#friend-add-input');
+        const btn = $('#friend-add-btn');
+        if (!input) return;
+        const identifier = input.value.trim();
+        const errEl = $('#friend-add-error');
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+        if (!identifier) return;
+
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = i18nT('auth.working', 'One moment...');
+        const r = await friendsApi('request', { method: 'POST', body: { identifier } });
+        btn.disabled = false;
+        btn.textContent = label;
+
+        if (!r.ok) {
+            if (errEl) {
+                errEl.textContent = (r.body && r.body.error && r.body.error.message)
+                    || i18nT('friends.actionFailed', 'That did not work. Try again.');
+                errEl.style.display = 'block';
+            }
+            return;
+        }
+        input.value = '';
+        const msg = r.body && r.body.becameFriends
+            ? i18nT('friends.nowFriends', "You're now friends!")
+            : i18nT('friends.requestSent', 'Request sent — CubingHQ will let you know if it goes through.');
+        showToast(msg, 'success');
+        await reloadFriendsList();
+    }
+
+    /* ---- comparing results ------------------------------------------ */
+
+    // WCA event order and formatting mirror the statistics view exactly
+    // (lookupWCAProfile), which is the only other place in the app that
+    // reads this shape of data. 333fm is a move count, not a time;
+    // 333mbf is packed into one integer WCA-side and needs decoding.
+    const WCA_EVENT_ORDER = ['333', '222', '444', '555', '666', '777',
+        '333bf', '333fm', '333oh', 'clock', 'minx', 'pyram', 'skewb', 'sq1',
+        '444bf', '555bf', '333mbf'];
+
+    function formatWcaBest(eventId, best, isAverage) {
+        if (!best) return null;
+        if (eventId === '333fm') return isAverage ? (best / 100).toFixed(2) : String(best);
+        if (eventId === '333mbf') return isAverage ? null : decodeMBLD(best);
+        return formatTime(best / 100);
+    }
+
+    async function fetchWcaPersonalRecords(wcaId) {
+        if (!wcaId) return null;
+        if (friendsState.wcaCache.has(wcaId)) return friendsState.wcaCache.get(wcaId);
+        let data = null;
+        try {
+            const res = await fetch(`${WCA_API}/persons/${wcaId}`);
+            if (res.ok) data = (await res.json()).personal_records || {};
+        } catch (e) { /* treated as "no data" below */ }
+        friendsState.wcaCache.set(wcaId, data);
+        return data;
+    }
+
+    async function renderComparison(people) {
+        const wrap = $('#friends-compare-table-wrap');
+        const section = $('#friends-compare-section');
+        if (!wrap || !section) return;
+        // Kept so the Single/Average/Both chips can redraw the same
+        // comparison without asking the person to reselect and click
+        // "Compare" again — WCA results are already cached by wcaId, so
+        // this costs nothing extra even for a fresh fetch.
+        friendsState.lastCompared = people;
+        section.style.display = 'block';
+        wrap.innerHTML = `<div class="records-loading-state"><span>${esc(i18nT('friends.loadingResults', 'Fetching results…'))}</span></div>`;
+
+        const withWca = people.filter(p => p.wcaId);
+        const withoutWca = people.filter(p => !p.wcaId);
+        const records = await Promise.all(withWca.map(p => fetchWcaPersonalRecords(p.wcaId)));
+
+        const events = new Set();
+        records.forEach(pr => { if (pr) Object.keys(pr).forEach(e => events.add(e)); });
+        const orderedEvents = [...events].sort((a, b) => {
+            const ia = WCA_EVENT_ORDER.indexOf(a), ib = WCA_EVENT_ORDER.indexOf(b);
+            return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+        });
+
+        if (!withWca.length) {
+            wrap.innerHTML = `<p class="friends-empty-state">${esc(i18nT('friends.noneLinked', 'None of the people you picked have a WCA ID linked yet.'))}</p>`;
+            return;
+        }
+
+        const head = withWca.map(p => `<th><span class="compare-person-head">${friendAvatarHtml(p)}<span>${esc(p.name)}</span></span></th>`).join('');
+
+        const rows = orderedEvents.map(eventId => {
+            let bestSingle = Infinity, bestAvg = Infinity;
+            withWca.forEach((p, i) => {
+                const pr = records[i] && records[i][eventId];
+                if (pr && pr.single && pr.single.best && eventId !== '333mbf') bestSingle = Math.min(bestSingle, pr.single.best);
+                if (pr && pr.average && pr.average.best) bestAvg = Math.min(bestAvg, pr.average.best);
+            });
+            const showSingle = friendsState.compareType !== 'average';
+            const showAvg = friendsState.compareType !== 'single';
+            const cells = withWca.map((p, i) => {
+                const pr = records[i] && records[i][eventId];
+                const single = pr && pr.single ? formatWcaBest(eventId, pr.single.best, false) : null;
+                const avg = pr && pr.average ? formatWcaBest(eventId, pr.average.best, true) : null;
+                const singleIsBest = pr && pr.single && pr.single.best === bestSingle && eventId !== '333mbf';
+                const avgIsBest = pr && pr.average && pr.average.best === bestAvg;
+
+                // "Both" stacks single over a smaller average, matching the
+                // per-person statistics table's own layout. Picking one
+                // shows just that value, still highlighted the same way.
+                if (!showAvg) return `<td class="${singleIsBest ? 'compare-best' : ''}">${esc(single || '—')}</td>`;
+                if (!showSingle) return `<td class="${avgIsBest ? 'compare-best' : ''}">${esc(avg || '—')}</td>`;
+                return `<td class="${singleIsBest ? 'compare-best' : ''}">${esc(single || '—')}${avg ? `<br><small class="${avgIsBest ? 'compare-best' : ''}">${esc(avg)}</small>` : ''}</td>`;
+            }).join('');
+            return `<tr><td>${esc(EVENT_NAMES[eventId] || eventId)}</td>${cells}</tr>`;
+        }).join('');
+
+        const skippedNote = withoutWca.length
+            ? `<p class="friends-empty-state" style="margin-top:12px;">${esc(i18nT('friends.someUnlinked', '{names} have no WCA ID linked, so they are not in this table.').replace('{names}', withoutWca.map(p => p.name).join(', ')))}</p>`
+            : '';
+
+        wrap.innerHTML = orderedEvents.length
+            ? `<table class="compare-table"><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table>${skippedNote}`
+            : `<p class="friends-empty-state">${esc(i18nT('friends.noResults', 'No official results for anyone selected yet.'))}</p>${skippedNote}`;
+    }
+
+    function meAsComparisonPerson() {
+        const p = state.userProfile || {};
+        return { uid: 'me', name: p.name || 'You', avatar: p.avatarUrl ? { url: p.avatarUrl } : p.avatar, wcaId: p.wca_id || null };
+    }
+
+    async function compareSelectedFriends() {
+        const people = [meAsComparisonPerson(), ...friendsState.friends.filter(f => friendsState.selectedCompare.has(f.uid))];
+        await renderComparison(people);
+        const section = $('#friends-compare-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ---- groups -------------------------------------------------------- */
+
+    function renderGroupsList() {
+        const list = $('#friends-groups-list');
+        const empty = $('#friends-groups-empty');
+        if (!list) return;
+        const groups = friendsState.groups;
+        empty.style.display = groups.length ? 'none' : 'block';
+        list.innerHTML = groups.map(g => `
+            <div class="friend-row">
+                <div class="friend-row-info">
+                    <div class="friend-row-name">${esc(g.name)}</div>
+                    <div class="friend-row-meta">${esc(String(Object.keys(g.members || {}).length))} ${esc(i18nT('friends.members', 'members'))}</div>
+                </div>
+                <div class="friend-row-actions">
+                    <button class="lu-btn lu-btn-ghost friend-open-group-btn" data-id="${esc(g.groupId)}">${esc(i18nT('friends.open', 'Open'))}</button>
+                </div>
+            </div>
+        `).join('');
+        list.querySelectorAll('.friend-open-group-btn').forEach(btn => {
+            btn.addEventListener('click', () => openGroupDetail(btn.dataset.id));
+        });
+    }
+
+    async function openGroupDetail(groupId) {
+        const r = await friendsApi('group', { query: `?id=${encodeURIComponent(groupId)}` });
+        if (!r.ok || !r.body) {
+            showToast(i18nT('friends.groupGone', 'That group is no longer available.'), 'error');
+            return;
+        }
+        friendsState.openGroupId = groupId;
+        renderGroupDetail(r.body);
+        const section = $('#friends-group-detail-section');
+        if (section) { section.style.display = 'block'; section.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    }
+
+    function closeGroupDetail() {
+        friendsState.openGroupId = null;
+        const section = $('#friends-group-detail-section');
+        if (section) section.style.display = 'none';
+    }
+
+    function renderGroupDetail(group) {
+        const meUid = myFriendsUid();
+        const amOwner = group.ownerUid === meUid;
+
+        const title = $('#friends-group-detail-title');
+        if (title) title.textContent = group.name;
+        const deleteBtn = $('#friends-group-delete-btn');
+        if (deleteBtn) deleteBtn.style.display = amOwner ? '' : 'none';
+        const addRow = $('#friends-group-add-row');
+        if (addRow) addRow.style.display = amOwner ? 'flex' : 'none';
+
+        if (amOwner) {
+            const select = $('#friends-group-add-select');
+            const memberUids = new Set(Object.keys(group.members || {}));
+            const options = friendsState.friends.filter(f => !memberUids.has(f.uid));
+            if (select) {
+                select.innerHTML = options.length
+                    ? options.map(f => `<option value="${esc(f.uid)}">${esc(f.name)}</option>`).join('')
+                    : `<option value="">${esc(i18nT('friends.noneToAdd', 'No more friends to add'))}</option>`;
+                select.disabled = !options.length;
+            }
+            const addBtn = $('#friends-group-add-btn');
+            if (addBtn) addBtn.disabled = !options.length;
+        }
+
+        const members = Object.values(group.members || {});
+        const list = $('#friends-group-members-list');
+        if (list) {
+            list.innerHTML = members.map(m => `
+                <div class="friend-row">
+                    ${friendAvatarHtml(m)}
+                    <div class="friend-row-info">
+                        <div class="friend-row-name">${esc(m.name)}${m.uid === group.ownerUid ? ` <small>(${esc(i18nT('friends.owner', 'owner'))})</small>` : ''}</div>
+                        ${m.wcaId ? `<div class="friend-row-meta">${esc(m.wcaId)}</div>` : ''}
+                    </div>
+                    <div class="friend-row-actions">
+                        ${(amOwner && m.uid !== group.ownerUid) || m.uid === meUid && m.uid !== group.ownerUid
+                            ? `<button class="lu-btn lu-btn-ghost friend-group-remove-btn" data-uid="${esc(m.uid)}">${esc(m.uid === meUid ? i18nT('friends.leave', 'Leave') : i18nT('friends.remove', 'Remove'))}</button>`
+                            : ''}
+                    </div>
+                </div>
+            `).join('');
+            list.querySelectorAll('.friend-group-remove-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const r = await friendsApi('remove-from-group', {
+                        method: 'POST', body: { groupId: group.groupId, memberUid: btn.dataset.uid },
+                    });
+                    if (r.ok) { await reloadGroupsList(); if (btn.dataset.uid === meUid) closeGroupDetail(); }
+                });
+            });
+        }
+
+        const compareBtn = $('#friends-group-compare-btn');
+        if (compareBtn) {
+            compareBtn.onclick = () => {
+                const people = members.map(m => m.uid === meUid ? meAsComparisonPerson() : m);
+                renderComparison(people);
+                const section = $('#friends-compare-section');
+                if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+        }
+    }
+
+    function openCreateGroupModal() {
+        const modal = $('#create-group-modal');
+        if (!modal) return;
+        const nameInput = $('#create-group-name');
+        if (nameInput) nameInput.value = '';
+        const err = $('#create-group-error');
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        const picker = $('#create-group-members');
+        if (picker) {
+            picker.innerHTML = friendsState.friends.length
+                ? friendsState.friends.map(f => `
+                    <label class="friend-row friend-row--picker">
+                        <input type="checkbox" class="group-member-check" value="${esc(f.uid)}">
+                        ${friendAvatarHtml(f)}
+                        <span class="friend-row-info"><span class="friend-row-name">${esc(f.name)}</span></span>
+                    </label>
+                `).join('')
+                : `<p class="friends-empty-state">${esc(i18nT('friends.noFriendsYet', 'No friends yet — add one above.'))}</p>`;
+        }
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeCreateGroupModal() {
+        const modal = $('#create-group-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    async function submitCreateGroup() {
+        const name = ($('#create-group-name') || {}).value || '';
+        const memberUids = [...document.querySelectorAll('.group-member-check:checked')].map(cb => cb.value);
+        const err = $('#create-group-error');
+        const btn = $('#create-group-submit');
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = i18nT('auth.working', 'One moment...');
+        const r = await friendsApi('create-group', { method: 'POST', body: { name, memberUids } });
+        btn.disabled = false;
+        btn.textContent = label;
+
+        if (!r.ok) {
+            if (err) {
+                err.textContent = (r.body && r.body.error && r.body.error.message)
+                    || i18nT('friends.actionFailed', 'That did not work. Try again.');
+                err.style.display = 'block';
+            }
+            return;
+        }
+        closeCreateGroupModal();
+        await reloadGroupsList();
+        showToast(i18nT('friends.groupCreated', 'Group created.'), 'success');
+    }
+
+    function bindFriendsEvents() {
+        if ($('#friend-add-btn')) $('#friend-add-btn').addEventListener('click', addFriendSubmit);
+        if ($('#friend-add-input')) $('#friend-add-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addFriendSubmit();
+        });
+        if ($('#friends-compare-btn')) $('#friends-compare-btn').addEventListener('click', compareSelectedFriends);
+        if ($('#friends-compare-close')) $('#friends-compare-close').addEventListener('click', () => {
+            const section = $('#friends-compare-section');
+            if (section) section.style.display = 'none';
+        });
+        $$('#friends-compare-type-group .records-filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                $$('#friends-compare-type-group .records-filter-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                friendsState.compareType = chip.dataset.type;
+                if (friendsState.lastCompared) renderComparison(friendsState.lastCompared);
+            });
+        });
+        if ($('#friends-create-group-btn')) $('#friends-create-group-btn').addEventListener('click', openCreateGroupModal);
+        if ($('#create-group-close')) $('#create-group-close').addEventListener('click', closeCreateGroupModal);
+        if ($('#create-group-submit')) $('#create-group-submit').addEventListener('click', submitCreateGroup);
+        window.addEventListener('click', (e) => {
+            if (e.target === $('#create-group-modal')) closeCreateGroupModal();
+        });
+        if ($('#friends-group-close-btn')) $('#friends-group-close-btn').addEventListener('click', closeGroupDetail);
+        if ($('#friends-group-delete-btn')) $('#friends-group-delete-btn').addEventListener('click', async () => {
+            if (!friendsState.openGroupId) return;
+            if (!window.confirm(i18nT('friends.confirmDeleteGroup', 'Delete this group? This cannot be undone.'))) return;
+            const r = await friendsApi('delete-group', { method: 'POST', body: { groupId: friendsState.openGroupId } });
+            if (r.ok) { closeGroupDetail(); await reloadGroupsList(); }
+        });
+        if ($('#friends-group-add-btn')) $('#friends-group-add-btn').addEventListener('click', async () => {
+            const select = $('#friends-group-add-select');
+            const memberUid = select && select.value;
+            if (!memberUid || !friendsState.openGroupId) return;
+            const r = await friendsApi('add-to-group', {
+                method: 'POST', body: { groupId: friendsState.openGroupId, memberUid },
+            });
+            if (r.ok) await reloadGroupsList();
+        });
+    }
+
     // ========== BATTLE SYSTEM (Real-time Firebase) ==========
     const RTDB = 'https://simulatecubing-default-rtdb.firebaseio.com';
 
@@ -4606,9 +6027,32 @@
             opts.body = JSON.stringify(data);
         }
 
+        // Battle data is routed through our serverless gateway. The
+        // browser must not carry the Firebase database credential, and
+        // the database rules intentionally reject anonymous writes.
+        const isBattlePath = path === '/battle/rooms'
+            || path.startsWith('/battle/rooms/')
+            || path === '/battle_chats'
+            || path.startsWith('/battle_chats/');
+
         let r;
         try {
-            r = await fetch(`${RTDB}${path}.json`, opts);
+            if (isBattlePath) {
+                // Creating a room needs an account; everything else here
+                // is open to guests. The header goes on every call rather
+                // than only that one, so the server can tell who is acting
+                // without the client deciding when it matters.
+                const headers = { 'Content-Type': 'application/json' };
+                const token = (typeof authToken === 'function') && authToken();
+                if (token) headers.Authorization = `Bearer ${token}`;
+                r = await fetch('/api/battle', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ method, path, data })
+                });
+            } else {
+                r = await fetch(`${RTDB}${path}.json`, opts);
+            }
         } catch (e) {
             fbLastError = 'network';
             console.error(`[fb] ${method} ${path} → network error`, e);
@@ -4620,7 +6064,16 @@
             try { body = (await r.text()).slice(0, 200); } catch (e) { /* nothing to add */ }
             // 401/403 is the rules refusing us. Worth its own kind: it is
             // the one failure where "try again" is actively wrong advice.
-            fbLastError = (r.status === 401 || r.status === 403) ? 'denied' : 'error';
+            //
+            // So is a 404 on a battle path. That path does not address a
+            // room — it addresses /api/battle — so a 404 means the gateway
+            // itself is not there, which is what happened when the client
+            // was switched over to it before the endpoint existed: every
+            // room creation failed, and the only thing on screen was
+            // "try again". Its own kind, so it can say so.
+            fbLastError = (r.status === 401 || r.status === 403) ? 'denied'
+                : (isBattlePath && r.status === 404) ? 'no_gateway'
+                : 'error';
             console.error(`[fb] ${method} ${path} → HTTP ${r.status} ${body}`);
             return null;
         }
@@ -4654,7 +6107,15 @@
 
     // ----- User identity -----
     function getBattleUserId() {
-        if (state.userProfile && state.userProfile.wca_id) return 'wca_' + state.userProfile.wca_id;
+        // Must match what the server derives for the same person, or the
+        // creator of a room would not be recognised as its host. WCA ids
+        // are uppercase in the API and the server uppercases too; an
+        // account uid comes straight back from sign-in; a WCA account
+        // with no competition record yet still has an account id.
+        const p = state.userProfile;
+        if (p && p.wca_id) return 'wca_' + String(p.wca_id).toUpperCase();
+        if (p && p.uid) return p.uid;
+        if (p && p.id) return 'wcauser_' + p.id;
         let id = localStorage.getItem('battle_uid');
         if (!id) { id = 'g_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); localStorage.setItem('battle_uid', id); }
         return id;
@@ -4824,6 +6285,9 @@
             const why = battleState.lobbyError === 'denied'
                 ? i18nT('battle.roomsDenied',
                     'The rooms database is refusing connections, so battles are unavailable right now. This is a server setting, not something you can fix — please report it.')
+                : battleState.lobbyError === 'no_gateway'
+                ? i18nT('battle.roomsNoGateway',
+                    'The rooms service is not running on this deployment, so battles are unavailable right now. This is a server setting, not something you can fix — please report it.')
                 : i18nT('battle.roomsUnreachable',
                     "Couldn't reach the rooms database. Check your connection and refresh.");
             grid.innerHTML = `<div class="battle-empty-state">
@@ -4930,6 +6394,16 @@
 
         // Create room
         $('#battle-create-room-btn').addEventListener('click', () => {
+            // Rooms belong to an account. Joining, solving and chatting
+            // stay open to guests, so this is the only door with a lock
+            // on it — and the server enforces the same rule, because a
+            // check that lives only in the browser is not a rule.
+            if (!isSignedIn()) {
+                showToast(i18nT('toast.signInToCreate',
+                    'Sign in to create a battle room — joining one stays open to everyone.'), 'info');
+                openLoginModal();
+                return;
+            }
             $('#battle-room-name-input').value = '';
             $('#battle-room-password').value = '';
             clearCreateRoomError();
@@ -5030,9 +6504,13 @@
                 // retrying it never once works, and sending someone round
                 // that loop is how a server misconfiguration gets mistaken
                 // for a flaky button.
-                showCreateRoomError(fbError() === 'denied'
+                const kind = fbError();
+                showCreateRoomError(kind === 'denied'
                     ? i18nT('toast.roomCreateDenied',
                         'The rooms database refused to save this room. That is a server setting on our side — please report it.')
+                    : kind === 'no_gateway'
+                    ? i18nT('toast.roomCreateNoGateway',
+                        'The rooms service is not running on this deployment, so rooms cannot be saved. That is on our side — please report it.')
                     : i18nT('toast.roomCreateFailed', 'Failed to create room. Try again.'));
                 return;
             }

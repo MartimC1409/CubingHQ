@@ -46,9 +46,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=13">
-    <link rel="stylesheet" href="timer.css?v=7">
-    <link rel="stylesheet" href="launch-ui.css?v=8">
+    <link rel="stylesheet" href="style.css?v=8ca4e91d">
+    <link rel="stylesheet" href="timer.css?v=b3dad843">
+    <link rel="stylesheet" href="launch-ui.css?v=a21f46ee">
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <style>
         body { overflow: auto; min-height: 100vh; }
@@ -116,7 +116,7 @@
     <!-- Consent Mode defaults, then gtag.js. Loaded synchronously and BEFORE
          the AdSense tag: the defaults must reach the dataLayer before either
          Google tag reads them. See analytics.js. -->
-    <script src="analytics.js?v=1"></script>
+    <script src="analytics.js?v=820df5ea"></script>
 
     <!-- Google AdSense Verification & Auto Ads -->
     <meta name="google-adsense-account" content="ca-pub-1447384831345579">
@@ -192,6 +192,11 @@
             Battle
         </button>
         <!-- Login Button -->
+        <button class="nav-btn nav-btn--friends" id="nav-friends-btn" title="Friends" data-i18n="nav.friends" data-i18n-title="nav.friends">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span id="friends-badge" class="friends-nav-badge" style="display:none;">0</span>
+            Friends
+        </button>
         <button class="nav-btn" id="nav-login-btn" title="Login" data-i18n="nav.login" data-i18n-title="nav.login">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             Login
@@ -446,19 +451,19 @@
             return id;
         }
     </script>
-    <script src="i18n.js?v=18"></script>
-    <script src="theme.js?v=1"></script>
+    <script src="i18n.js?v=fc69502f"></script>
+    <script src="theme.js?v=db71e576"></script>
     <!-- Holds a screen wake lock for as long as the site is open, so a phone
          doesn't dim and lock partway through a solve. Standalone. -->
-    <script src="wake-lock.js?v=1"></script>
-    <script src="scramble-engine.js?v=3"></script>
-    <script src="square1-drawer.js?v=3"></script>
-    <script src="cube-stats.js?v=2"></script>
-    <script src="timer.js?v=8"></script>
-    <script src="timer-mobile.js?v=1"></script>
-    <script src="solve-analysis.js?v=1"></script>
-    <script src="smartcube.js?v=2"></script>
-    <script src="coach-timer-bridge.js?v=2"></script>
+    <script src="wake-lock.js?v=88cc357d"></script>
+    <script src="scramble-engine.js?v=b4dfd5f7"></script>
+    <script src="square1-drawer.js?v=ee28d843"></script>
+    <script src="cube-stats.js?v=b80cf414"></script>
+    <script src="timer.js?v=1edada1b"></script>
+    <script src="timer-mobile.js?v=52b08b9b"></script>
+    <script src="solve-analysis.js?v=b4c9c90e"></script>
+    <script src="smartcube.js?v=f4c0f850"></script>
+    <script src="coach-timer-bridge.js?v=3740f3a8"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.TimerModule && typeof window.TimerModule.init === 'function') {
@@ -484,6 +489,7 @@
                 'nav-algorithms-btn':   'index.html#algorithms',
                 'nav-history-btn':      'index.html#history',
                 'nav-battle-btn':       'index.html#battle',
+                'nav-friends-btn':      'index.html#friends',
                 'nav-login-btn':        'index.html#home',
             };
             Object.entries(NAV_MAP).forEach(([id, href]) => {
@@ -546,7 +552,7 @@
 
     <!-- Loaded last: it moves the secondary nav buttons into the mobile
          sheet, and the wiring above must have run first. -->
-    <script src="mobile-nav.js?v=2"></script>
+    <script src="mobile-nav.js?v=9c5da4eb"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->
     <script>

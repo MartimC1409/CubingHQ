@@ -25,7 +25,7 @@ function eq(label, got, want) {
 
 const ENV_KEYS = ['COACH_PROVIDER', 'GEMINI_API_KEY', 'GOOGLE_API_KEY',
     'OPENROUTER_API_KEY', 'ANTHROPIC_API_KEY', 'COACH_MODEL',
-    'FIREBASE_DB_URL', 'FIREBASE_DB_SECRET'];
+    'FIREBASE_DB_URL', 'FIREBASE_DB_SECRET', 'FIREBASE_SERVICE_ACCOUNT_JSON'];
 
 /**
  * Loads the endpoint fresh under a given environment and calls it.
@@ -40,12 +40,13 @@ async function callHealth(env, method = 'GET', url = '/api/coach/health') {
     for (const k of ENV_KEYS) delete process.env[k];
     Object.assign(process.env, env);
 
-    for (const m of ['../api/coach/health.js', '../api/_lib/model.js', '../api/_lib/rtdb.js',
+    for (const m of ['../api/coach/_health.js', '../api/_lib/model.js', '../api/_lib/rtdb.js',
+        '../api/_lib/firebase-auth.js',
         '../api/_lib/gemini.js', '../api/_lib/openrouter.js', '../api/_lib/claude.js']) {
         delete require.cache[require.resolve(m)];
     }
 
-    const handler = require('../api/coach/health.js');
+    const handler = require('../api/coach/_health.js');
     let status = 0, payload = null;
     const res = {
         statusCode: 0,
@@ -60,11 +61,12 @@ async function callHealth(env, method = 'GET', url = '/api/coach/health') {
 async function callHealthWithQuery(env, query) {
     for (const k of ENV_KEYS) delete process.env[k];
     Object.assign(process.env, env);
-    for (const m of ['../api/coach/health.js', '../api/_lib/model.js', '../api/_lib/rtdb.js',
+    for (const m of ['../api/coach/_health.js', '../api/_lib/model.js', '../api/_lib/rtdb.js',
+        '../api/_lib/firebase-auth.js',
         '../api/_lib/gemini.js', '../api/_lib/openrouter.js', '../api/_lib/claude.js']) {
         delete require.cache[require.resolve(m)];
     }
-    const handler = require('../api/coach/health.js');
+    const handler = require('../api/coach/_health.js');
     let status = 0, payload = null;
     await handler({ method: 'GET', query }, {
         statusCode: 0,
@@ -122,6 +124,17 @@ async function callHealthWithQuery(env, query) {
     });
     eq('storage on when both are set', r.body.hasStorage, true);
 
+    // A service account counts as storage too — it is the credential that
+    // replaced the secret, and coach and battles share it.
+    r = await callHealth({
+        COACH_PROVIDER: 'gemini', GEMINI_API_KEY: 'k', COACH_MODEL: 'm',
+        FIREBASE_DB_URL: 'https://example.firebaseio.com',
+        FIREBASE_SERVICE_ACCOUNT_JSON: JSON.stringify({
+            client_email: 'a@b.iam.gserviceaccount.com', private_key: 'PEM',
+        }),
+    });
+    eq('a service account is storage', r.body.hasStorage, true);
+
     // Both are required; one alone must not read as configured.
     r = await callHealth({
         COACH_PROVIDER: 'gemini', GEMINI_API_KEY: 'k', COACH_MODEL: 'm',
@@ -135,6 +148,8 @@ async function callHealthWithQuery(env, query) {
     const SECRETS = {
         GEMINI_API_KEY: 'AIzaSyTOTALLY-SECRET-VALUE',
         FIREBASE_DB_SECRET: 'super-secret-db-token',
+        FIREBASE_SERVICE_ACCOUNT_JSON: '{"client_email":"leak@example.iam.gserviceaccount.com",'
+            + '"private_key":"-----BEGIN PRIVATE KEY-----NEVER-SHOW-THIS-----END PRIVATE KEY-----"}',
         FIREBASE_DB_URL: 'https://private-instance.firebaseio.com',
     };
     r = await callHealth({ COACH_PROVIDER: 'gemini', COACH_MODEL: 'm', ...SECRETS });
@@ -340,13 +355,14 @@ async function callHealthWithQuery(env, query) {
         !/AIzaSy/.test(JSON.stringify(r.body)), JSON.stringify(r.body.video));
 
     // The rate limit. Two probes against the SAME instance.
-    for (const m of ['../api/coach/health.js', '../api/_lib/model.js', '../api/_lib/rtdb.js',
+    for (const m of ['../api/coach/_health.js', '../api/_lib/model.js', '../api/_lib/rtdb.js',
+        '../api/_lib/firebase-auth.js',
         '../api/_lib/gemini.js', '../api/_lib/openrouter.js', '../api/_lib/claude.js']) {
         delete require.cache[require.resolve(m)];
     }
     for (const k of ENV_KEYS) delete process.env[k];
     Object.assign(process.env, GEMINI);
-    const handler = require('../api/coach/health.js');
+    const handler = require('../api/coach/_health.js');
     const once = async () => {
         let payload = null;
         await handler({ method: 'GET', query: { video: '1' } },

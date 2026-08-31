@@ -19,8 +19,8 @@ process.env.COACH_VIDEO_POLL_BUDGET_MS = '10';
 const { VIDEO_ANALYSIS_SCHEMA, VIDEO_CATEGORIES } = require('../api/_lib/schemas.js');
 const { CATEGORY_COVERS, topicsForEvent, videoPrompt } = require('../api/_lib/prompts.js');
 const { validate } = require('../api/_lib/validate.js');
-const { _internal: assessInternal } = require('../api/coach/assess.js');
-const { _internal: videoInternal } = require('../api/coach/video/analyse.js');
+const { _internal: assessInternal } = require('../api/coach/_assess.js');
+const { _internal: videoInternal } = require('../api/coach/video/_analyse.js');
 
 let pass = 0, fail = 0;
 function check(label, cond, extra) {

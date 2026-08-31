@@ -15,8 +15,8 @@ require('fs').writeFileSync(__dirname + '/_stub_anthropic.js',
 
 const A = require('../coach-analytics.js');
 const { topicsForEvent, UNKNOWABLE_TOPICS, EVENT_TOPICS } = require('../api/_lib/prompts.js');
-const { _internal: planInternal } = require('../api/coach/plan.js');
-const { _internal: assessInternal } = require('../api/coach/assess.js');
+const { _internal: planInternal } = require('../api/coach/_plan.js');
+const { _internal: assessInternal } = require('../api/coach/_assess.js');
 
 let pass = 0, fail = 0;
 function check(label, cond, extra) {

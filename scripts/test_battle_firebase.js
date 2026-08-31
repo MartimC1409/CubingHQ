@@ -117,6 +117,23 @@ function res(status, body, { unreadable = false } = {}) {
     check('a record with other fields is not mistaken for an error', out !== null
         && out.name === 'Room', JSON.stringify(out));
 
+    /* A 404 on a battle path is the gateway missing, not a missing room.
+       This is the failure that shipped: app.js was switched over to
+       /api/battle before that endpoint existed, so every write 404'd and
+       the only thing on screen was "try again". */
+    h = runHelpers(res(404, { error: 'Not Found' }));
+    eq('a 404 on a battle path returns null', await h.api.fbPush('/battle/rooms', { name: 'R' }), null);
+    eq('and names the missing gateway', h.api.fbError(), 'no_gateway');
+
+    h = runHelpers(res(404, { error: 'Not Found' }));
+    await h.api.fbGet('/battle_chats/-Nabc');
+    eq('chat goes through the same gateway', h.api.fbError(), 'no_gateway');
+
+    h = runHelpers(res(404, { error: 'Not Found' }));
+    await h.api.fbGet('/records');
+    eq('a 404 elsewhere is just an error — those paths are direct',
+        h.api.fbError(), 'error');
+
     /* Server errors and network failures are distinguishable. */
     h = runHelpers(res(500, { error: 'boom' }));
     eq('a 500 returns null', await h.api.fbGet('/x'), null);
@@ -190,6 +207,11 @@ function res(status, body, { unreadable = false } = {}) {
     check('and does not offer "Create one!", which would also fail',
         !/Create one/.test(html));
 
+    html = runRender(null, 'no_gateway');
+    check('a missing gateway says the service is not running',
+        /not running/.test(html), html.slice(0, 200));
+    check('and does not claim there are no rooms', !/No rooms found/.test(html));
+
     html = runRender(null, 'network');
     check('an unreachable lobby says so', /Couldn't reach/.test(html), html.slice(0, 200));
     check('and does not blame an empty database', !/No rooms found/.test(html));
@@ -225,12 +247,15 @@ function res(status, body, { unreadable = false } = {}) {
     check('the label is restored in a finally, so it cannot stick on "Creating..."',
         /finally\s*\{[^}]*battle\.createRoom/s.test(create));
     check('a denied write gets its own message', /roomCreateDenied/.test(create));
+    check('a missing gateway gets its own message too',
+        /roomCreateNoGateway/.test(create));
     check('and "try again" is kept for everything else', /roomCreateFailed/.test(create));
 
     /* ---------- the strings exist in both languages -------------- */
 
     const i18n = fs.readFileSync(path.join(ROOT, 'i18n.js'), 'utf8');
-    for (const key of ['battle.roomsDenied', 'battle.roomsUnreachable', 'toast.roomCreateDenied']) {
+    for (const key of ['battle.roomsDenied', 'battle.roomsUnreachable', 'toast.roomCreateDenied',
+        'battle.roomsNoGateway', 'toast.roomCreateNoGateway']) {
         eq(`${key} is defined twice — EN and PT`,
             (i18n.match(new RegExp(`'${key.replace('.', '\\.')}':`, 'g')) || []).length, 2);
     }

@@ -2,17 +2,22 @@
    Coach API — storage
    ------------------------------------------------------------
    Thin REST wrapper over the Firebase Realtime Database, used only
-   from the server. The database secret is appended as ?auth=, which
-   bypasses the security rules — that is the point: /coach is closed
-   to the world in the rules, and only this code can open it.
+   from the server. The credential it carries bypasses the security
+   rules — that is the point: /coach is closed to the world in the
+   rules, and only this code can open it.
+
+   The credential itself comes from _lib/firebase-auth.js, which
+   accepts either a service account (current) or the legacy database
+   secret, so this file does not care which one a deployment has.
 
    Paths are always built from a verified uid, never from request
    input, so a caller cannot walk out of their own subtree.
    ============================================================ */
 'use strict';
 
-const DB_URL = (process.env.FIREBASE_DB_URL || '').replace(/\/$/, '');
-const DB_SECRET = process.env.FIREBASE_DB_SECRET || '';
+const { authorize, hasCredential, CREDENTIAL_VAR } = require('./firebase-auth.js');
+
+const DB_URL = () => (process.env.FIREBASE_DB_URL || '').replace(/\/$/, '');
 
 class StorageError extends Error {
     constructor(code, message) {
@@ -24,7 +29,7 @@ class StorageError extends Error {
 
 /** True when the server is configured to persist anything at all. */
 function isConfigured() {
-    return !!(DB_URL && DB_SECRET);
+    return !!(DB_URL() && hasCredential());
 }
 
 // Firebase keys cannot contain . $ # [ ] / or control characters.
@@ -38,21 +43,33 @@ function safeSegment(seg) {
     return s;
 }
 
-function url(path) {
+function url(path, query) {
     if (!isConfigured()) {
         throw new StorageError('not_configured',
             'Cloud sync is not configured on this deployment.');
     }
     const clean = path.split('/').filter(Boolean).map(safeSegment).join('/');
-    return `${DB_URL}/${clean}.json?auth=${encodeURIComponent(DB_SECRET)}`;
+    return `${DB_URL()}/${clean}.json${query ? `?${query}` : ''}`;
 }
 
 async function request(path, method, body) {
+    const auth = await authorize();
+    if (auth.kind === 'service_account_failed') {
+        // Configured but unusable — a wrong or mangled key. Distinct from
+        // "not configured", and from a rules refusal, because the fix is
+        // different for each.
+        console.error(`[rtdb] ${CREDENTIAL_VAR} is set but could not be used`);
+        throw new StorageError('denied', 'Storage rejected the request.');
+    }
+    const target = url(path, auth.query);
+    const headers = Object.assign({}, auth.headers);
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+
     let res;
     try {
-        res = await fetch(url(path), {
+        res = await fetch(target, {
             method,
-            headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+            headers: Object.keys(headers).length ? headers : undefined,
             body: body === undefined ? undefined : JSON.stringify(body),
             signal: AbortSignal.timeout(15000),
         });
@@ -63,7 +80,7 @@ async function request(path, method, body) {
         // 401 here means the secret is wrong or the rules changed —
         // an operator problem, so make it loud in the logs.
         if (res.status === 401 || res.status === 403) {
-            console.error('[rtdb] auth rejected — check FIREBASE_DB_SECRET and the /coach rules');
+            console.error(`[rtdb] auth rejected — check ${CREDENTIAL_VAR} and the /coach rules`);
             throw new StorageError('denied', 'Storage rejected the request.');
         }
         throw new StorageError('http_' + res.status, `Storage returned ${res.status}.`);

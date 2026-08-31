@@ -14,8 +14,8 @@ Module._resolveFilename = function (request, ...rest) {
 require('fs').writeFileSync(__dirname + '/_stub_anthropic.js',
     'module.exports = class Anthropic { constructor() {} };\n');
 
-const { _internal: assessInternal } = require('../api/coach/assess.js');
-const { _internal: planInternal } = require('../api/coach/plan.js');
+const { _internal: assessInternal } = require('../api/coach/_assess.js');
+const { _internal: planInternal } = require('../api/coach/_plan.js');
 const { UNKNOWABLE_TOPICS } = require('../api/_lib/prompts.js');
 const { COACH_ASSESSMENT_SCHEMA, TRAINING_PLAN_SCHEMA, PLAN_REVISION_SCHEMA } = require('../api/_lib/schemas.js');
 
