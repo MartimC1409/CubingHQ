@@ -466,6 +466,14 @@
             'records.col.event': 'Event',
             'records.col.holder': 'Holder',
             'records.col.single': 'Single',
+            /* The time is live from the WCA; the holder is confirmed by hand.
+               When a record changes hands the name is dropped rather than
+               credit the previous holder with someone else's result, so this
+               says that outright instead of leaving a bare dash. */
+            'records.pending': 'new record \u2014 holder not confirmed',
+            'records.pendingHint': 'The time is live from the WCA. The holder is confirmed by hand and has not caught up yet.',
+            'records.noAverage': 'n/a',
+            'records.noAverageHint': 'This event is ranked by single only.',
             'records.col.average': 'Average',
             'records.loading': 'Loading records...',
             'records.hint': 'Click any event row to view detailed record information',
@@ -479,8 +487,6 @@
 
             // ----- Home view -----
             'hero.kicker': '// solve · compete · repeat',
-            'hero.badge': 'The CubingHQ AI Coach is here',
-            'hero.badge.cta': 'Try it',
             'hero.mock.title': 'cubinghq — Final · 3×3 · solve 4 of 5',
             'hero.mock.scramble': 'Scramble',
             'hero.mock.live': 'Live results',
@@ -1323,6 +1329,10 @@
             'records.col.event': 'Evento',
             'records.col.holder': 'Detentor',
             'records.col.single': 'Single',
+            'records.pending': 'recorde novo \u2014 detentor por confirmar',
+            'records.pendingHint': 'O tempo vem em direto da WCA. O detentor \u00e9 confirmado \u00e0 m\u00e3o e ainda n\u00e3o foi atualizado.',
+            'records.noAverage': 'n/d',
+            'records.noAverageHint': 'Este evento \u00e9 classificado apenas por single.',
             'records.col.average': 'Média',
             'records.loading': 'A carregar recordes...',
             'records.hint': 'Clica numa linha para veres os detalhes do recorde',
@@ -1336,8 +1346,6 @@
 
             // ----- Página inicial -----
             'hero.kicker': '// resolve · compete · repete',
-            'hero.badge': 'O Treinador de IA do CubingHQ já chegou',
-            'hero.badge.cta': 'Experimenta',
             'hero.mock.title': 'cubinghq — Final · 3×3 · solve 4 de 5',
             'hero.mock.scramble': 'Scramble',
             'hero.mock.live': 'Resultados ao vivo',

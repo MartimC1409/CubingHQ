@@ -9,7 +9,7 @@
          it — the password below is a literal in the page source. -->
     <meta name="robots" content="noindex, nofollow">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=45293f53">
+    <link rel="stylesheet" href="style.css?v=8ca4e91d">
     <style>
         body { padding: var(--space-xl); background-color: var(--clr-bg); }
         .admin-container { max-width: 800px; margin: 0 auto; }
@@ -79,6 +79,19 @@
             </div>
         </div>
 
+        <!-- Which records the live WCA feed has moved past.
+             The site only shows a stored holder while the stored time still
+             matches the live one, so a record changing hands silently blanks
+             the name. Checking seventeen events by hand is how that went
+             unnoticed; this lists exactly the ones that need a name. -->
+        <div class="setup-card" id="stale-card" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <h3 id="stale-title">Needs updating</h3>
+                <button id="stale-refresh" class="btn btn-secondary">Re-check</button>
+            </div>
+            <div id="stale-body"></div>
+        </div>
+
         <div class="setup-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 id="editor-title">Editing 3x3x3 Cube Records</h3>
@@ -136,79 +149,15 @@
 </div>
 
 
+<script src="world-records.js?v=6e1ddabb"></script>
 <script>
     
     let RECORDS = {};
-    const WORLD_RECORDS = {
-        '333': {
-            single: { time: 2.76, holder: 'Teodor Zajder', country: 'PL', competition: 'GLS Big Cubes Gdańsk 2026' },
-            average: { time: 3.51, holder: 'Yiheng Wang', country: 'CN', competition: 'Hefei Cubing League 3x3 III 2026' }
-        },
-        '222': {
-            single: { time: 0.39, holder: 'Ziyu Ye', country: 'CN', competition: 'Hefei Open 2025' },
-            average: { time: 0.86, holder: 'Sujan Feist', country: 'US', competition: 'Kids America Christmas Clash OH 2025' }
-        },
-        '444': {
-            single: { time: 15.18, holder: 'Tymon Kolasiński', country: 'PL', competition: 'Spanish Championship 2025' },
-            average: { time: 18.56, holder: 'Tymon Kolasiński', country: 'PL', competition: 'Seoul Winter 2026' }
-        },
-        '555': {
-            single: { time: 29.49, holder: 'Tymon Kolasiński', country: 'PL', competition: 'All Rounders Katowice I 2026' },
-            average: { time: 33.73, holder: 'Tymon Kolasiński', country: 'PL', competition: 'All Rounders Katowice I 2026' }
-        },
-        '666': {
-            single: { time: 57.69, holder: 'Max Park', country: 'US', competition: 'Burbank Big Cubes 2025' },
-            average: { time: 64.94, holder: 'Lim Hung', country: 'MY', competition: 'UniKL MIAT Cube Open 2026' }
-        },
-        '777': {
-            single: { time: 92.07, holder: 'Max Park', country: 'US', competition: 'West Coast Cubing Western Championship 2026' },
-            average: { time: 96.86, holder: 'Max Park', country: 'US', competition: 'Nub Open Trabuco Hills Fall 2025' }
-        },
-        '333oh': {
-            single: { time: 5.66, holder: 'Dhruva Sai Meruva', country: 'IN', competition: 'Swiss Nationals 2024' },
-            average: { time: 7.72, holder: 'Luke Garrett', country: 'US', competition: 'Chicagoland Newcomers 2025' }
-        },
-        '333bf': {
-            single: { time: 11.67, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' },
-            average: { time: 14.05, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' }
-        },
-        '333fm': {
-            single: { time: 16, holder: 'Sebastiano Tronto', country: 'IT', competition: 'FMC 2019', isMoves: true },
-            average: { time: 19.00, holder: 'Brian Johnson', country: 'US', competition: 'Evanston FMC Spring 2026', isMoves: true }
-        },
-        '333mbf': {
-            single: { time: '63/65 58:23', holder: 'Graham Siggins', country: 'US', competition: 'Cubing in a Corn Maze 2025', isMulti: true },
-            average: null
-        },
-        'pyram': {
-            single: { time: 0.73, holder: 'Simon Kellum', country: 'US', competition: 'Middleton Meetup Thursday 2023' },
-            average: { time: 1.14, holder: 'Lingkun Jiang', country: 'CN', competition: 'Zhengzhou Zest 2025' }
-        },
-        'skewb': {
-            single: { time: 0.73, holder: 'Vojtěch Grohmann', country: 'CZ', competition: 'Głuszyca Open 2026' },
-            average: { time: 1.52, holder: 'Carter Kucala', country: 'US', competition: 'CubingUSA Heartland Championship 2024' }
-        },
-        'sq1': {
-            single: { time: 2.85, holder: 'Brian Johnson', country: 'US', competition: 'Evanston Qualifier 2026' },
-            average: { time: 4.63, holder: 'Sameer Aggarwal', country: 'US', competition: 'Cubing in Southern Oregon 2025' }
-        },
-        'minx': {
-            single: { time: 21.85, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Start of Summer Beijing 2026' },
-            average: { time: 24.38, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Tashkent Open 2025' }
-        },
-        'clock': {
-            single: { time: 1.53, holder: 'Lachlan Gibson', country: 'AU', competition: 'Shepplife Open 2025' },
-            average: { time: 2.26, holder: 'Lachie Gibson', country: 'AU', competition: 'Lachie Gibson Clock Average 2025' }
-        },
-        '444bf': {
-            single: { time: 51.96, holder: 'Stanley Chapel', country: 'US', competition: '4BLD in a Madison Hall 2023' },
-            average: { time: 59.39, holder: 'Stanley Chapel', country: 'US', competition: 'New York Multimate PBQ II 2025' }
-        },
-        '555bf': {
-            single: { time: 118.59, holder: 'Stanley Chapel', country: 'US', competition: 'Multi Mayhem VA 2026' },
-            average: { time: 147.63, holder: 'Stanley Chapel', country: 'US', competition: 'Michigan Cubing Club Epsilon 2019' }
-        }
-    };
+    // Loaded from world-records.js, which app.js reads too. This page used
+    // to carry its own copy, and the two had drifted — the tool for fixing
+    // the data was editing against a different baseline from the one the
+    // site rendered.
+    const WORLD_RECORDS = window.WorldRecords || {};
     
     let password = localStorage.getItem('admin_password') || '';
     
@@ -251,6 +200,15 @@
         elements.saveBtn.addEventListener('click', saveRecords);
         elements.resetDefaultsBtn.addEventListener('click', loadDefaultRecords);
         elements.setDefaultsBtn.addEventListener('click', setDefaultRecords);
+
+        // The event list already exists in the markup; reading the labels off
+        // it keeps one list instead of a second one to forget to update.
+        Array.prototype.forEach.call(elements.eventSelect.options, function (o) {
+            EVENT_LABELS[o.value] = o.text;
+        });
+
+        const recheck = document.getElementById('stale-refresh');
+        if (recheck) recheck.addEventListener('click', checkStaleRecords);
     }
 
     async function tryLogin(pass) {
@@ -285,10 +243,122 @@
                 console.log('No records found in DB. Starting fresh.');
             }
             loadEventToForm();
+            checkStaleRecords();
         } catch (e) {
             console.error('Failed to fetch records', e);
             alert('Failed to connect to database.');
         }
+    }
+
+    /* ---------- which records the live feed has moved past ---------- */
+
+    const EVENT_LABELS = {};
+    const MBLD = '333mbf';
+
+    // Same conversion app.js does: the feed is centiseconds, except FMC
+    // (moves, with the mean scaled by 100) and MBLD (a packed code).
+    function liveSeconds(eventId, raw, isAverage) {
+        if (typeof raw !== 'number' || !isFinite(raw)) return null;
+        if (eventId === MBLD) return null;               // no comparable value
+        if (eventId === '333fm') return isAverage ? raw / 100 : raw;
+        return raw / 100;
+    }
+
+    // The site shows a stored holder only while the stored time still equals
+    // the live one, to the same tolerance. Anything outside it is a record
+    // that has changed hands and is currently rendering without a name.
+    function isStale(storedSide, liveVal) {
+        if (liveVal === null) return false;
+        if (!storedSide || typeof storedSide.time !== 'number') return true;
+        return Math.abs(storedSide.time - liveVal) > 0.005;
+    }
+
+    async function checkStaleRecords() {
+        const card = document.getElementById('stale-card');
+        const body = document.getElementById('stale-body');
+        if (!card || !body) return;
+
+        card.style.display = '';
+        body.innerHTML = '<p style="opacity:.7;">Checking against the live WCA feed…</p>';
+
+        let live;
+        try {
+            const res = await fetch('https://www.worldcubeassociation.org/api/v0/records');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            live = data && data.world_records;
+            if (!live) throw new Error('no world_records in payload');
+        } catch (e) {
+            // Say so rather than showing an empty list, which would read as
+            // "nothing to do" when the truth is "we could not look".
+            body.innerHTML = '<p style="color:#e67e22;">Could not reach the WCA records API, '
+                + 'so nothing was checked: ' + String(e.message || e) + '</p>';
+            return;
+        }
+
+        const rows = [];
+        Object.keys(EVENT_LABELS).forEach(function (ev) {
+            const stored = RECORDS[ev] || WORLD_RECORDS[ev] || {};
+            const entry = live[ev] || {};
+            [['single', false], ['average', true]].forEach(function (pair) {
+                const side = pair[0], isAvg = pair[1];
+                const liveVal = liveSeconds(ev, entry[side], isAvg);
+                if (!isStale(stored[side], liveVal)) return;
+                rows.push({
+                    ev: ev,
+                    label: EVENT_LABELS[ev],
+                    side: side,
+                    live: liveVal,
+                    storedTime: stored[side] && stored[side].time,
+                    storedHolder: (stored[side] && stored[side].holder) || '—',
+                });
+            });
+        });
+
+        if (!rows.length) {
+            body.innerHTML = '<p style="color:#2ecc71;">Every record matches the live feed. '
+                + 'All holders are showing on the site.</p>';
+            return;
+        }
+
+        body.innerHTML =
+            '<p style="margin-bottom:1rem; opacity:.8;">' + rows.length + ' record'
+            + (rows.length === 1 ? '' : 's')
+            + ' changed since this list was last updated. Until each one has a name, '
+            + 'the site shows the live time with “holder not confirmed”.</p>'
+            + '<table style="width:100%; border-collapse:collapse; font-size:.9rem;">'
+            + '<thead><tr style="text-align:left; opacity:.6;">'
+            + '<th style="padding:.4rem 0;">Event</th><th>Type</th>'
+            + '<th>Live time</th><th>Stored</th><th></th></tr></thead><tbody>'
+            + rows.map(function (r) {
+                return '<tr style="border-top:1px solid rgba(255,255,255,.08);">'
+                    + '<td style="padding:.5rem 0;">' + r.label + '</td>'
+                    + '<td>' + r.side + '</td>'
+                    + '<td><strong>' + r.live + '</strong></td>'
+                    + '<td style="opacity:.6;">'
+                    + (r.storedTime === undefined ? '—' : r.storedTime + ' · ' + r.storedHolder)
+                    + '</td>'
+                    + '<td style="text-align:right;"><button class="btn btn-secondary stale-fix" '
+                    + 'data-event="' + r.ev + '" data-side="' + r.side + '" '
+                    + 'data-time="' + r.live + '">Fix</button></td>'
+                    + '</tr>';
+            }).join('')
+            + '</tbody></table>';
+
+        // "Fix" selects the event and drops the live time into the field, so
+        // the only thing left to type is the name.
+        Array.prototype.forEach.call(body.querySelectorAll('.stale-fix'), function (btn) {
+            btn.addEventListener('click', function () {
+                elements.eventSelect.value = btn.dataset.event;
+                loadEventToForm();
+                const field = btn.dataset.side === 'single' ? elements.singleTime : elements.avgTime;
+                const holder = btn.dataset.side === 'single' ? elements.singleHolder : elements.avgHolder;
+                field.value = btn.dataset.time;
+                holder.value = '';
+                holder.focus();
+                document.getElementById('editor-title').scrollIntoView({ behavior: 'smooth' });
+            });
+        });
     }
 
     function loadEventToForm() {
