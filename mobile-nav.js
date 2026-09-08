@@ -22,14 +22,16 @@
     // The tabs that stay in the bar, in display order. Four plus "More"
     // is all that fits without the row scrolling sideways.
     //
-    // Coach leads: it is the product, not one tool among nine. Records
-    // moved to the sheet to make room — it is a reference lookup, not
-    // something reached for mid-session.
+    // Comp Sim leads, because the simulated round is what this site is for.
+    // The Coach used to hold the first slot on the grounds that it was "the
+    // product" — but it is under construction, so the most prominent tab on
+    // every phone opened a page saying come back later. It sits in the sheet
+    // until it ships, and then it can have its slot back.
     const PRIMARY_IDS = [
-        'nav-coach-btn',
         'nav-home-btn',
-        'nav-timer-btn',
         'nav-simulation-btn',
+        'nav-timer-btn',
+        'nav-algorithms-btn',
     ];
 
     const MORE_ID = 'nav-more-btn';
