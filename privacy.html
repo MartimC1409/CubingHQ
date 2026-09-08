@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Privacy Policy — CubingHQ</title>
-    <meta name="description" content="How CubingHQ handles your data: what we store, what stays on your device, the third parties involved (Google AdSense, Google Analytics, the WCA, Firebase), and how to exercise your rights.">
+    <meta name="description" content="How CubingHQ handles your data: what stays on your device, what accounts and Battle rooms store, what the AI Coach sends to a model provider, who processes what, and how to exercise your GDPR rights.">
     <link rel="canonical" href="https://cubinghq.online/privacy.html">
 
     <!-- Apply the saved theme before first paint (see index.html). -->
@@ -34,14 +34,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=8ca4e91d">
-    <link rel="stylesheet" href="page.css?v=d7f88d3e">
+    <link rel="stylesheet" href="style.css?v=3f026ab2">
+    <link rel="stylesheet" href="page.css?v=3104419d">
 
-    <!-- Consent defaults, then GA. Must load before the AdSense tag below. -->
-    <script src="analytics.js?v=820df5ea"></script>
+    <!-- Consent defaults, then GA, then the banner that asks. Order matters:
+         see analytics.js and consent.js. -->
+    <script src="analytics.js?v=93ef4ca4"></script>
+    <script src="consent.js?v=1f712fb6"></script>
     <meta name="google-adsense-account" content="ca-pub-1447384831345579">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
      crossorigin="anonymous"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body class="page-body">
@@ -59,81 +62,181 @@
     <p class="page-crumb"><a href="/">Home</a> → Privacy Policy</p>
 
     <h1>Privacy Policy</h1>
-    <p class="page-meta">Last updated: 8 August 2026</p>
+    <p class="page-meta">Last updated: 8 September 2026</p>
 
-    <p class="page-lede">CubingHQ is a speedcubing practice site. This page explains, in
-    plain terms, what happens to your data when you use it — what we keep, what never
-    leaves your device, which third parties are involved, and what you can ask us to do
-    about it.</p>
+    <p class="page-lede">CubingHQ is a speedcubing practice site. This page explains what
+    happens to your data when you use it — what we keep, what never leaves your device,
+    which third parties are involved, and what you can ask us to do about it. It describes
+    what the site actually does today, not what it might do later.</p>
 
-    <p>CubingHQ is operated by an individual, not a company. Throughout this policy,
-    "we" and "us" mean the operator of CubingHQ, contactable at
-    <a href="mailto:martimcubing@gmail.com">martimcubing@gmail.com</a>. For the
-    purposes of the UK and EU General Data Protection Regulation, that person is the
-    data controller.</p>
+    <h2>Who is responsible</h2>
+
+    <p>CubingHQ is operated by an individual based in Portugal, not by a company.
+    Throughout this policy, "we" and "us" mean that person, who is the
+    <strong>data controller</strong> for the purposes of the EU General Data Protection
+    Regulation (Regulation (EU) 2016/679) and Portuguese Law no. 58/2019.</p>
+
+    <!-- REQUIRED BEFORE THIS IS FULLY COMPLIANT
+         Decreto-Lei n.º 7/2004 (the Portuguese e-commerce law), art. 10, requires an
+         information society service provider to publish its name and a GEOGRAPHIC
+         address, not only an email address. Replace the line below with the operator's
+         full legal name and a postal address they are willing to publish. A home
+         address is the usual sticking point; the normal answers are to register as an
+         empresário em nome individual and use the business address, or to rent a
+         registered/virtual address. Until this is filled in, the identification duty
+         is only partly met. -->
+    <p>Contact: <a href="mailto:martimcubing@gmail.com">martimcubing@gmail.com</a>.
+    A postal address for formal correspondence is available on request by email.
+    Full operator details are on the <a href="/about.html#legal">About page</a>.</p>
 
     <h2>The short version</h2>
     <ul>
-        <li>Your solve times, sessions and settings are stored <strong>in your browser</strong>, not on our server.</li>
-        <li>We do not ask you to create an account, and we never ask for a password.</li>
-        <li>If you sign in with your World Cube Association account, we read your <strong>public</strong> WCA profile only. We cannot post anything as you.</li>
-        <li>Messages you send in a Battle room are stored on our database and are visible to anyone in that room.</li>
-        <li>We use Google Analytics and Google AdSense. Both may set cookies. In the EEA, the UK and Switzerland they are switched off until you consent.</li>
-        <li>We do not sell your data. There is nobody to sell it to.</li>
+        <li>Your solve times, sessions and settings are stored <strong>in your browser</strong>. They are not uploaded, and we cannot see them.</li>
+        <li>You can use almost all of the site with no account at all.</li>
+        <li>If you create an account, we store your email address, a display name, and a hash of your password — never the password itself.</li>
+        <li>Battle rooms are public spaces. Your display name, messages and times there are visible to everyone in the room.</li>
+        <li>The AI Coach sends your solve <em>statistics</em> to an AI provider. If you upload a video, the video goes to Google to be analysed, and is deleted afterwards.</li>
+        <li>We use Google Analytics and Google AdSense. Both set cookies, and neither runs until you agree.</li>
+        <li>We do not sell your data, and we do not share it with anyone except the processors listed below.</li>
     </ul>
 
     <h2>What stays on your device</h2>
 
-    <p>Most of what CubingHQ remembers about you never reaches us at all. The following
-    live in your browser's <code>localStorage</code>, on the device you are using:</p>
+    <p>Most of what CubingHQ remembers never reaches us. The following live in your
+    browser's <code>localStorage</code>, on the device you are using:</p>
 
     <ul>
         <li>Your solve times, sessions, personal bests and simulation history</li>
         <li>Your theme, accent colour and language choice</li>
         <li>Timer preferences — inspection, ambient volume, mute state</li>
-        <li>Any WCA ID you have looked up, so the form remembers it next time</li>
+        <li>The Sum of Ranks board you have built, as a list of WCA IDs</li>
+        <li>Your cookie choice</li>
+        <li>Your sign-in token, if you are signed in</li>
     </ul>
 
-    <p>We cannot read this data. It is not transmitted anywhere. Clearing your browser's
-    site data for CubingHQ erases all of it permanently, and because there is no server-side
-    copy, we cannot restore it for you. If a session matters to you, export it before you
-    clear anything.</p>
+    <p>We cannot read any of this. Clearing your browser's site data for CubingHQ erases
+    all of it permanently, and because there is no server-side copy we cannot restore it
+    for you. If a session matters to you, export it before you clear anything.</p>
 
-    <h2>What we do store</h2>
+    <div class="page-note">
+        <p><strong>A change from earlier versions of this policy.</strong> Until
+        September 2026 the timer also uploaded a copy of every session to our database
+        each time it saved. Nothing in the site ever read that copy back — it was a
+        duplicate of your practice history kept for no feature. The upload has been
+        removed. This policy previously said solve data was never transmitted; for that
+        period it was, and we would rather say so than quietly correct the sentence. If
+        you want the copy that was made of your sessions deleted, email us and we will
+        remove it.</p>
+    </div>
+
+    <h2>What we store, and why</h2>
 
     <div class="page-table-scroll">
     <table class="page-table">
         <thead>
-            <tr><th>Data</th><th>Why</th><th>How long</th></tr>
+            <tr><th>Data</th><th>Why</th><th>Legal basis</th><th>How long</th></tr>
         </thead>
         <tbody>
             <tr>
-                <td>Battle room messages, room names and the display name you choose</td>
+                <td>Account: email address, display name, scrypt hash of your password, sign-up and last sign-in dates</td>
+                <td>To let you sign in and to keep your account yours</td>
+                <td>Performance of a contract — you asked for an account</td>
+                <td>Until you delete the account</td>
+            </tr>
+            <tr>
+                <td>Profile picture, if you upload one</td>
+                <td>To show on your profile and to friends</td>
+                <td>Contract</td>
+                <td>Until you replace or delete it</td>
+            </tr>
+            <tr>
+                <td>Linked WCA ID and WCA name, if you link them</td>
+                <td>To show your official results in your profile</td>
+                <td>Consent — you chose to link it, and can unlink at any time</td>
+                <td>Until you unlink or delete the account</td>
+            </tr>
+            <tr>
+                <td>Friend connections and friend requests, each holding your uid, display name and WCA ID</td>
+                <td>So the friends list and comparison table can work</td>
+                <td>Contract</td>
+                <td>Until either person removes the friendship</td>
+            </tr>
+            <tr>
+                <td>Battle room messages, room names, display names and posted times</td>
                 <td>So other people in the room can see them — that is the feature</td>
+                <td>Contract</td>
                 <td>Until the room is cleared; rooms are pruned periodically</td>
             </tr>
             <tr>
-                <td>Battle results (times posted to a shared room)</td>
-                <td>To build the room's live leaderboard</td>
-                <td>Until the room is cleared</td>
+                <td>AI Coach: your solve statistics, chosen event and goals, plus the conversation</td>
+                <td>To produce a plan and answer your questions about it</td>
+                <td>Contract</td>
+                <td>Until you delete the coaching session</td>
             </tr>
             <tr>
-                <td>Community-submitted algorithm corrections</td>
-                <td>To keep the algorithm database accurate</td>
-                <td>Indefinitely, as part of the database</td>
-            </tr>
-            <tr>
-                <td>Anything you send us by email or the contact form</td>
+                <td>Anything you send through the contact form or by email: your name, email address and message</td>
                 <td>To reply to you</td>
-                <td>Until the exchange is finished</td>
+                <td>Legitimate interest in answering people who write to us</td>
+                <td>Deleted once the exchange is finished, and in any case within 24 months</td>
+            </tr>
+            <tr>
+                <td>Password reset tokens</td>
+                <td>To let you set a new password without opening an account to anyone who asks</td>
+                <td>Contract</td>
+                <td>They expire within the hour</td>
             </tr>
         </tbody>
     </table>
     </div>
 
-    <p>This data is held in Google Firebase Realtime Database. Please treat a Battle room
-    as a public space: pick a display name you are comfortable with strangers seeing, and
-    do not type anything into a chat room that you would not want kept.</p>
+    <p>This data is held in Google Firebase Realtime Database. Account records — including
+    password hashes — are written only by our server-side functions and are not readable
+    by the browser.</p>
+
+    <p>Please treat a Battle room as a public space: pick a display name you are
+    comfortable with strangers seeing, and do not type anything into a chat room that you
+    would not want kept.</p>
+
+    <h2>The AI Coach</h2>
+
+    <p>The Coach is optional, and at the time of writing it is still being built — the
+    page says so. This section describes what it does when you use it, and is published in
+    advance rather than after the fact. Nothing below happens unless you open the Coach and
+    ask it for something.</p>
+
+    <h3>What it sends about your solving</h3>
+
+    <p>When you ask for an assessment or a plan, we send an AI provider a summary of your
+    practice: solve times and the statistics computed from them, which event you are
+    working on, your stated goal, and — if you use a Bluetooth smart cube — move-level
+    data from the solves you recorded. We do not send your email address, your name or
+    your WCA ID with it.</p>
+
+    <h3>Video, if you upload one</h3>
+
+    <p>The Coach can take a clip of you solving and comment on things statistics cannot
+    show: pauses, rotations, regrips, grip and turning quality. Before the first upload it
+    asks you to agree to the following, in as many words, and will not open the file picker
+    until you do:</p>
+
+    <ul>
+        <li>The video is uploaded to <strong>Google</strong> and analysed by the Gemini model. It is not analysed on our own servers.</li>
+        <li>A video of you solving usually shows <strong>your hands, your surroundings, and often your face or voice</strong>. That is personal data, and it may be more identifying than anything else on this site.</li>
+        <li>We delete the file from Google as soon as the analysis finishes. Google also expires uploaded files automatically after about two days.</li>
+        <li>We keep the written observations the model produced. We do not keep the video.</li>
+        <li>Because this is optional and involves footage of you, we ask for your <strong>explicit consent</strong> before the first upload, and you can withdraw it at any time by not uploading again.</li>
+    </ul>
+
+    <p>If you would rather not do this, do not upload a video. Every other part of the
+    Coach works without one.</p>
+
+    <h3>Which provider</h3>
+
+    <p>Depending on deployment configuration, coaching text is processed by
+    <strong>Anthropic</strong>, <strong>Google</strong>, or <strong>OpenRouter</strong>
+    (which routes to a model provider). Video is always processed by Google. These
+    providers act as our processors for this purpose. We do not permit your data to be
+    used to train their models.</p>
 
     <h2>Signing in with your WCA account</h2>
 
@@ -142,94 +245,137 @@
     your WCA ID, name, country, avatar, competition results and personal records. All of
     that is already published on the WCA's own website.</p>
 
-    <p>We use it to pre-fill your personal bests in the simulator and to show your profile
-    in the Stats view. The access we request is read-only — we cannot enter you into
-    competitions, change your profile, or post anything as you. Revoking access in your WCA
-    account settings disconnects it immediately.</p>
+    <p>We use it to pre-fill your personal bests in the simulator, to show your profile in
+    the Stats view, and to compute Sum of Ranks. The access we request is read-only — we
+    cannot enter you into competitions, change your profile, or post anything as you.
+    Revoking access in your WCA account settings disconnects it immediately.</p>
+
+    <p>Looking up someone else's WCA ID — in Sum of Ranks, the competition search or the
+    friends comparison — reads the same public profile from the WCA's public API. It does
+    not tell that person you looked, and it does not create a record on our side.</p>
 
     <p>CubingHQ is an independent fan project. It is not affiliated with, endorsed by, or
     operated by the World Cube Association.</p>
 
-    <h2>Advertising, and the cookies that come with it</h2>
+    <h2>Advertising and analytics</h2>
 
-    <p>CubingHQ carries advertising to cover its running costs. We use
-    <strong>Google AdSense</strong>.</p>
+    <p><strong>No advertising is being shown on CubingHQ at the moment.</strong> The site is
+    not part of an advertising programme, nothing is being paid for by ads, and no ad is
+    being chosen for you. We intend to carry advertising in future to cover the running
+    costs, and Google's verification code is on the page so that can be reviewed — which is
+    why advertising still appears as a category in the cookie banner, and why the
+    <a href="/cookies.html">Cookie Policy</a> describes the cookies it would set.</p>
+
+    <p>If and when advertising is switched on, it will be <strong>Google AdSense</strong>,
+    it will set cookies, and it will not run until you have agreed to it in the banner. So
+    that you can decide once rather than being asked again later, here is what it involves:</p>
 
     <ul>
         <li>Third-party vendors, including Google, use cookies to serve ads based on your prior visits to this and other websites.</li>
-        <li>Google's use of advertising cookies enables it and its partners to serve ads to you based on your visit to CubingHQ and other sites on the internet.</li>
-        <li>You can opt out of personalised advertising at any time by visiting <a href="https://www.google.com/settings/ads" rel="noopener noreferrer" target="_blank">Google Ads Settings</a>.</li>
-        <li>You can opt out of a third-party vendor's use of cookies for personalised advertising at <a href="https://www.aboutads.info/choices/" rel="noopener noreferrer" target="_blank">aboutads.info</a>.</li>
+        <li>You can opt out of personalised advertising at any time at <a href="https://www.google.com/settings/ads" rel="noopener noreferrer" target="_blank">Google Ads Settings</a>, or for many vendors at once at <a href="https://www.youronlinechoices.eu/" rel="noopener noreferrer" target="_blank">Your Online Choices</a>.</li>
         <li>Google's own explanation of how it uses data from sites that use its services is at <a href="https://policies.google.com/technologies/ads" rel="noopener noreferrer" target="_blank">policies.google.com/technologies/ads</a>.</li>
     </ul>
 
-    <p>Opting out of personalised ads does not remove ads. It means the ones you see are
+    <p>Opting out of personalised ads would not remove ads. It means the ones you see are
     chosen without using your browsing history.</p>
 
-    <h2>Analytics</h2>
+    <p>Usage is measured with <strong>Google Analytics 4</strong>, which does set cookies,
+    and which likewise does not run until you have made a choice in the banner.</p>
 
-    <p>We use <strong>Google Analytics 4</strong> to understand which parts of the site
-    people actually use — how many visitors reach the simulator, whether the timer works
-    on their device, which guides get read. It reports in aggregate. We do not use it to
-    identify individuals, and we have never attempted to.</p>
+    <p>We also use <strong>Vercel Web Analytics</strong>, which is cookieless, does not
+    track visitors across sites, and does not build a profile of you.</p>
 
-    <p>We also use <strong>Vercel Web Analytics</strong>, which is cookieless and does not
-    track visitors across sites.</p>
+    <p>Where we rely on consent — advertising and analytics cookies, linking a WCA
+    account, uploading a video — the legal basis is your consent, and you may withdraw it
+    at any time without affecting what happened before. Where we do not, the basis is
+    named in the table above.</p>
 
-    <h2>Consent, if you are in the EEA, the UK or Switzerland</h2>
+    <h2>Who processes your data</h2>
 
-    <p>If you are visiting from the European Economic Area, the United Kingdom or
-    Switzerland, advertising and analytics storage are set to <em>denied</em> before any
-    Google tag runs. Nothing is stored for those purposes until you make a choice in the
-    consent dialogue we show on your first visit.</p>
+    <p>Using CubingHQ causes requests to the services below. Each necessarily sees your IP
+    address, as any web request does.</p>
 
-    <p>That dialogue is Google's certified consent management platform. You can reopen it
-    and change your answer at any time using the privacy settings link it provides. If you
-    decline, you will still see ads — they will simply be non-personalised.</p>
+    <div class="page-table-scroll">
+    <table class="page-table">
+        <thead>
+            <tr><th>Service</th><th>What for</th><th>Where</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Vercel</td><td>Hosting, serverless functions, cookieless analytics</td><td>US / EU</td></tr>
+            <tr><td>Google Firebase</td><td>Accounts, friends, Battle rooms, contact messages, algorithm data</td><td>US</td></tr>
+            <tr><td>Google AdSense &amp; Google Analytics</td><td>Advertising and usage measurement</td><td>US</td></tr>
+            <tr><td>Google Gemini</td><td>AI coaching and video analysis</td><td>US</td></tr>
+            <tr><td>Anthropic / OpenRouter</td><td>AI coaching text, depending on configuration</td><td>US</td></tr>
+            <tr><td>Resend</td><td>Sending account emails — verification, password resets</td><td>US / EU</td></tr>
+            <tr><td>World Cube Association</td><td>Public competition, ranking and profile data</td><td>EU</td></tr>
+            <tr><td>Google Fonts, jsDelivr, cdn.cubing.net</td><td>Fonts, charting, 3D puzzle rendering</td><td>Global CDN</td></tr>
+            <tr><td>flagcdn.com</td><td>Country flag images</td><td>Global CDN</td></tr>
+        </tbody>
+    </table>
+    </div>
 
-    <p>Where we rely on consent, the legal basis is your consent. Where we do not — running
-    the site, keeping a Battle room working, answering your email — the basis is our
-    legitimate interest in operating the service you asked to use.</p>
+    <h2>Sending data outside the EEA</h2>
 
-    <h2>Third parties your browser contacts</h2>
+    <p>Several of the processors above are in the United States. Where that is the case we
+    rely on the <strong>EU–US Data Privacy Framework</strong> where the provider is
+    certified under it, and otherwise on the European Commission's
+    <strong>Standard Contractual Clauses</strong>, which form part of those providers'
+    standard terms. You can ask us which applies to a particular provider.</p>
 
-    <p>Using CubingHQ causes your browser to make requests to a handful of services. Each
-    one necessarily sees your IP address, as any web request does:</p>
+    <h2>Security</h2>
 
-    <ul>
-        <li><strong>World Cube Association API</strong> — competition, ranking and profile data</li>
-        <li><strong>Google Firebase</strong> — Battle rooms, chat and the algorithm database</li>
-        <li><strong>Google AdSense and Google Analytics</strong> — as described above</li>
-        <li><strong>Vercel</strong> — hosting and cookieless analytics</li>
-        <li><strong>Google Fonts, jsDelivr and cdn.cubing.net</strong> — fonts, charting and 3D puzzle rendering</li>
-        <li><strong>flagcdn.com</strong> — country flag images</li>
-    </ul>
+    <p>Passwords are hashed with scrypt and a per-account random salt; we never store or
+    log the password itself, and we cannot recover it for you. Account records are written
+    only by server-side functions. Traffic is encrypted in transit.</p>
+
+    <p>We are one person, not a security team. If you find a problem, please tell us at
+    <a href="mailto:martimcubing@gmail.com">martimcubing@gmail.com</a> before telling
+    anyone else, and we will fix it and credit you if you want to be credited.</p>
 
     <h2>Children</h2>
 
-    <p>Speedcubing has a lot of young competitors, and we are conscious of that. CubingHQ
-    is not directed at children under 13, and we do not knowingly collect personal
-    information from them. We do not require an account, and the only way to volunteer
-    personal information is to type it into a Battle chat — which is exactly why we ask
-    everyone not to. If you believe a child has posted identifying information, email us
-    and we will remove it.</p>
+    <p>Speedcubing has a lot of young competitors, and we are conscious of that.</p>
+
+    <p>In Portugal the age at which a child can consent to online services on their own is
+    <strong>13</strong>. CubingHQ is not directed at children under 13, and we do not
+    knowingly collect personal data from them. If you are under 13, please do not create
+    an account, post in a Battle room, or upload a video; ask a parent to contact us if
+    you want to use those parts of the site.</p>
+
+    <p>If you are between 13 and 18, please think twice before uploading a video of
+    yourself or using your real name as a display name in a public Battle room. Nothing on
+    this site requires either.</p>
+
+    <p>If you believe a child has given us personal information, email us and we will
+    delete it. We do not need you to explain why.</p>
 
     <h2>Your rights</h2>
 
-    <p>If you are in the EEA or the UK, you have the right to access, correct, erase,
-    restrict, port and object to our processing of your personal data, and to complain to
-    your national data protection authority. Because most CubingHQ data lives on your own
-    device, you can exercise most of these yourself by clearing your site data.</p>
+    <p>If you are in the EEA or the UK you have the right to access, correct, erase,
+    restrict, port and object to our processing of your personal data, and to withdraw any
+    consent you have given. Because most CubingHQ data lives on your own device, you can
+    exercise a lot of this yourself by clearing your site data or deleting your account.</p>
 
-    <p>For anything we hold — a Battle message, an algorithm submission, an email —
-    write to <a href="mailto:martimcubing@gmail.com">martimcubing@gmail.com</a> and
-    we will action it within 30 days. You do not need to explain why.</p>
+    <p>For anything we hold — an account, a Battle message, a coaching session, an email —
+    write to <a href="mailto:martimcubing@gmail.com">martimcubing@gmail.com</a> and we
+    will action it within 30 days. You do not need to explain why, and it costs nothing.</p>
+
+    <p>If you think we have got this wrong, you can complain to the Portuguese data
+    protection authority, the <strong>CNPD</strong>
+    (<a href="https://www.cnpd.pt" rel="noopener noreferrer" target="_blank">cnpd.pt</a>),
+    or to the supervisory authority in the country where you live.</p>
+
+    <h2>Automated decisions</h2>
+
+    <p>The AI Coach produces suggestions, not decisions. Nothing on this site makes an
+    automated decision that produces a legal effect for you or similarly significantly
+    affects you, within the meaning of Article 22 GDPR.</p>
 
     <h2>Changes to this policy</h2>
 
     <p>If this policy changes in a way that affects you, we will update the date at the top
-    of the page. Continuing to use CubingHQ after a change means you accept the revised
-    policy.</p>
+    of the page, and for a material change we will say so in the site itself rather than
+    relying on you to re-read this page.</p>
 
     <h2>Contact</h2>
 
@@ -247,7 +393,10 @@
             <a href="/about.html">About</a>
             <a href="/contact.html">Contact</a>
             <a href="/privacy.html">Privacy</a>
+            <a href="/cookies.html">Cookies</a>
             <a href="/terms.html">Terms</a>
+            <a href="/refunds.html">Refunds</a>
+            <button type="button" class="site-footer-linkbtn" onclick="window.CubingConsent &amp;&amp; window.CubingConsent.reopen()">Cookie settings</button>
         </nav>
         <div class="site-footer-legal">
             <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>

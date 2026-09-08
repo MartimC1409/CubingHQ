@@ -86,7 +86,7 @@
     text-decoration: none;
 }
 
-.coach-btn--primary { background: var(--clr-primary); color: #fff; }
+.coach-btn--primary { background: var(--clr-primary-solid, var(--clr-primary)); color: var(--clr-on-primary, #fff); }
 .coach-btn--primary:hover:not(:disabled) { background: var(--clr-primary-hover); }
 
 .coach-btn--ghost {
@@ -458,7 +458,7 @@
 .coach-msg { max-width: 84%; font-size: 14.5px; line-height: 1.62; }
 .coach-msg--user {
     align-self: flex-end;
-    background: var(--clr-primary); color: #fff;
+    background: var(--clr-primary-solid, var(--clr-primary)); color: var(--clr-on-primary, #fff);
     padding: 10px 14px; border-radius: 14px 14px 4px 14px;
 }
 .coach-msg--coach { align-self: flex-start; color: var(--clr-text); }
@@ -659,3 +659,70 @@
     word-break: break-word;
 }
 .coach-video-detail li { margin-bottom: 3px; }
+
+/* ---------- Video upload consent dialog (coach-video.js) ----------
+   The one place on the site that asks for explicit consent, because it
+   is the one place that sends footage of a person to a third party. */
+.coach-consent-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+}
+
+.coach-consent {
+    max-width: 480px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--clr-bg-elevated, var(--clr-bg-card));
+    border: 1px solid var(--clr-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    color: var(--clr-text);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+.coach-consent:focus-visible { outline: 2px solid var(--clr-primary); outline-offset: 3px; }
+
+.coach-consent h2 {
+    font-size: 1.1rem;
+    margin: 0 0 0.9rem;
+}
+
+.coach-consent ul {
+    margin: 0 0 0.9rem;
+    padding-left: 1.15rem;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.coach-consent li {
+    font-size: 0.87rem;
+    line-height: 1.55;
+    color: var(--clr-text-muted);
+}
+
+.coach-consent li strong { color: var(--clr-text); }
+
+.coach-consent-more {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--clr-text-muted);
+    margin: 0 0 1.2rem;
+}
+
+.coach-consent a { color: var(--clr-primary); text-decoration: underline; }
+
+.coach-consent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.coach-consent-actions .coach-btn { flex: 1 1 auto; min-height: 44px; }

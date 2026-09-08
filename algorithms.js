@@ -2861,59 +2861,45 @@ const ALGORITHMS = {
         ]
     },
     "Pyraminx": {
-        "L4E": {
-            "Last Layer": [
-                { "name": "Sune", "alg": "R U R' U R U R'", "setup": "L' U' L U' L' U' L" },
-                { "name": "AntiSune", "alg": "R U' R' U' R U' R'", "setup": "R U R' U R U R'" },
-                { "name": "Lefty Bars", "alg": "R' U' L' U L R", "setup": "R' L' U' L U R" },
-                { "name": "Righty Bars", "alg": "L U R U' R' L'", "setup": "L R U R' U' L'" }
-            ],
-            "L3E": [
-                { "name": "Sledge", "alg": "R' L R L'", "setup": "L R' L' R" },
-                { "name": "Hedge", "alg": "L R' L' R", "setup": "R' L R L'" },
-                { "name": "Clockwise", "alg": "L R' L' R2 U' R'", "setup": "L' U L U R U R'" },
-                { "name": "Counterclockwise", "alg": "R' L R L2' U L", "setup": "R U' R' U' L' U' L" },
-                { "name": "Righty", "alg": "R U' R'", "setup": "U' R U R'" },
-                { "name": "Lefty", "alg": "L' U L", "setup": "U L' U' L" },
-                { "name": "Sexy", "alg": "U' R U R'", "setup": "R U' R' U" },
-                { "name": "Left Sexy", "alg": "U L' U' L", "setup": "L' U L U'" }
-            ],
-            "Flipped Edges": [
-                { "name": "2 Flip", "alg": "R' L R L' U L' U' L", "setup": "U' R' U L' U L U' R" },
-                { "name": "DR Flip", "alg": "L' U L U' R U' R'", "setup": "U' R U R' U L' U' L" },
-                { "name": "DL Flip", "alg": "R' L R L' R U' R'", "setup": "U L' U' L U' R U R'" },
-                { "name": "DB Flip", "alg": "R U R' U L' U' L", "setup": "U L' U L U' R U' R'" },
-                { "name": "4 Flip", "alg": "L' U L R U' R' L' U L R U' R'", "setup": "L' U' L R U R' L' U' L R U R'" }
-            ],
-            "Polish Flip": [
-                { "name": "Right Polish Flip", "alg": "R U' R' L' U' L", "setup": "U L' U L R U R'" },
-                { "name": "Left Polish Flip", "alg": "L' U L R U R'", "setup": "U' R U' R' L' U' L" },
-                { "name": "SUS", "alg": "R' L R L' U' R' L R L'", "setup": "U' L R' L' R U L R' L' R" },
-                { "name": "Anti SUS", "alg": "L R' L' R U L R' L' R", "setup": "U R' L R L' U' R' L R L'" }
-            ],
-            "Separated Bar": [
-                { "name": "Good Niky", "alg": "R U' R' L' U L", "setup": "L' U' L R U R'" },
-                { "name": "Good Sochi", "alg": "L' U L R U' R'", "setup": "R U R' L' U' L" },
-                { "name": "Super Sledge", "alg": "R U' R2' L R L'", "setup": "U' L R' L' R2 U R'" },
-                { "name": "Super Hedge", "alg": "L' U L2' R' L' R", "setup": "R' U' L' U L2 R L'" },
-                { "name": "Bad Niky", "alg": "R U' R' U' L' U L", "setup": "U' L' U' L U R U R'" },
-                { "name": "Bad Sochi", "alg": "L' U L U R U' R'", "setup": "U R U R' U' L' U' L" }
-            ],
-            "Connected Bar": [
-                { "name": "Right Spam", "alg": "R U R' U R' L R L'", "setup": "R U R' L' U' L R U R' U'" },
-                { "name": "Left Spam", "alg": "L' U' L U' L R' L' R", "setup": "L' U' L R U R' L' U' L U" },
-                { "name": "Bad Sledge", "alg": "L R' L' R U' R U' R'", "setup": "U R U R' U R' L R L'" },
-                { "name": "Bad Hedge", "alg": "R' L R L' U L' U L", "setup": "U' L' U L R U R' L' U L U" }
-            ],
-            "No Bar": [
-                { "name": "Bad Sexy", "alg": "L' U' L U' R U' R'", "setup": "R U R' U L' U L" },
-                { "name": "Bad Ugly", "alg": "R U R' U L' U L", "setup": "L' U' L U' R U' R'" },
-                { "name": "Bad Righty", "alg": "L' U L U' R U R'", "setup": "U R U' R' U L' U' L" },
-                { "name": "Bad Lefty", "alg": "R U' R' U L' U' L", "setup": "U' L' U L U' R U R'" },
-                { "name": "Double Sexy", "alg": "R U' R' U' R U R'", "setup": "U' R U' R' U R U R'" },
-                { "name": "Double Ugly", "alg": "L' U L U L' U' L", "setup": "U L' U L U' L' U' L" }
-            ]
-        }
+        "L4E": [
+            { "name": "Sune", "alg": "R U R' U R U R'", "setup": "L' U' L U' L' U' L" },
+            { "name": "AntiSune", "alg": "R U' R' U' R U' R'", "setup": "R U R' U R U R'" },
+            { "name": "Lefty Bars", "alg": "R' U' L' U L R", "setup": "R' L' U' L U R" },
+            { "name": "Righty Bars", "alg": "L U R U' R' L'", "setup": "L R U R' U' L'" },
+            { "name": "Sledge", "alg": "R' L R L'", "setup": "L R' L' R" },
+            { "name": "Hedge", "alg": "L R' L' R", "setup": "R' L R L'" },
+            { "name": "Clockwise", "alg": "L R' L' R2 U' R'", "setup": "L' U L U R U R'" },
+            { "name": "Counterclockwise", "alg": "R' L R L2' U L", "setup": "R U' R' U' L' U' L" },
+            { "name": "Righty", "alg": "R U' R'", "setup": "U' R U R'" },
+            { "name": "Lefty", "alg": "L' U L", "setup": "U L' U' L" },
+            { "name": "Sexy", "alg": "U' R U R'", "setup": "R U' R' U" },
+            { "name": "Left Sexy", "alg": "U L' U' L", "setup": "L' U L U'" },
+            { "name": "2 Flip", "alg": "R' L R L' U L' U' L", "setup": "U' R' U L' U L U' R" },
+            { "name": "DR Flip", "alg": "L' U L U' R U' R'", "setup": "U' R U R' U L' U' L" },
+            { "name": "DL Flip", "alg": "R' L R L' R U' R'", "setup": "U L' U' L U' R U R'" },
+            { "name": "DB Flip", "alg": "R U R' U L' U' L", "setup": "U L' U L U' R U' R'" },
+            { "name": "4 Flip", "alg": "L' U L R U' R' L' U L R U' R'", "setup": "L' U' L R U R' L' U' L R U R'" },
+            { "name": "Right Polish Flip", "alg": "R U' R' L' U' L", "setup": "U L' U L R U R'" },
+            { "name": "Left Polish Flip", "alg": "L' U L R U R'", "setup": "U' R U' R' L' U' L" },
+            { "name": "SUS", "alg": "R' L R L' U' R' L R L'", "setup": "U' L R' L' R U L R' L' R" },
+            { "name": "Anti SUS", "alg": "L R' L' R U L R' L' R", "setup": "U R' L R L' U' R' L R L'" },
+            { "name": "Good Niky", "alg": "R U' R' L' U L", "setup": "L' U' L R U R'" },
+            { "name": "Good Sochi", "alg": "L' U L R U' R'", "setup": "R U R' L' U' L" },
+            { "name": "Super Sledge", "alg": "R U' R2' L R L'", "setup": "U' L R' L' R2 U R'" },
+            { "name": "Super Hedge", "alg": "L' U L2' R' L' R", "setup": "R' U' L' U L2 R L'" },
+            { "name": "Bad Niky", "alg": "R U' R' U' L' U L", "setup": "U' L' U' L U R U R'" },
+            { "name": "Bad Sochi", "alg": "L' U L U R U' R'", "setup": "U R U R' U' L' U' L" },
+            { "name": "Right Spam", "alg": "R U R' U R' L R L'", "setup": "R U R' L' U' L R U R' U'" },
+            { "name": "Left Spam", "alg": "L' U' L U' L R' L' R", "setup": "L' U' L R U R' L' U' L U" },
+            { "name": "Bad Sledge", "alg": "L R' L' R U' R U' R'", "setup": "U R U R' U R' L R L'" },
+            { "name": "Bad Hedge", "alg": "R' L R L' U L' U L", "setup": "U' L' U L R U R' L' U L U" },
+            { "name": "Bad Sexy", "alg": "L' U' L U' R U' R'", "setup": "R U R' U L' U L" },
+            { "name": "Bad Ugly", "alg": "R U R' U L' U L", "setup": "L' U' L U' R U' R'" },
+            { "name": "Bad Righty", "alg": "L' U L U' R U R'", "setup": "U R U' R' U L' U' L" },
+            { "name": "Bad Lefty", "alg": "R U' R' U L' U' L", "setup": "U' L' U L U' R U R'" },
+            { "name": "Double Sexy", "alg": "R U' R' U' R U R'", "setup": "U' R U' R' U R U R'" },
+            { "name": "Double Ugly", "alg": "L' U L U L' U' L", "setup": "U L' U L U' L' U' L" }
+        ]
     },
     "Megaminx": {
         "PLL": []

@@ -33,10 +33,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=8ca4e91d">
-    <link rel="stylesheet" href="page.css?v=d7f88d3e">
+    <link rel="stylesheet" href="style.css?v=3f026ab2">
+    <link rel="stylesheet" href="page.css?v=3104419d">
 
-    <script src="analytics.js?v=820df5ea"></script>
+    <script src="analytics.js?v=93ef4ca4"></script>
+    <script src="consent.js?v=1f712fb6"></script>
     <meta name="google-adsense-account" content="ca-pub-1447384831345579">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
      crossorigin="anonymous"></script>
@@ -119,10 +120,21 @@
 
     <h2>How it stays free</h2>
 
-    <p>CubingHQ is free and always will be. Hosting and the domain are paid for with
-    advertising. There is no subscription, no paid tier, no account to create, and nothing
-    behind a paywall. We do not sell data — see the <a href="/privacy.html">Privacy
-    Policy</a> for exactly what that means in practice.</p>
+    <p>Everything on the site today is free: there is no checkout, no subscription, and
+    nothing behind a paywall. You can create an account if you want friends, the AI Coach or
+    your settings kept, but almost everything works without one.</p>
+
+    <p>Nor is it earning anything yet. There is no advertising running on the site, so
+    hosting and the domain currently come out of one person's pocket. The plan is to cover
+    those costs with advertising — that is why you were asked about cookies.</p>
+
+    <p>A paid Premium tier is being built. If it launches, the free tools listed on this
+    page stay free — but it would be a promise we cannot keep to say that nothing will ever
+    be paid, so we are not making it. The
+    <a href="/refunds.html">Refund Policy</a> is published in advance either way.</p>
+
+    <p>We do not sell data — see the <a href="/privacy.html">Privacy Policy</a> for exactly
+    what that means in practice.</p>
 
     <h2>What it is not</h2>
 
@@ -158,6 +170,45 @@
     <p>Bugs, corrections, feature requests, or a note that something is wrong in a guide —
     all welcome at <a href="mailto:martimcubing@gmail.com">martimcubing@gmail.com</a>
     or via the <a href="/contact.html">contact page</a>.</p>
+
+    <h2 id="legal">Legal and operator details</h2>
+
+    <p>Published so that anyone who needs to know who is behind this site, or who needs to
+    serve a formal notice, can find it in one place. Required of an information society
+    service provider by Decreto-Lei n.º 7/2004.</p>
+
+    <!-- REQUIRED BEFORE THIS IS COMPLETE
+         Art. 10 of Decreto-Lei n.º 7/2004 wants the provider's NAME and a GEOGRAPHIC
+         ADDRESS, not just an email address. Fill in the two lines marked below with
+         the operator's full legal name and a postal address they are willing to
+         publish. If publishing a home address is not acceptable — and it usually is
+         not — the normal routes are to register as an empresário em nome individual
+         and publish the business address, or to rent a registered/virtual address.
+         Add the NIF here too once one applies. -->
+    <div class="page-table-scroll">
+    <table class="page-table">
+        <tbody>
+            <tr><th>Service</th><td>CubingHQ (<a href="https://cubinghq.online">cubinghq.online</a>)</td></tr>
+            <tr><th>Operated by</th><td>An individual based in Portugal, acting in a personal capacity. Not a registered company.</td></tr>
+            <tr><th>Postal address</th><td>Available on request by email, for formal correspondence.</td></tr>
+            <tr><th>Email</th><td><a href="mailto:martimcubing@gmail.com">martimcubing@gmail.com</a></td></tr>
+            <tr><th>Data controller</th><td>The operator named above. See the <a href="/privacy.html">Privacy Policy</a>.</td></tr>
+            <tr><th>Supervisory authority</th><td>Comissão Nacional de Proteção de Dados (<a href="https://www.cnpd.pt" target="_blank" rel="noopener noreferrer">CNPD</a>), Portugal</td></tr>
+            <tr><th>VAT / company number</th><td>None — no business is registered and nothing is sold.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <p>Content on this site is the operator's own except where credited. The interface, the
+    icons and the social preview image are generated from code in the project's own
+    repository; no stock photography or third-party imagery is used. Country flags come
+    from <a href="https://flagcdn.com" target="_blank" rel="noopener noreferrer">flagcdn.com</a>,
+    and the typefaces (Inter, JetBrains Mono, Space Grotesk) are used under the SIL Open
+    Font License. Algorithms, scrambles and puzzle rendering are credited in the
+    <a href="/terms.html">Terms of Use</a>.</p>
+
+    <p>If you believe something here infringes your rights, email the address above with
+    enough detail to identify it and we will remove it promptly while we look into it.</p>
 </main>
 
 <footer class="site-footer">
@@ -169,7 +220,10 @@
             <a href="/about.html">About</a>
             <a href="/contact.html">Contact</a>
             <a href="/privacy.html">Privacy</a>
+            <a href="/cookies.html">Cookies</a>
             <a href="/terms.html">Terms</a>
+            <a href="/refunds.html">Refunds</a>
+            <button type="button" class="site-footer-linkbtn" onclick="window.CubingConsent &amp;&amp; window.CubingConsent.reopen()">Cookie settings</button>
         </nav>
         <div class="site-footer-legal">
             <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>

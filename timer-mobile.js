@@ -155,6 +155,13 @@
 
     // ---------- top bar ----------
 
+    // The chip mirrors the settings <select>, but the SESSION is what
+    // actually decides the event and the scramble on screen. Those two
+    // disagree for one render on load: renderAll() announces the session
+    // list before renderSettings() has pushed the session's event into
+    // the select, so mirroring the select alone left the chip showing
+    // 3x3x3 over a 4x4 scramble. Read the session first, and fall back
+    // to the select only when the timer module is not up yet.
     function syncEventSelect() {
         const mine = $('#cs-mtop-event');
         const theirs = $('#cs-setting-event');
@@ -162,7 +169,13 @@
         if (mine.options.length !== theirs.options.length) {
             mine.innerHTML = theirs.innerHTML;
         }
-        mine.value = theirs.value;
+        const M = window.TimerModule;
+        const event = (M && typeof M.getCurrentEvent === 'function')
+            ? M.getCurrentEvent()
+            : theirs.value;
+        mine.value = event;
+        // Keep the settings sheet honest too, for the same reason.
+        if (theirs.value !== event) theirs.value = event;
     }
 
     function syncSessionSelect() {

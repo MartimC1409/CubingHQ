@@ -29,6 +29,8 @@ const PRECACHE_URLS = [
     '/about.html',
     '/contact.html',
     '/privacy.html',
+    '/cookies.html',
+    '/refunds.html',
     '/terms.html',
     '/guides/index.html',
     '/manifest.webmanifest',

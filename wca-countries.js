@@ -232,6 +232,7 @@
     }));
 
     const byId = new Map(countries.map(c => [c.id, c]));
+    const byIso2 = new Map(countries.map(c => [c.iso2, c]));
     const continentById = new Map(continents.map(c => [c.id, c]));
 
     window.WcaCountries = {
@@ -248,5 +249,17 @@
         },
         /** ISO2 for a country region id, or '' for world/continents. */
         iso2: id => (byId.get(id) || {}).iso2 || '',
+        /**
+         * Country name for an ISO2 code ("PT" -> "Portugal").
+         *
+         * The forward direction is what the records view needs; this is
+         * for alt text, where a screen reader announcing "P T" instead of
+         * "Portugal" is the difference between a flag that says something
+         * and one that reads as noise.
+         */
+        nameForIso2: code => {
+            const c = String(code || '').toUpperCase();
+            return (byIso2.get(c) || {}).name || '';
+        },
     };
 })();

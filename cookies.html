@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Cookie Policy — CubingHQ</title>
+    <meta name="description" content="Every cookie and browser storage key CubingHQ uses, what each one is for, how long it lasts, and how to change or withdraw your consent.">
+    <link rel="canonical" href="https://cubinghq.online/cookies.html">
+
+    <script>
+        (function () {
+            try {
+                var m = localStorage.getItem('sc-theme');
+                var a = localStorage.getItem('sc-accent');
+                document.documentElement.setAttribute('data-theme',
+                    (m === 'light' || m === 'dark') ? m : 'dark');
+                document.documentElement.setAttribute('data-accent',
+                    ['orange', 'green', 'blue', 'red'].indexOf(a) !== -1 ? a : 'orange');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-accent', 'orange');
+            }
+        })();
+    </script>
+
+    <meta property="og:title" content="Cookie Policy — CubingHQ">
+    <meta property="og:description" content="Every cookie and storage key CubingHQ uses, and how to change your consent.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://cubinghq.online/cookies.html">
+    <meta property="og:site_name" content="CubingHQ">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3f026ab2">
+    <link rel="stylesheet" href="page.css?v=3104419d">
+
+    <script src="analytics.js?v=93ef4ca4"></script>
+    <script src="consent.js?v=1f712fb6"></script>
+    <meta name="google-adsense-account" content="ca-pub-1447384831345579">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1447384831345579"
+     crossorigin="anonymous"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+</head>
+<body class="page-body">
+
+<header class="page-topbar">
+    <a class="page-topbar-brand" href="/">Cubing<span class="brand-accent">HQ</span></a>
+    <nav class="page-topbar-links" aria-label="Site pages">
+        <a href="/guides/">Guides</a>
+        <a href="/about.html">About</a>
+        <a href="/contact.html">Contact</a>
+    </nav>
+</header>
+
+<main class="page-wrap">
+    <p class="page-crumb"><a href="/">Home</a> → Cookie Policy</p>
+
+    <h1>Cookie Policy</h1>
+    <p class="page-meta">Last updated: 8 September 2026</p>
+
+    <p class="page-lede">This page lists everything CubingHQ stores in your browser — real
+    cookies and the <code>localStorage</code> entries that do a similar job — what each one
+    is for, and how long it stays. It is a companion to the
+    <a href="/privacy.html">Privacy Policy</a>, which covers everything else.</p>
+
+    <p style="margin-top: 1.5rem;">
+        <button type="button" class="page-cta" onclick="window.CubingConsent &amp;&amp; window.CubingConsent.reopen()">
+            Change your cookie choices
+        </button>
+    </p>
+
+    <h2>Do you need to consent?</h2>
+
+    <p>Portuguese law (Law no. 41/2004, implementing the EU ePrivacy Directive) and the
+    GDPR say that storing anything on your device, or reading anything from it, needs your
+    consent — <strong>unless</strong> it is strictly necessary to provide the service you
+    asked for.</p>
+
+    <p>So the answer is different for the two groups below:</p>
+
+    <ul>
+        <li><strong>Strictly necessary</strong> — no consent needed, and none is asked for. These are entries the site sets to do the thing you are using it for: remember your theme, keep you signed in, hold your solve times. They are first-party, they never leave your device, and they are not used to track you or to build a profile.</li>
+        <li><strong>Analytics and advertising</strong> — consent needed, and nothing is set until you give it. These are Google's cookies, and they can follow you across sites. Analytics is live; advertising is not running yet, and is in the banner so it cannot be turned on later without asking.</li>
+    </ul>
+
+    <p>You are asked once, on your first visit. Rejecting is one click, in the same place
+    and the same size as accepting. If you do nothing, nothing in the second group is set.
+    You can change your answer whenever you like using the button above, or the
+    <em>Cookie settings</em> link in the footer of every page.</p>
+
+    <h2>Strictly necessary — always on</h2>
+
+    <p>These are <code>localStorage</code> entries rather than cookies, which means they
+    are never sent to our server; the page reads them on your own device. They persist
+    until you clear your browser's site data for CubingHQ.</p>
+
+    <div class="page-table-scroll">
+    <table class="page-table">
+        <thead><tr><th>Name</th><th>What it holds</th></tr></thead>
+        <tbody>
+            <tr><td><code>sc-consent</code></td><td>Your answer to the cookie banner. Without it you would be asked on every page.</td></tr>
+            <tr><td><code>sc-theme</code>, <code>sc-accent</code></td><td>Dark or light, and your accent colour.</td></tr>
+            <tr><td><code>chq_lang</code></td><td>Your language choice.</td></tr>
+            <tr><td><code>chq_auth_token</code></td><td>Your sign-in session, if you have an account. Deleting it signs you out.</td></tr>
+            <tr><td><code>wca_access_token</code></td><td>Your World Cube Association sign-in token, if you use WCA sign-in.</td></tr>
+            <tr><td><code>chq_wca_link_intent</code></td><td>A short-lived marker set while you link a WCA account, so the site knows you were linking rather than signing in. Cleared as soon as you return.</td></tr>
+            <tr><td><code>cstimer_data_v2</code></td><td>Your timer sessions, solve times and timer settings.</td></tr>
+            <tr><td><code>sc-history</code>, <code>sc-sim-state</code>, <code>sc-last-activity</code></td><td>Your competition-simulation history, and any round you are part-way through, so a reload does not lose it.</td></tr>
+            <tr><td><code>sc-comp-muted</code>, <code>sc-comp-volume</code></td><td>Whether the ambient competition-room sound is muted, and how loud.</td></tr>
+            <tr><td><code>sor-people</code></td><td>The list of WCA IDs on your Sum of Ranks board.</td></tr>
+            <tr><td><code>battle_uid</code>, <code>sc_guest_id</code>, <code>chq_last_room_created</code></td><td>A random identifier so a Battle room can tell players apart, and which room you last made. Not linked to you unless you are signed in.</td></tr>
+            <tr><td><code>chq_coach_v1</code>, <code>chq_coach_chat_v1</code>, <code>chq_coach_observations_v1</code>, <code>chq_coach_drill_result</code></td><td>Your AI Coach plan, conversation, recorded observations and the result of a drill handed to the timer.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h2>Analytics — only with your consent</h2>
+
+    <p>Set by <strong>Google Analytics 4</strong> so we can see which pages are used and
+    which are broken. It reports in aggregate; we do not use it to identify anyone.</p>
+
+    <div class="page-table-scroll">
+    <table class="page-table">
+        <thead><tr><th>Cookie</th><th>Set by</th><th>Purpose</th><th>Expires</th></tr></thead>
+        <tbody>
+            <tr><td><code>_ga</code></td><td>Google</td><td>Tells one browser from another</td><td>2 years</td></tr>
+            <tr><td><code>_ga_&lt;id&gt;</code></td><td>Google</td><td>Keeps session state for this property</td><td>2 years</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h2>Advertising — not running yet, and only with your consent</h2>
+
+    <p><strong>No advertising is being shown on CubingHQ at the moment, so none of the
+    cookies in this section is currently being set.</strong> The site is not part of an
+    advertising programme yet. Google's verification code sits on the page so it can be
+    reviewed, and advertising stays in the cookie banner so nothing has to be switched on
+    behind your back later — if you have already said no, it stays no.</p>
+
+    <p>These are the cookies that <em>would</em> be set by <strong>Google AdSense</strong>
+    once advertising is enabled. They can be read across other sites in Google's network,
+    which is what makes ads "personalised".</p>
+
+    <div class="page-table-scroll">
+    <table class="page-table">
+        <thead><tr><th>Cookie</th><th>Set by</th><th>Purpose</th><th>Expires</th></tr></thead>
+        <tbody>
+            <tr><td><code>__gads</code>, <code>__gpi</code></td><td>Google</td><td>Ad selection, frequency capping and fraud prevention</td><td>Up to 13 months</td></tr>
+            <tr><td><code>IDE</code>, <code>DSID</code></td><td>Google (doubleclick.net)</td><td>Measuring and personalising ads</td><td>Up to 13 months</td></tr>
+            <tr><td><code>test_cookie</code></td><td>Google (doubleclick.net)</td><td>Checks whether your browser accepts cookies at all</td><td>15 minutes</td></tr>
+            <tr><td><code>NID</code></td><td>Google</td><td>Ad preferences</td><td>6 months</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <p>Google may change this list; the current version is always at
+    <a href="https://business.safety.google/adscookies/" rel="noopener noreferrer" target="_blank">business.safety.google/adscookies</a>.
+    Turning advertising off does not remove ads — it means the ones you see are chosen
+    without your browsing history.</p>
+
+    <h2>Not cookies, but worth naming</h2>
+
+    <ul>
+        <li><strong>Vercel Web Analytics and Speed Insights</strong> measure page views and load performance without cookies and without tracking you between sites, so they are not in the consent groups above.</li>
+        <li><strong>Google Fonts, jsDelivr, cdn.cubing.net and flagcdn.com</strong> serve fonts, scripts and flag images. They set no cookies here, but like any web request they see your IP address.</li>
+    </ul>
+
+    <h2>Turning cookies off in your browser</h2>
+
+    <p>Every browser lets you block or delete cookies —
+    <a href="https://support.google.com/chrome/answer/95647" rel="noopener noreferrer" target="_blank">Chrome</a>,
+    <a href="https://support.mozilla.org/kb/cookies-information-websites-store-on-your-computer" rel="noopener noreferrer" target="_blank">Firefox</a>,
+    <a href="https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac" rel="noopener noreferrer" target="_blank">Safari</a>,
+    <a href="https://support.microsoft.com/microsoft-edge" rel="noopener noreferrer" target="_blank">Edge</a>.
+    Blocking everything will also clear the strictly necessary entries above, which means
+    losing your solve history and being signed out. Export anything you care about
+    first.</p>
+
+    <h2>Questions</h2>
+
+    <p><a href="mailto:martimcubing@gmail.com">martimcubing@gmail.com</a>, or the
+    <a href="/contact.html">contact page</a>.</p>
+</main>
+
+<footer class="site-footer">
+    <div class="site-footer-inner">
+        <nav class="site-footer-nav" aria-label="Footer">
+            <a href="/">Home</a>
+            <a href="/timer.html">Timer</a>
+            <a href="/guides/">Guides</a>
+            <a href="/about.html">About</a>
+            <a href="/contact.html">Contact</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/cookies.html">Cookies</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/refunds.html">Refunds</a>
+            <button type="button" class="site-footer-linkbtn" onclick="window.CubingConsent &amp;&amp; window.CubingConsent.reopen()">Cookie settings</button>
+        </nav>
+        <div class="site-footer-legal">
+            <span><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>
+            <span>Algorithms sourced from <a href="https://speedcubedb.com" target="_blank" rel="noopener noreferrer">SpeedCubeDB</a> · Scrambles &amp; puzzle rendering by <a href="https://js.cubing.net" target="_blank" rel="noopener noreferrer">cubing.js</a> · Inspired by <a href="https://cstimer.net" target="_blank" rel="noopener noreferrer">csTimer</a>.</span>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

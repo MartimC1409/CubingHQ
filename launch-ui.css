@@ -28,7 +28,10 @@
     --lu-fg: oklch(0.985 0 0);
     --lu-muted: oklch(0.274 0.006 286.033);
     --lu-muted-fg: oklch(0.705 0.015 286.067);
-    --lu-subtle-fg: oklch(0.552 0.016 285.938);
+    /* Was oklch(0.552 …): 4.12:1 on the page background and 3.56:1 on a
+       surface, both under WCAG AA for body text. 0.62 measures 5.45:1
+       and 4.71:1 respectively, and still reads as secondary. */
+    --lu-subtle-fg: oklch(0.62 0.016 285.938);
     --lu-border: rgba(255, 255, 255, 0.10);
     --lu-border-top: rgba(255, 255, 255, 0.22);
     --lu-border-bottom: rgba(255, 255, 255, 0.05);
@@ -62,6 +65,13 @@
                         text (chips, sliders, action buttons), so every
                         existing `color: #fff` pairing stays legible. */
     --clr-primary: oklch(0.60 0.19 44);
+    /* The accent as a FILL with text on it. --clr-primary is tuned to be
+       legible AS TEXT on a dark page, which leaves white on top of it at
+       4.24:1. One token cannot do both jobs: every lightness that fixes
+       one breaks the other. At L=0.52 white clears 4.5:1 on all four
+       accents (orange 5.94, green 4.96, blue 5.50, red 6.08). */
+    --clr-primary-solid: oklch(0.52 0.19 44);
+    --clr-on-primary: #fff;
     --clr-primary-hover: oklch(0.67 0.18 48);
     --clr-primary-glow: color-mix(in oklab, var(--brand) 25%, transparent);
     --clr-accent: oklch(0.60 0.19 44);
@@ -111,7 +121,8 @@
     --lu-fg: oklch(0.141 0.005 285.823);
     --lu-muted: oklch(0.967 0.001 286.375);
     --lu-muted-fg: oklch(0.552 0.016 285.938);
-    --lu-subtle-fg: oklch(0.62 0.014 286.0);
+    /* Was oklch(0.62 …) on a near-white ground: 3.42:1. 0.52 is 5.16:1. */
+    --lu-subtle-fg: oklch(0.52 0.014 286.0);
     --lu-border: oklch(0.92 0.004 286.32);
     --lu-border-top: oklch(0.94 0.004 286.32);
     --lu-border-bottom: oklch(0.90 0.004 286.32);
@@ -152,24 +163,28 @@
     --brand: oklch(83.6% 0.1177 66.87);
     --brand-foreground: oklch(75.77% 0.159 55.91);
     --clr-primary: oklch(0.58 0.19 44);
+    --clr-primary-solid: oklch(0.52 0.19 44);
     --clr-primary-hover: oklch(0.65 0.18 48);
 }
 [data-accent="green"] {
     --brand: oklch(0.84 0.14 158);
     --brand-foreground: oklch(0.74 0.16 155);
     --clr-primary: oklch(0.52 0.17 152);
+    --clr-primary-solid: oklch(0.52 0.17 152);
     --clr-primary-hover: oklch(0.59 0.16 152);
 }
 [data-accent="blue"] {
     --brand: oklch(0.82 0.11 235);
     --brand-foreground: oklch(0.72 0.14 240);
     --clr-primary: oklch(0.54 0.19 253);
+    --clr-primary-solid: oklch(0.52 0.19 253);
     --clr-primary-hover: oklch(0.61 0.17 253);
 }
 [data-accent="red"] {
     --brand: oklch(0.78 0.13 25);
     --brand-foreground: oklch(0.70 0.17 27);
     --clr-primary: oklch(0.56 0.19 25);
+    --clr-primary-solid: oklch(0.52 0.19 25);
     --clr-primary-hover: oklch(0.63 0.18 25);
 }
 
@@ -640,6 +655,7 @@ body {
 .bento-timer  { grid-column: span 5; }
 .bento-algs   { grid-column: span 6; }
 .bento-records{ grid-column: span 6; }
+.bento-sor    { grid-column: span 12; }
 .bento-comps  { grid-column: span 12; }
 
 .bento-card::before {
@@ -789,6 +805,12 @@ body {
 .bento-comps-inner { display: flex; align-items: center; gap: 18px; width: 100%; }
 .bento-comps-text { flex: 1; }
 .bento-comps .bento-title { margin-bottom: 3px; }
+
+/* Same wide, single-row treatment as the competitions card. */
+.bento-sor { padding: 20px 24px; }
+.bento-sor-inner { display: flex; align-items: center; gap: 18px; width: 100%; }
+.bento-sor-text { flex: 1; }
+.bento-sor .bento-title { margin-bottom: 3px; }
 
 /* Section heading above the bento grid */
 .lu-section-head {
@@ -1219,8 +1241,8 @@ select.form-select {
     .bento-sim { grid-row: auto; }
 }
 @media (max-width: 640px) {
-    .bento-sim, .bento-battle, .bento-timer, .bento-algs, .bento-records, .bento-comps { grid-column: span 12; }
-    .bento-comps-inner { flex-wrap: wrap; }
+    .bento-sim, .bento-battle, .bento-timer, .bento-algs, .bento-records, .bento-comps, .bento-sor { grid-column: span 12; }
+    .bento-comps-inner, .bento-sor-inner { flex-wrap: wrap; }
 }
 
 /* ============================================================
@@ -1577,8 +1599,8 @@ select.form-select {
 .records-filter-chip:hover { color: var(--clr-text); }
 
 .records-filter-chip.active {
-    background: var(--clr-primary);
-    color: #fff;
+    background: var(--clr-primary-solid, var(--clr-primary));
+    color: var(--clr-on-primary, #fff);
     font-weight: 600;
 }
 
@@ -2270,8 +2292,8 @@ select.form-select {
 }
 .alg-group-chip:hover { color: var(--clr-text); border-color: var(--clr-border-active); }
 .alg-group-chip.active {
-    background: var(--clr-primary);
-    color: #fff;
+    background: var(--clr-primary-solid, var(--clr-primary));
+    color: var(--clr-on-primary, #fff);
     border-color: transparent;
 }
 .alg-group-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
@@ -2521,4 +2543,274 @@ select.form-select {
 
 @media (max-width: 700px) {
     .home-ad { margin-top: 32px; padding: 0 16px; }
+}
+
+/* ============================================================
+   Sum of Ranks
+   ------------------------------------------------------------
+   A competitor's rank in every event, added up. The board is the
+   comparison (several people, lowest total first); the breakdown
+   below it is one person, event by event, with a bar showing how
+   much of the total each event is carrying.
+   ============================================================ */
+
+.sor-search-card {
+    max-width: 900px;
+    margin: 0 auto var(--space-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    align-items: center;
+}
+
+.sor-lookup {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+}
+
+.sor-input {
+    flex: 1 1 220px;
+    max-width: 280px;
+    text-align: center;
+    text-transform: uppercase;
+    background-color: var(--clr-surface-alt, var(--clr-surface));
+    border: 1px solid var(--clr-border);
+}
+
+.sor-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.sor-controls .records-filter-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Loading / error strip. Deliberately its own class rather than the
+   competitions view's unstyled .comp-info-state. */
+.sor-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    max-width: 900px;
+    margin: 0 auto var(--space-md);
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--clr-border);
+    border-radius: 12px;
+    background: var(--clr-surface);
+    color: var(--clr-text-muted);
+    font-size: 0.9rem;
+}
+
+.sor-state--error {
+    border-color: color-mix(in oklab, #e5484d 45%, var(--clr-border));
+    color: #e5484d;
+}
+
+.sor-empty {
+    max-width: 620px;
+    margin: 0 auto var(--space-xl);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: var(--clr-text-muted);
+}
+
+.sor-empty-icon { font-size: 2.4rem; line-height: 1; margin-bottom: 0.6rem; }
+.sor-empty-title { font-weight: 700; color: var(--clr-text); margin-bottom: 0.35rem; }
+.sor-empty-desc { font-size: 0.9rem; }
+
+.sor-board-card,
+.sor-detail-card {
+    max-width: 900px;
+    margin: 0 auto var(--space-lg);
+    padding: 1.25rem 1.4rem 1.4rem;
+}
+
+.sor-board-head,
+.sor-detail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.sor-detail-id { display: flex; align-items: center; gap: 0.75rem; }
+.sor-detail-flag { display: inline-flex; }
+.sor-detail-name { font-size: 1.05rem; margin: 0; }
+.sor-detail-meta { font-size: 0.82rem; color: var(--clr-text-muted); margin: 2px 0 0; }
+
+.sor-detail-total { text-align: right; }
+.sor-detail-total-num {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--clr-primary);
+}
+.sor-detail-total-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+}
+
+.sor-table-wrap { overflow-x: auto; }
+
+.sor-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.sor-table th {
+    padding: 0.55rem 0.6rem;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+    border-bottom: 1px solid var(--clr-border);
+    white-space: nowrap;
+}
+
+.sor-table td {
+    padding: 0.6rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--clr-border) 55%, transparent);
+    vertical-align: middle;
+}
+
+.sor-table tbody tr:last-child td { border-bottom: 0; }
+
+.sor-th-num, .sor-table td.sor-num {
+    text-align: right;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+}
+
+.sor-th-pos, .sor-table td.sor-pos {
+    width: 2.5rem;
+    text-align: center;
+    font-family: var(--font-mono);
+    color: var(--clr-text-muted);
+}
+
+.sor-table td.sor-total { font-weight: 700; color: var(--clr-primary); }
+
+.sor-board-row { cursor: pointer; }
+.sor-board-row:hover td { background: var(--clr-surface-alt, transparent); }
+.sor-board-row.selected td { background: color-mix(in oklab, var(--clr-primary) 12%, transparent); }
+
+.sor-competitor { display: flex; align-items: center; gap: 0.55rem; }
+.sor-competitor-name { font-weight: 600; }
+.sor-competitor-id {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--clr-text-muted);
+}
+
+.sor-remove {
+    border: 0;
+    background: transparent;
+    color: var(--clr-text-muted);
+    font-size: 1.05rem;
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.sor-remove:hover { color: #e5484d; background: color-mix(in oklab, #e5484d 12%, transparent); }
+
+.sor-bar-cell { width: 34%; min-width: 120px; }
+.sor-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--clr-primary);
+    min-width: 2px;
+}
+.sor-bar-track {
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--clr-border) 70%, transparent);
+    overflow: hidden;
+}
+
+.sor-unranked td { color: var(--clr-text-muted); }
+.sor-unranked .sor-num { opacity: 0.65; }
+
+.sor-note {
+    margin: 0.9rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--clr-text-muted);
+}
+
+@media (max-width: 640px) {
+    .sor-search-card { padding: 1.1rem; }
+    .sor-controls { gap: 1rem; }
+    .sor-table { font-size: 0.82rem; }
+    .sor-table th, .sor-table td { padding: 0.5rem 0.35rem; }
+    .sor-table th { font-size: 0.6rem; letter-spacing: 0.03em; }
+    .sor-competitor-id { display: block; }
+    .sor-bar-cell { display: none; }
+    .sor-table th.sor-th-bar { display: none; }
+    /* The board has to fit without sideways scrolling: the average rank
+       is the total divided by the event count, both of which stay. */
+    .sor-col-avg { display: none; }
+}
+
+/* Consent boxes on the sign-up form (index.html #auth-consent-field).
+   Deliberately full-size checkboxes with a generous hit area: these are
+   the two things someone must actually read, so they should not be the
+   smallest controls on the form. */
+.lu-auth-consent {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0.25rem 0 0.9rem;
+}
+
+.lu-consent-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--clr-text-muted);
+    cursor: pointer;
+    padding: 0.2rem 0;
+}
+
+.lu-consent-row input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.12rem;
+    accent-color: var(--clr-primary);
+    cursor: pointer;
+}
+
+.lu-consent-row input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--clr-primary);
+    outline-offset: 2px;
+}
+
+.lu-consent-row a {
+    color: var(--clr-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
