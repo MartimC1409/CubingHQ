@@ -168,6 +168,56 @@ ok('consent can be withdrawn', video.includes('withdrawVideoConsent'));
 check('the ask happens before the file picker opens',
     video.indexOf('askVideoConsent()') < video.indexOf('input.click()'));
 
+/* ---- advertising claims match the advertising -------------------- */
+
+// The site is not in an advertising programme: the AdSense tags are on the
+// page for verification, but nothing is served. The policies said it was
+// "paid for by ads" and listed cookies nobody was being given, which is the
+// same class of mistake the rest of this file exists to catch — a policy
+// describing a site that does not exist.
+//
+// If advertising is switched on, invert these: the pages should stop saying
+// "not running" and this block should assert the opposite.
+// Matched as whole phrases rather than keywords: the corrected pages talk
+// about advertising constantly, including to say it is NOT running, and a
+// loose match on "paid for by ads" flags the sentence that fixed the bug.
+const AD_CLAIMS = [
+    'carries advertising to cover its running costs',
+    'carries advertising to cover hosting',
+    'is paid for by ads. That is the whole business model',
+    'Hosting and the domain are paid for with advertising',
+    "which pays for the site's running costs",
+];
+const AD_PAGES = ['privacy.html', 'cookies.html', 'refunds.html', 'terms.html', 'about.html'];
+for (const page of AD_PAGES) {
+    const html = read(page);
+    const found = AD_CLAIMS.filter(claim => html.includes(claim));
+    check(`${page} does not claim ads are paying for the site`, found.length === 0, found[0]);
+}
+ok('privacy.html says no advertising is running',
+    /No advertising is being shown on CubingHQ at the moment/.test(read('privacy.html')));
+ok('cookies.html says the ad cookies are not being set',
+    /none of the\s+cookies in this section is currently being set/.test(read('cookies.html')));
+ok('the banner does not claim ads pay for the site',
+    !/which pay for the site/.test(consent));
+
+// The ad cookies stay documented and the category stays in the banner, so
+// switching advertising on later cannot happen without a fresh choice.
+ok('the ad cookies are still documented for when it is switched on',
+    ['__gads', 'IDE', 'NID'].every(c => read('cookies.html').includes(c)));
+ok('advertising is still a consent category', consent.includes('cc-ads'));
+
+// The banner is the one thing every visitor has to read, so it is translated
+// wherever the page carries a translator at all.
+const i18n = read('i18n.js');
+for (const key of ['cc.title', 'cc.body', 'cc.acceptAll', 'cc.rejectAll',
+                   'cc.cat.necessary', 'cc.cat.analytics', 'cc.cat.ads']) {
+    const uses = (i18n.match(new RegExp("'" + key.replace(/\./g, '\\.') + "':", 'g')) || []).length;
+    check(`${key} is defined in both languages (${uses})`, uses === 2);
+}
+ok('the banner re-renders when the language changes',
+    consent.includes("'app-language-changed'"));
+
 /* ---- claims we cannot stand behind ------------------------------- */
 
 ok('no "most popular" badge on a plan nobody has bought', !index.includes('MOST POPULAR'));

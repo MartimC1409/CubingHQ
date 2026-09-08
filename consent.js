@@ -131,9 +131,10 @@
               '<div class="cc-text">' +
                 '<h2 class="cc-title" id="cc-title">' + T('cc.title', 'Cookies on CubingHQ') + '</h2>' +
                 '<p class="cc-body" id="cc-body">' +
-                  T('cc.body', 'We need cookies for measurement and advertising, which pay for the site. ' +
-                    'Nothing is set until you choose. The timer, your sessions and your settings work either way — ' +
-                    'they are stored on your device and never needed your permission.') +
+                  T('cc.body', 'We would like cookies for measurement, and for advertising if it is ' +
+                    'ever switched on — no ads run here today. Nothing is set until you choose. The timer, ' +
+                    'your sessions and your settings work either way: they are stored on your device and ' +
+                    'never needed your permission.') +
                   ' <a href="/cookies.html">' + T('cc.readMore', 'Cookie Policy') + '</a>' +
                 '</p>' +
                 '<div class="cc-options" id="cc-options" hidden>' +
@@ -152,7 +153,7 @@
                   '<label class="cc-option">' +
                     '<input type="checkbox" id="cc-ads">' +
                     '<span><strong>' + T('cc.cat.ads', 'Advertising') + '</strong><br>' +
-                    T('cc.cat.adsDesc', 'Google AdSense. Turn this off and you still see ads — they are just chosen without your browsing history.') +
+                    T('cc.cat.adsDesc', 'Google AdSense. Not running yet — this is here so it cannot be switched on later without asking you first.') +
                     '</span>' +
                   '</label>' +
                 '</div>' +
@@ -232,6 +233,22 @@
         apply(choice);
         hide();
     }
+
+    /* ---- language ------------------------------------------- */
+
+    // The banner is built once and cached, so a language switch while it is
+    // on screen would leave it in the old language — on the app pages, which
+    // are the ones that carry the switcher. Rebuild it in place.
+    // (The standalone legal pages do not load i18n.js at all and are English
+    // only by design, so this simply never fires there.)
+    document.addEventListener('app-language-changed', function () {
+        if (!el) return;
+        var wasOpen = el.classList.contains('cc-open');
+        var current = readChoice();
+        el.remove();
+        el = null;
+        if (wasOpen) show(current);
+    });
 
     /* ---- boot ----------------------------------------------- */
 
