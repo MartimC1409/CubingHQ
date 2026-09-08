@@ -49,7 +49,7 @@ const BLOB = [
     "const WCA_API = 'https://www.worldcubeassociation.org/api/v0';",
     slice('    const EVENT_NAMES = {', "'444bf': '4x4 BLD', '555bf': '5x5 BLD'\n    };"),
     slice('    function esc(s) {', "        .replace(/'/g, '&#39;');\n    }"),
-    slice('    function countryFlagImg(iso2, size = 20) {', '\n    }'),
+    slice('    function countryFlagImg(iso2, size = 20, altText) {', '\n    }'),
     slice('    function decodeMBLD(value) {', '\n    }'),
     slice('    function formatTime(seconds) {', '        return `${mins}:${secs}`;\n    }'),
     slice("    const WCA_EVENT_ORDER = ['333',", '        return formatTime(best / 100);\n    }'),

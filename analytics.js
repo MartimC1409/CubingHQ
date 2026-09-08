@@ -37,25 +37,34 @@
     // and it relies on `arguments`.
     window.gtag = function gtag() { window.dataLayer.push(arguments); };
 
-    // Denied where consent is legally required...
+    // Denied everywhere until someone answers the banner.
+    //
+    // This used to deny only in the regions listed above and grant
+    // everywhere else, which is what the law strictly requires. The banner
+    // in consent.js is shown to everyone, though, and it tells them
+    // "nothing is set until you choose" — which was not true for a visitor
+    // outside the EEA, for whom storage was granted before they read the
+    // sentence. A consent notice that misdescribes what already happened is
+    // a worse problem than the analytics it was protecting.
+    //
+    // The cost is real and worth knowing: visitors outside the EEA who
+    // ignore the banner are now counted as non-consenting, so analytics and
+    // personalised ads see fewer of them. Consent Mode's modelling covers
+    // some of that. To go back to regional defaults, restore the second
+    // call below with granted values and change the banner copy to match.
     window.gtag('consent', 'default', {
         ad_storage: 'denied',
         ad_user_data: 'denied',
         ad_personalization: 'denied',
         analytics_storage: 'denied',
-        region: CONSENT_REQUIRED_REGIONS,
-        // Give the CMP half a second to answer before any tag decides it is
+        // Give a CMP half a second to answer before any tag decides it is
         // running without consent; without this the first pageview races it.
         wait_for_update: 500
     });
 
-    // ...and granted everywhere else.
-    window.gtag('consent', 'default', {
-        ad_storage: 'granted',
-        ad_user_data: 'granted',
-        ad_personalization: 'granted',
-        analytics_storage: 'granted'
-    });
+    // Kept as documentation of who must never be granted by default, and
+    // read by the test that guards this file.
+    void CONSENT_REQUIRED_REGIONS;
 
     // Now pull in gtag.js itself. Injected rather than hard-coded into each
     // page so the measurement ID lives in exactly one place.

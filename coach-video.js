@@ -474,10 +474,107 @@
         }
     }
 
+    /* ---- consent, before any file is chosen ---------------------------
+       A clip of someone solving is the most identifying thing this site
+       handles: it shows their hands, their room, usually their face, often
+       their voice, and it leaves our infrastructure entirely — it goes to
+       Google to be analysed by a model. Everything else here is a number.
+
+       So this is the one place that asks first, in as many words, and asks
+       BEFORE the file picker opens rather than after a file is chosen —
+       once someone has picked the video, the dialog reads as a formality
+       to click past rather than a decision.
+
+       The answer is stored with a timestamp, which is what "be able to
+       demonstrate that the data subject has consented" (GDPR art. 7(1))
+       means in practice. Withdrawing it is one button on the same dialog,
+       and is as easy as giving it (art. 7(3)).
+    ------------------------------------------------------------------- */
+
+    const VIDEO_CONSENT_KEY = 'chq_coach_video_consent_v1';
+
+    function hasVideoConsent() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(VIDEO_CONSENT_KEY) || 'null');
+            return !!(raw && raw.granted);
+        } catch (e) { return false; }
+    }
+
+    function setVideoConsent(granted) {
+        try {
+            localStorage.setItem(VIDEO_CONSENT_KEY,
+                JSON.stringify({ granted: !!granted, at: Date.now(), v: 1 }));
+        } catch (e) { /* private mode: holds for this page only */ }
+    }
+
+    /** Resolves true if the person agreed, false if they backed out. */
+    function askVideoConsent() {
+        return new Promise((resolve) => {
+            const T = (k, f) => UI().T(k, f);
+            const wrap = document.createElement('div');
+            wrap.className = 'coach-consent-backdrop';
+            wrap.innerHTML =
+                '<div class="coach-consent" role="dialog" aria-modal="true" ' +
+                     'aria-labelledby="cv-consent-title" tabindex="-1">' +
+                  '<h2 id="cv-consent-title">' + T('coach.video.consentTitle', 'Before you upload a video') + '</h2>' +
+                  '<ul>' +
+                    '<li>' + T('coach.video.consent1', 'Your clip is uploaded to <strong>Google</strong> and analysed by its Gemini model. It is not analysed on our own servers.') + '</li>' +
+                    '<li>' + T('coach.video.consent2', 'A solving video usually shows your hands, your room, and often your face or voice.') + '</li>' +
+                    '<li>' + T('coach.video.consent3', 'We delete the file as soon as the analysis finishes. We keep only the written observations.') + '</li>' +
+                    '<li>' + T('coach.video.consent4', 'Only upload footage of yourself. Do not upload other people — especially other people\u2019s children — without their permission.') + '</li>' +
+                  '</ul>' +
+                  '<p class="coach-consent-more">' +
+                    T('coach.video.consentMore', 'The <a href="/privacy.html">Privacy Policy</a> explains this in full. Every other part of the Coach works without a video.') +
+                  '</p>' +
+                  '<div class="coach-consent-actions">' +
+                    '<button type="button" class="coach-btn coach-btn--primary" id="cv-agree">' +
+                      T('coach.video.consentAgree', 'I agree — choose a video') + '</button>' +
+                    '<button type="button" class="coach-btn" id="cv-cancel">' +
+                      T('coach.video.consentCancel', 'Cancel') + '</button>' +
+                  '</div>' +
+                '</div>';
+
+            const opener = document.activeElement;
+            document.body.appendChild(wrap);
+            const dialog = wrap.querySelector('.coach-consent');
+            dialog.focus({ preventScroll: true });
+
+            function close(answer) {
+                document.removeEventListener('keydown', onKey, true);
+                wrap.remove();
+                if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
+                resolve(answer);
+            }
+            function onKey(e) {
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); return; }
+                if (e.key !== 'Tab') return;
+                const stops = [...dialog.querySelectorAll('button, a[href]')];
+                if (!stops.length) return;
+                const first = stops[0], last = stops[stops.length - 1];
+                if (e.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+                    e.preventDefault(); last.focus();
+                } else if (!e.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+                    e.preventDefault(); first.focus();
+                }
+            }
+            document.addEventListener('keydown', onKey, true);
+
+            wrap.querySelector('#cv-agree').addEventListener('click', () => { setVideoConsent(true); close(true); });
+            wrap.querySelector('#cv-cancel').addEventListener('click', () => close(false));
+            // Clicking the backdrop is the same as cancelling, never as agreeing.
+            wrap.addEventListener('click', (e) => { if (e.target === wrap) close(false); });
+        });
+    }
+
     function init() {
         const input = $('#coach-video-file');
         const btn = $('#coach-video-pick');
-        if (btn && input) btn.addEventListener('click', () => input.click());
+        if (btn && input) {
+            btn.addEventListener('click', async () => {
+                if (!hasVideoConsent() && !await askVideoConsent()) return;
+                input.click();
+            });
+        }
         if (input) {
             input.addEventListener('change', () => {
                 const file = input.files && input.files[0];
@@ -494,6 +591,9 @@
 
     window.CoachVideo = {
         init, analyse, renderAnalysis,
+        hasVideoConsent, askVideoConsent,
+        /** Withdrawing is as easy as giving — GDPR art. 7(3). */
+        withdrawVideoConsent: () => setVideoConsent(false),
         get last() { return lastAnalysis; },
     };
 })();

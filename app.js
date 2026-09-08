@@ -150,12 +150,21 @@
         'minx': 0.08, 'clock': 0.15
     };
 
-    // Country ISO2 to flag image (works on Windows unlike emoji flags)
-    function countryFlagImg(iso2, size = 20) {
-        if (!iso2 || iso2.length !== 2) return '<span class="flag-placeholder">&#127757;</span>';
+    // Country ISO2 to flag image (works on Windows unlike emoji flags).
+    //
+    // The alt text is the country's NAME, not its code: a screen reader
+    // reading "P T" says nothing, and the flag is often the only place a
+    // row states which country someone competes for. Pass alt:'' for the
+    // cases where the name is already written next to it, so it is not
+    // announced twice.
+    function countryFlagImg(iso2, size = 20, altText) {
+        if (!iso2 || iso2.length !== 2) return '<span class="flag-placeholder" role="img" aria-label="Unknown country">&#127757;</span>';
         const code = iso2.toLowerCase();
-        const h = Math.round(size * 0.75);
-        return `<img src="https://flagcdn.com/${code}.svg" alt="${iso2}" class="country-flag" style="width: ${size}px; height: auto" loading="lazy" onerror="this.outerHTML='&#127757;'">`;
+        const W = window.WcaCountries;
+        const label = altText !== undefined
+            ? altText
+            : ((W && W.nameForIso2 && W.nameForIso2(iso2)) || iso2.toUpperCase());
+        return `<img src="https://flagcdn.com/${code}.svg" alt="${esc(label)}" class="country-flag" style="width: ${size}px; height: auto" loading="lazy" onerror="this.outerHTML='&#127757;'">`;
     }
 
     // Escape a string for safe interpolation into innerHTML.
@@ -432,6 +441,25 @@
 
         const password = passwordEl.value;
         if (!password) { showAuthError(i18nT('auth.needPassword', 'Enter your password.'), passwordEl); return; }
+
+        // Both boxes are checked here rather than with the `required`
+        // attribute, because the form is novalidate and a browser's own
+        // message would not be announced by the error region the rest of
+        // this form uses. Focus goes to the box that is missing.
+        if (mode === 'signup') {
+            const terms = $('#auth-accept-terms');
+            const age = $('#auth-confirm-age');
+            if (terms && !terms.checked) {
+                showAuthError(i18nT('auth.needTerms',
+                    'Please agree to the Terms of Use and Privacy Policy.'), terms);
+                return;
+            }
+            if (age && !age.checked) {
+                showAuthError(i18nT('auth.needAge',
+                    'You need to be 13 or older to create an account.'), age);
+                return;
+            }
+        }
 
         clearAuthError();
         const label = button.textContent;
@@ -927,6 +955,17 @@
         const nameField = $('#auth-name-field');
         if (nameField) nameField.style.display = signup ? 'block' : 'none';
 
+        // Only asked when an account is actually being created. Signing in
+        // again is not a fresh opportunity to agree to anything, and the
+        // boxes are cleared on every switch so a stale tick from an
+        // abandoned sign-up cannot stand in for a new one.
+        const consentField = $('#auth-consent-field');
+        if (consentField) consentField.style.display = signup ? 'block' : 'none';
+        const terms = $('#auth-accept-terms');
+        const age = $('#auth-confirm-age');
+        if (terms) terms.checked = false;
+        if (age) age.checked = false;
+
         // Forgotten-password mode asks for an email only — there is no
         // password to check yet, that is the whole point of being here.
         const passwordField = $('#auth-password-field');
@@ -977,6 +1016,33 @@
     function isLoginModalOpen() {
         const m = $('#login-modal');
         return !!m && m.style.display !== 'none';
+    }
+
+    // What counts as a stop on the Tab path. Matches the ARIA authoring
+    // practices list; [tabindex="-1"] is excluded because it means
+    // "focusable by script, not by Tab".
+    const FOCUSABLE_SELECTOR = [
+        'a[href]', 'button', 'input', 'select', 'textarea',
+        '[tabindex]:not([tabindex="-1"])',
+    ].join(', ');
+
+    // Every dialog in the app, in the order they would stack. Each is a
+    // full-screen overlay toggled with style.display, so "open" is
+    // display !== 'none' — the same test the Escape handler uses.
+    const DIALOG_IDS = [
+        '#login-modal', '#premium-modal', '#link-wca-modal', '#account-modal',
+        '#create-group-modal', '#reset-password-modal',
+    ];
+
+    /** The open dialog's inner panel, or null when none is open. */
+    function openDialogElement() {
+        for (const id of DIALOG_IDS) {
+            const modal = $(id);
+            if (!modal) continue;
+            const open = getComputedStyle(modal).display !== 'none';
+            if (open) return modal.querySelector('[role="dialog"]') || modal;
+        }
+        return null;
     }
 
     function openLoginModal() {
@@ -1287,6 +1353,41 @@
         // Click on the backdrop (not the dialog) closes it.
         window.addEventListener('click', (e) => {
             if (e.target === $('#login-modal')) closeLoginModal();
+        });
+
+        // Tab stays inside whichever dialog is open.
+        //
+        // Every dialog here already carries role="dialog" aria-modal="true"
+        // and takes focus when it opens, but nothing stopped Tab walking
+        // straight out of it and into the page behind — which is still
+        // rendered, still focusable, and covered by a backdrop the person
+        // tabbing cannot see past. For a keyboard or screen reader user
+        // that turns "a dialog is open" into a lie: focus leaves and there
+        // is no way back except Escape, which they have no reason to
+        // expect. Confining Tab is what makes aria-modal true.
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Tab') return;
+            const dialog = openDialogElement();
+            if (!dialog) return;
+
+            const focusable = [...dialog.querySelectorAll(FOCUSABLE_SELECTOR)]
+                .filter(el => !el.disabled && el.offsetParent !== null);
+            if (!focusable.length) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            const active = document.activeElement;
+
+            // Wrap around at both ends, and pull focus back in if it has
+            // somehow escaped already (the dialog itself is focusable, so
+            // Tab from it lands here on the first press).
+            if (e.shiftKey && (active === first || !dialog.contains(active))) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && (active === last || !dialog.contains(active))) {
+                e.preventDefault();
+                first.focus();
+            }
         });
 
         // Escape closes the dialog.

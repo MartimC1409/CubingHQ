@@ -28,7 +28,10 @@
     --lu-fg: oklch(0.985 0 0);
     --lu-muted: oklch(0.274 0.006 286.033);
     --lu-muted-fg: oklch(0.705 0.015 286.067);
-    --lu-subtle-fg: oklch(0.552 0.016 285.938);
+    /* Was oklch(0.552 …): 4.12:1 on the page background and 3.56:1 on a
+       surface, both under WCAG AA for body text. 0.62 measures 5.45:1
+       and 4.71:1 respectively, and still reads as secondary. */
+    --lu-subtle-fg: oklch(0.62 0.016 285.938);
     --lu-border: rgba(255, 255, 255, 0.10);
     --lu-border-top: rgba(255, 255, 255, 0.22);
     --lu-border-bottom: rgba(255, 255, 255, 0.05);
@@ -62,6 +65,13 @@
                         text (chips, sliders, action buttons), so every
                         existing `color: #fff` pairing stays legible. */
     --clr-primary: oklch(0.60 0.19 44);
+    /* The accent as a FILL with text on it. --clr-primary is tuned to be
+       legible AS TEXT on a dark page, which leaves white on top of it at
+       4.24:1. One token cannot do both jobs: every lightness that fixes
+       one breaks the other. At L=0.52 white clears 4.5:1 on all four
+       accents (orange 5.94, green 4.96, blue 5.50, red 6.08). */
+    --clr-primary-solid: oklch(0.52 0.19 44);
+    --clr-on-primary: #fff;
     --clr-primary-hover: oklch(0.67 0.18 48);
     --clr-primary-glow: color-mix(in oklab, var(--brand) 25%, transparent);
     --clr-accent: oklch(0.60 0.19 44);
@@ -111,7 +121,8 @@
     --lu-fg: oklch(0.141 0.005 285.823);
     --lu-muted: oklch(0.967 0.001 286.375);
     --lu-muted-fg: oklch(0.552 0.016 285.938);
-    --lu-subtle-fg: oklch(0.62 0.014 286.0);
+    /* Was oklch(0.62 …) on a near-white ground: 3.42:1. 0.52 is 5.16:1. */
+    --lu-subtle-fg: oklch(0.52 0.014 286.0);
     --lu-border: oklch(0.92 0.004 286.32);
     --lu-border-top: oklch(0.94 0.004 286.32);
     --lu-border-bottom: oklch(0.90 0.004 286.32);
@@ -152,24 +163,28 @@
     --brand: oklch(83.6% 0.1177 66.87);
     --brand-foreground: oklch(75.77% 0.159 55.91);
     --clr-primary: oklch(0.58 0.19 44);
+    --clr-primary-solid: oklch(0.52 0.19 44);
     --clr-primary-hover: oklch(0.65 0.18 48);
 }
 [data-accent="green"] {
     --brand: oklch(0.84 0.14 158);
     --brand-foreground: oklch(0.74 0.16 155);
     --clr-primary: oklch(0.52 0.17 152);
+    --clr-primary-solid: oklch(0.52 0.17 152);
     --clr-primary-hover: oklch(0.59 0.16 152);
 }
 [data-accent="blue"] {
     --brand: oklch(0.82 0.11 235);
     --brand-foreground: oklch(0.72 0.14 240);
     --clr-primary: oklch(0.54 0.19 253);
+    --clr-primary-solid: oklch(0.52 0.19 253);
     --clr-primary-hover: oklch(0.61 0.17 253);
 }
 [data-accent="red"] {
     --brand: oklch(0.78 0.13 25);
     --brand-foreground: oklch(0.70 0.17 27);
     --clr-primary: oklch(0.56 0.19 25);
+    --clr-primary-solid: oklch(0.52 0.19 25);
     --clr-primary-hover: oklch(0.63 0.18 25);
 }
 
@@ -1584,8 +1599,8 @@ select.form-select {
 .records-filter-chip:hover { color: var(--clr-text); }
 
 .records-filter-chip.active {
-    background: var(--clr-primary);
-    color: #fff;
+    background: var(--clr-primary-solid, var(--clr-primary));
+    color: var(--clr-on-primary, #fff);
     font-weight: 600;
 }
 
@@ -2277,8 +2292,8 @@ select.form-select {
 }
 .alg-group-chip:hover { color: var(--clr-text); border-color: var(--clr-border-active); }
 .alg-group-chip.active {
-    background: var(--clr-primary);
-    color: #fff;
+    background: var(--clr-primary-solid, var(--clr-primary));
+    color: var(--clr-on-primary, #fff);
     border-color: transparent;
 }
 .alg-group-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
@@ -2757,4 +2772,45 @@ select.form-select {
     /* The board has to fit without sideways scrolling: the average rank
        is the total divided by the event count, both of which stay. */
     .sor-col-avg { display: none; }
+}
+
+/* Consent boxes on the sign-up form (index.html #auth-consent-field).
+   Deliberately full-size checkboxes with a generous hit area: these are
+   the two things someone must actually read, so they should not be the
+   smallest controls on the form. */
+.lu-auth-consent {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0.25rem 0 0.9rem;
+}
+
+.lu-consent-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--clr-text-muted);
+    cursor: pointer;
+    padding: 0.2rem 0;
+}
+
+.lu-consent-row input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.12rem;
+    accent-color: var(--clr-primary);
+    cursor: pointer;
+}
+
+.lu-consent-row input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--clr-primary);
+    outline-offset: 2px;
+}
+
+.lu-consent-row a {
+    color: var(--clr-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }

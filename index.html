@@ -67,7 +67,7 @@
     <meta name="description" content="Practice for your upcoming Rubik's cube competition with CubingHQ! Simulate real WCA competition rounds with scrambles, timers, scorecards, and live leaderboards.">
     <link rel="canonical" href="https://cubinghq.online/">
     <meta property="og:title" content="CubingHQ — WCA Competition Simulator">
-    <meta property="og:description" content="The ultimate speedcubing competition simulator. Practice under real competition pressure.">
+    <meta property="og:description" content="Practise WCA competition rounds at home: real scrambles, enforced inspection, scorecards and a live leaderboard.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cubinghq.online/">
     <meta property="og:site_name" content="CubingHQ">
@@ -83,8 +83,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=8ca4e91d">
-    <link rel="stylesheet" href="launch-ui.css?v=5eb3c118">
+    <link rel="stylesheet" href="style.css?v=3f026ab2">
+    <link rel="stylesheet" href="launch-ui.css?v=abbd235e">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -94,7 +94,8 @@
          the AdSense tag on purpose: the defaults have to reach the dataLayer
          before either Google tag reads them, or the first pageview races the
          consent dialogue. See analytics.js. -->
-    <script src="analytics.js?v=820df5ea"></script>
+    <script src="analytics.js?v=93ef4ca4"></script>
+    <script src="consent.js?v=8e03a9d2"></script>
 
     <!-- Google AdSense Verification & Auto Ads -->
     <meta name="google-adsense-account" content="ca-pub-1447384831345579">
@@ -258,6 +259,22 @@
                     <p id="auth-password-hint" class="lu-auth-hint" style="display:none;"
                        data-i18n="auth.passwordHint">At least 8 characters.</p>
                 </div>
+                <!-- Shown only when creating an account. Two separate things
+                     are being asked, so they are two separate boxes: agreeing
+                     to the terms is a contract, confirming an age is a
+                     statement of fact, and GDPR art. 8 turns on the second.
+                     Neither is pre-ticked — a pre-ticked consent box is not
+                     consent (Planet49, C-673/17). -->
+                <div id="auth-consent-field" class="lu-auth-consent" style="display:none;">
+                    <label class="lu-consent-row" for="auth-accept-terms">
+                        <input type="checkbox" id="auth-accept-terms">
+                        <span data-i18n-html="auth.acceptTerms">I agree to the <a href="/terms.html" target="_blank" rel="noopener">Terms of Use</a> and the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                    </label>
+                    <label class="lu-consent-row" for="auth-confirm-age">
+                        <input type="checkbox" id="auth-confirm-age">
+                        <span data-i18n="auth.confirmAge">I am 13 or older.</span>
+                    </label>
+                </div>
                 <p id="auth-reset-sent" class="lu-auth-hint" style="display:none;" data-i18n="auth.resetSent">If that email has an account, a reset link is on its way — check your inbox.</p>
                 <p id="auth-error" class="lu-auth-error" role="alert" style="display:none;"></p>
                 <button id="auth-submit-btn" type="submit" class="lu-btn lu-btn-default lu-auth-submit"
@@ -319,7 +336,7 @@
                 <div id="account-avatar" class="account-avatar" aria-hidden="true"></div>
                 <button id="account-avatar-btn" class="lu-btn lu-btn-ghost account-avatar-btn" data-i18n="account.changePicture">Change picture</button>
                 <button id="account-avatar-clear" class="lu-btn lu-btn-ghost account-avatar-btn" style="display:none;" data-i18n="account.removePicture">Remove</button>
-                <input id="account-avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                <input id="account-avatar-input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose a profile picture" data-i18n-aria="aria.chooseAvatar" hidden>
             </div>
 
             <h2 id="account-title" class="lu-dialog-title account-name">Your account</h2>
@@ -402,13 +419,13 @@
 
             <div class="premium-billing" role="group" aria-label="Billing period">
                 <button class="premium-billing-option active" data-period="monthly">Monthly</button>
-                <button class="premium-billing-option" data-period="yearly">Yearly <span>Save 25%</span></button>
+                <button class="premium-billing-option" data-period="yearly">Yearly</button>
             </div>
 
             <div class="premium-plans">
                 <article class="premium-plan premium-plan--free">
-                    <div class="premium-plan-heading"><div><p class="premium-plan-kicker">STARTER</p><h3>Free</h3></div><span class="premium-plan-tag">Always free</span></div>
-                    <p class="premium-price">£0 <span>/ forever</span></p>
+                    <div class="premium-plan-heading"><div><p class="premium-plan-kicker">STARTER</p><h3>Free</h3></div><span class="premium-plan-tag">Free</span></div>
+                    <p class="premium-price">£0</p>
                     <p class="premium-plan-copy">Everything you need to build a consistent solving habit.</p>
                     <ul class="premium-feature-list">
                         <li><span>✓</span> Timer, scrambles &amp; competition simulation</li>
@@ -419,7 +436,6 @@
                     <button class="premium-plan-button premium-plan-button--secondary" id="premium-free-btn">Current plan</button>
                 </article>
                 <article class="premium-plan premium-plan--premium">
-                    <div class="premium-popular">MOST POPULAR</div>
                     <div class="premium-plan-heading"><div><p class="premium-plan-kicker">FOR SERIOUS SOLVERS</p><h3>Premium</h3></div><span class="premium-crown">✦</span></div>
                     <p class="premium-price" id="premium-price">£5.99 <span>/ month</span></p>
                     <p class="premium-plan-copy">Turn every solve into a useful next step with the full CubingHQ toolkit.</p>
@@ -434,7 +450,7 @@
                     <p class="premium-fine-print">Premium sign-ups will open when construction is complete.</p>
                 </article>
             </div>
-            <p class="premium-footnote">Your free tools stay free. Premium supports the servers and coaching work that keep CubingHQ improving.</p>
+            <p class="premium-footnote">Premium would support the servers and coaching work behind CubingHQ. Nothing is for sale yet; when it is, the <a href="/refunds.html">Refund Policy</a> applies.</p>
         </div>
     </div>
     </template>
@@ -522,7 +538,7 @@
                     <div class="cs-manual-entry" id="cs-manual-entry" style="display:none;">
                         <div class="cs-manual-hint" data-i18n-html="timer.manualHint">Type time and press Enter<br><small>e.g. <code>1234</code> = 12.34s &nbsp;·&nbsp; <code>1:05.30</code> = 1m 5.30s</small></div>
                         <div class="cs-manual-input-row">
-                            <input type="text" id="cs-manual-input" class="cs-manual-input" placeholder="Type time..." data-i18n-placeholder="timer.manualPlaceholder" autocomplete="off" inputmode="numeric">
+                            <input type="text" id="cs-manual-input" class="cs-manual-input" aria-label="Enter a solve time" data-i18n-aria="aria.manualTime" placeholder="Type time..." data-i18n-placeholder="timer.manualPlaceholder" autocomplete="off" inputmode="numeric">
                             <button id="cs-manual-submit" class="cs-btn-primary" data-i18n="timer.submit">Submit</button>
                         </div>
                     </div>
@@ -540,7 +556,7 @@
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             Import
                         </button>
-                        <input type="file" id="cs-import-file" accept="application/json" style="display:none">
+                        <input type="file" id="cs-import-file" accept="application/json" aria-label="Choose a session file to import" data-i18n-aria="aria.importFile" style="display:none">
                         <button id="cs-btn-fullscreen" class="cs-btn-ghost" title="Fullscreen" data-i18n-title="title.fullscreen">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
                         </button>
@@ -625,14 +641,14 @@
                                 </select>
                             </div>
                             <div class="cs-setting-row">
-                                <label data-i18n="timer.set.hideTime">Hide time while solving</label>
+                                <label for="cs-setting-hide-time" data-i18n="timer.set.hideTime">Hide time while solving</label>
                                 <label class="cs-toggle">
                                     <input type="checkbox" id="cs-setting-hide-time">
                                     <span class="cs-toggle-slider"></span>
                                 </label>
                             </div>
                             <div class="cs-setting-row">
-                                <label data-i18n="timer.set.hideScramble">Hide scramble while solving</label>
+                                <label for="cs-setting-hide-scramble" data-i18n="timer.set.hideScramble">Hide scramble while solving</label>
                                 <label class="cs-toggle">
                                     <input type="checkbox" id="cs-setting-hide-scramble">
                                     <span class="cs-toggle-slider"></span>
@@ -1114,7 +1130,7 @@
                                 <!-- WCA profile info loaded from API -->
                                 <div id="wca-info-display" class="api-info-card" style="display:none;">
                                     <div class="api-info-header">
-                                        <img id="wca-avatar" class="wca-avatar" src="" alt="Avatar" style="display:none;">
+                                        <img id="wca-avatar" class="wca-avatar" src="" alt="" style="display:none;">
                                         <div>
                                             <span class="api-status-dot success"></span>
                                             <span class="api-info-title" id="wca-display-name">—</span>
@@ -1224,7 +1240,7 @@
                                     <line x1="17" y1="9" x2="23" y2="15"/>
                                 </svg>
                             </button>
-                            <input type="range" id="comp-volume-slider" class="comp-volume-slider" min="0" max="100" value="40" title="Competition noise volume" data-i18n-title="title.noiseVolume">
+                            <input type="range" id="comp-volume-slider" class="comp-volume-slider" min="0" max="100" value="40" aria-label="Competition noise volume" data-i18n-aria="title.noiseVolume" title="Competition noise volume" data-i18n-title="title.noiseVolume">
                         </div>
                     </div>
                 </div>
@@ -1260,7 +1276,7 @@
                             </div>
                         </div>
                         <div class="timer-display-wrap">
-                            <input type="text" id="manual-time-input" class="manual-time-input" placeholder="0.00" autocomplete="off" inputmode="numeric">
+                            <input type="text" id="manual-time-input" class="manual-time-input" aria-label="Enter a solve time" data-i18n-aria="aria.manualTime" placeholder="0.00" autocomplete="off" inputmode="numeric">
                             <div class="sim-space-timer" id="sim-space-timer" style="display:none;">0.00</div>
                             <p class="timer-hint" id="timer-hint">Type numbers (e.g. 954 for 9.54s) and press Enter</p>
                         </div>
@@ -1437,7 +1453,7 @@
                 </div>
                 <div id="stats-content" style="display: none;">
                     <div class="setup-card" style="margin-bottom: var(--space-xl); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem 2rem; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%);">
-                        <img id="stats-avatar" src="" alt="Avatar" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid var(--clr-primary); box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3); margin-bottom: 1.5rem;">
+                        <img id="stats-avatar" src="" alt="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid var(--clr-primary); box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3); margin-bottom: 1.5rem;">
                         <h2 id="stats-name" style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800; letter-spacing: -0.5px;">Name</h2>
                         
                         <div style="display: flex; gap: 0.8rem; justify-content: center; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap;">
@@ -1700,7 +1716,7 @@
                         <p class="card-desc" data-i18n="comps.pastHint">Enter a WCA ID (e.g. 2023CARV02) to see all past competitions.</p>
                         
                         <div class="wca-lookup" style="justify-content: center;">
-                            <input type="text" id="past-comp-wca-id" class="form-input" placeholder="e.g. 2023CARV02" autocomplete="off" spellcheck="false" style="text-transform: uppercase; text-align: center; max-width: 250px; background-color: var(--clr-surface-alt); border: 1px solid var(--clr-border);" data-i18n-placeholder="ph.wcaId">
+                            <input type="text" aria-label="WCA ID to look up" data-i18n-aria="aria.wcaIdInput" id="past-comp-wca-id" class="form-input" placeholder="e.g. 2023CARV02" autocomplete="off" spellcheck="false" style="text-transform: uppercase; text-align: center; max-width: 250px; background-color: var(--clr-surface-alt); border: 1px solid var(--clr-border);" data-i18n-placeholder="ph.wcaId">
                             <button id="search-past-comps-btn" class="btn btn-primary" style="flex-shrink: 0;" data-i18n="common.search">Search</button>
                         </div>
                         
@@ -1871,7 +1887,7 @@
                             <div id="battle-typing-mode" style="display:none; flex-direction:column; align-items:center; gap:1rem; width:100%;">
                                 <div class="battle-timer-time" id="battle-typing-display">0.00</div>
                                 <div class="battle-typing-input-wrap">
-                                    <input type="text" id="battle-typing-input" class="battle-typing-input"
+                                    <input type="text" aria-label="Message" data-i18n-aria="aria.battleMessage" id="battle-typing-input" class="battle-typing-input"
                                         placeholder="e.g. 1234 = 12.34s" maxlength="8" inputmode="numeric" data-i18n-placeholder="ph.manualTime">
                                     <button class="btn btn-primary" id="battle-typing-submit">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1939,7 +1955,7 @@
 
                 <div id="friends-signed-in">
                     <div class="friends-add-row">
-                        <input id="friend-add-input" type="text" maxlength="254"
+                        <input aria-label="Friend's email or WCA ID" data-i18n-aria="aria.friendAdd" id="friend-add-input" type="text" maxlength="254"
                                data-i18n-placeholder="friends.addPlaceholder"
                                placeholder="Email address or WCA ID">
                         <button id="friend-add-btn" class="lu-btn lu-btn-default" data-i18n="friends.add">Add friend</button>
@@ -2031,7 +2047,7 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         Create Battle Room
                     </h3>
-                    <button class="modal-close-btn" id="battle-create-close">
+                    <button class="modal-close-btn" id="battle-create-close" aria-label="Close" data-i18n-aria="aria.close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
@@ -2085,7 +2101,7 @@
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         Private Room
                     </h3>
-                    <button class="modal-close-btn" id="battle-pw-close">
+                    <button class="modal-close-btn" id="battle-pw-close" aria-label="Close" data-i18n-aria="aria.close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
@@ -2240,7 +2256,7 @@
         <!-- ====== HINT MODAL ====== -->
             <div id="alg-hint-modal" class="alg-hint-modal" style="display:none;">
                 <div class="alg-hint-content">
-                    <button id="alg-hint-close" class="alg-hint-close">
+                    <button id="alg-hint-close" class="alg-hint-close" aria-label="Close" data-i18n-aria="aria.close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                     <div class="alg-hint-case-name" id="alg-hint-case-name">Case Name</div>
@@ -2258,7 +2274,7 @@
                 <div class="alg-case-select-content">
                     <div class="alg-case-select-header">
                         <h3 id="case-select-title">Select Cases to Practice</h3>
-                        <button id="case-select-close" class="alg-hint-close">
+                        <button id="case-select-close" class="alg-hint-close" aria-label="Close" data-i18n-aria="aria.close">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
@@ -2286,7 +2302,10 @@
                 <a href="/about.html" data-i18n="footer.aboutLink">About</a>
                 <a href="/contact.html" data-i18n="footer.contact">Contact</a>
                 <a href="/privacy.html" data-i18n="footer.privacy">Privacy</a>
+                <a href="/cookies.html" data-i18n="footer.cookies">Cookies</a>
                 <a href="/terms.html" data-i18n="footer.terms">Terms</a>
+                <a href="/refunds.html" data-i18n="footer.refunds">Refunds</a>
+                <button type="button" class="site-footer-linkbtn" data-i18n="footer.cookieSettings" onclick="window.CubingConsent &amp;&amp; window.CubingConsent.reopen()">Cookie settings</button>
             </nav>
             <div class="site-footer-legal">
                 <span data-i18n-html="footer.about"><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>
@@ -2299,21 +2318,21 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=65e27b62"></script>
+    <script src="i18n.js?v=44d5991c"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=db71e576"></script>
     <!-- Holds a screen wake lock for as long as the site is open, so a phone
          doesn't dim and lock partway through a solve. Standalone. -->
     <script src="wake-lock.js?v=88cc357d"></script>
-    <script src="wca-countries.js?v=4955b1d7"></script>
+    <script src="wca-countries.js?v=c59ae04b"></script>
     <script src="scramble-engine.js?v=b4dfd5f7"></script>
     <script src="square1-drawer.js?v=ee28d843"></script>
     <script src="algorithms.js?v=7613613f"></script>
     <script src="algorithms-extra.js?v=3b7f7147"></script>
-    <link rel="stylesheet" href="timer.css?v=b3dad843">
+    <link rel="stylesheet" href="timer.css?v=98f94094">
     <script src="cube-stats.js?v=b80cf414"></script>
-    <script src="timer.js?v=a56ccf9f"></script>
+    <script src="timer.js?v=c4e2f444"></script>
     <script src="timer-mobile.js?v=51e8e43d"></script>
     <script src="solve-analysis.js?v=b4c9c90e"></script>
     <script src="smartcube.js?v=f4c0f850"></script>
@@ -2326,7 +2345,7 @@
     <!-- Must precede app.js: WORLD_RECORDS is read at IIFE init. Shared with
          admin_records.html so the two can never drift apart again. -->
     <script src="world-records.js?v=6e1ddabb"></script>
-    <script src="app.js?v=ebde9c17"></script>
+    <script src="app.js?v=928d7de1"></script>
     <script src="mobile-nav.js?v=9c5da4eb"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->

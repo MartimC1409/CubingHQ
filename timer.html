@@ -46,9 +46,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=8ca4e91d">
-    <link rel="stylesheet" href="timer.css?v=b3dad843">
-    <link rel="stylesheet" href="launch-ui.css?v=5eb3c118">
+    <link rel="stylesheet" href="style.css?v=3f026ab2">
+    <link rel="stylesheet" href="timer.css?v=98f94094">
+    <link rel="stylesheet" href="launch-ui.css?v=abbd235e">
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <style>
         body { overflow: auto; min-height: 100vh; }
@@ -116,7 +116,8 @@
     <!-- Consent Mode defaults, then gtag.js. Loaded synchronously and BEFORE
          the AdSense tag: the defaults must reach the dataLayer before either
          Google tag reads them. See analytics.js. -->
-    <script src="analytics.js?v=820df5ea"></script>
+    <script src="analytics.js?v=93ef4ca4"></script>
+    <script src="consent.js?v=8e03a9d2"></script>
 
     <!-- Google AdSense Verification & Auto Ads -->
     <meta name="google-adsense-account" content="ca-pub-1447384831345579">
@@ -295,7 +296,7 @@
                     <div class="cs-manual-entry" id="cs-manual-entry" style="display:none;">
                         <div class="cs-manual-hint" data-i18n-html="timer.manualHint">Type time and press Enter<br><small>e.g. <code>1234</code> = 12.34s &nbsp;·&nbsp; <code>1:05.30</code> = 1m 5.30s</small></div>
                         <div class="cs-manual-input-row">
-                            <input type="text" id="cs-manual-input" class="cs-manual-input" placeholder="Type time..." data-i18n-placeholder="timer.manualPlaceholder" autocomplete="off" inputmode="numeric">
+                            <input type="text" id="cs-manual-input" class="cs-manual-input" aria-label="Enter a solve time" data-i18n-aria="aria.manualTime" placeholder="Type time..." data-i18n-placeholder="timer.manualPlaceholder" autocomplete="off" inputmode="numeric">
                             <button id="cs-manual-submit" class="cs-btn-primary" data-i18n="timer.submit">Submit</button>
                         </div>
                     </div>
@@ -313,7 +314,7 @@
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             Import
                         </button>
-                        <input type="file" id="cs-import-file" accept="application/json" style="display:none">
+                        <input type="file" id="cs-import-file" accept="application/json" aria-label="Choose a session file to import" data-i18n-aria="aria.importFile" style="display:none">
                         <button id="cs-btn-fullscreen" class="cs-btn-ghost" title="Fullscreen" data-i18n-title="title.fullscreen">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
                         </button>
@@ -398,14 +399,14 @@
                                 </select>
                             </div>
                             <div class="cs-setting-row">
-                                <label data-i18n="timer.set.hideTime">Hide time while solving</label>
+                                <label for="cs-setting-hide-time" data-i18n="timer.set.hideTime">Hide time while solving</label>
                                 <label class="cs-toggle">
                                     <input type="checkbox" id="cs-setting-hide-time">
                                     <span class="cs-toggle-slider"></span>
                                 </label>
                             </div>
                             <div class="cs-setting-row">
-                                <label data-i18n="timer.set.hideScramble">Hide scramble while solving</label>
+                                <label for="cs-setting-hide-scramble" data-i18n="timer.set.hideScramble">Hide scramble while solving</label>
                                 <label class="cs-toggle">
                                     <input type="checkbox" id="cs-setting-hide-scramble">
                                     <span class="cs-toggle-slider"></span>
@@ -455,7 +456,7 @@
             return id;
         }
     </script>
-    <script src="i18n.js?v=65e27b62"></script>
+    <script src="i18n.js?v=44d5991c"></script>
     <script src="theme.js?v=db71e576"></script>
     <!-- Holds a screen wake lock for as long as the site is open, so a phone
          doesn't dim and lock partway through a solve. Standalone. -->
@@ -463,7 +464,7 @@
     <script src="scramble-engine.js?v=b4dfd5f7"></script>
     <script src="square1-drawer.js?v=ee28d843"></script>
     <script src="cube-stats.js?v=b80cf414"></script>
-    <script src="timer.js?v=a56ccf9f"></script>
+    <script src="timer.js?v=c4e2f444"></script>
     <script src="timer-mobile.js?v=51e8e43d"></script>
     <script src="solve-analysis.js?v=b4c9c90e"></script>
     <script src="smartcube.js?v=f4c0f850"></script>
@@ -546,7 +547,10 @@
                 <a href="/about.html" data-i18n="footer.aboutLink">About</a>
                 <a href="/contact.html" data-i18n="footer.contact">Contact</a>
                 <a href="/privacy.html" data-i18n="footer.privacy">Privacy</a>
+                <a href="/cookies.html" data-i18n="footer.cookies">Cookies</a>
                 <a href="/terms.html" data-i18n="footer.terms">Terms</a>
+                <a href="/refunds.html" data-i18n="footer.refunds">Refunds</a>
+                <button type="button" class="site-footer-linkbtn" data-i18n="footer.cookieSettings" onclick="window.CubingConsent &amp;&amp; window.CubingConsent.reopen()">Cookie settings</button>
             </nav>
             <div class="site-footer-legal">
                 <span data-i18n-html="footer.about"><strong>CubingHQ</strong> — an unofficial fan project, not affiliated with the <a href="https://www.worldcubeassociation.org" target="_blank" rel="noopener noreferrer">WCA</a>. "Rubik's Cube" is a trademark of Spin Master.</span>

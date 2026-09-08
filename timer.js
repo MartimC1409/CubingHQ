@@ -156,7 +156,20 @@
     }
 
     let saveTimer = null;
-    let firebaseSyncTimer = null;
+
+    // Sessions are saved to this browser and nowhere else.
+    //
+    // There used to be a second write here: every save was also PUT to
+    // timer_data/<uid> in the public Realtime Database, keyed on the
+    // signed-in person's WCA id — so a whole solve history sat at a
+    // guessable path. Nothing ever read it back; no code in this repo,
+    // client or server, fetched that subtree. It was a copy of everyone's
+    // practice history taken for no feature, which is the definition of
+    // data collected without a purpose. Removed rather than documented.
+    //
+    // If cross-device sync is wanted later it needs the opposite shape:
+    // authenticated writes under the account's own id, rules that let
+    // only that account read it, and a switch the person controls.
     function saveState(debouncedMs = 0) {
         if (saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(() => {
@@ -168,29 +181,8 @@
                     activeSession: TSTATE.activeSession,
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                // Best-effort Firebase sync (background) — debounce heavily to avoid network spam
-                scheduleFirebaseSync(data);
             } catch (e) { console.warn('Failed to save timer data', e); }
         }, debouncedMs);
-    }
-
-    function scheduleFirebaseSync(data) {
-        if (firebaseSyncTimer) clearTimeout(firebaseSyncTimer);
-        firebaseSyncTimer = setTimeout(() => {
-            syncToFirebase(data);
-        }, 3000);
-    }
-
-    async function syncToFirebase(data) {
-        try {
-            const uid = (window.getBattleUserId && window.getBattleUserId()) || localStorage.getItem('cstimer_uid') || 'guest_anonymous';
-            localStorage.setItem('cstimer_uid', uid);
-            await fetch(`https://simulatecubing-default-rtdb.firebaseio.com/timer_data/${uid}.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-        } catch (e) { /* offline ok */ }
     }
 
     // ========== SESSION HELPERS ==========

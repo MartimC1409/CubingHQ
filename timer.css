@@ -58,7 +58,7 @@
 }
 
 .cs-session-tab:hover { background: var(--clr-bg-card-hover); color: var(--clr-text); }
-.cs-session-tab.active { background: var(--clr-primary); color: #fff; border-color: var(--clr-primary); }
+.cs-session-tab.active { background: var(--clr-primary-solid, var(--clr-primary)); color: var(--clr-on-primary, #fff); border-color: var(--clr-primary-solid, var(--clr-primary)); }
 
 .cs-session-tab-num {
     background: rgba(255,255,255,0.15);
@@ -262,7 +262,7 @@
 
 .cs-btn-block { width: 100%; margin-bottom: 6px; }
 
-.cs-btn-primary { background: var(--clr-primary); color: #fff; border-color: var(--clr-primary); }
+.cs-btn-primary { background: var(--clr-primary-solid, var(--clr-primary)); color: var(--clr-on-primary, #fff); border-color: var(--clr-primary-solid, var(--clr-primary)); }
 .cs-btn-primary:hover { background: var(--clr-primary-hover); border-color: var(--clr-primary-hover); }
 
 .cs-btn-secondary { background: var(--clr-surface); border-color: var(--clr-border); }
