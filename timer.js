@@ -819,13 +819,16 @@
 
     // ========== RENDERING ==========
     function renderAll() {
+        // Settings first: renderSessionTabs() announces the session list to
+        // the mobile top bar, which mirrors these controls. Announcing before
+        // they hold the current session's event published a stale one.
+        renderSettings();
         renderSessionTabs();
         renderHeaderStats();
         renderSolveList();
         renderStatsPanel();
         renderScramble();
         renderTwisty();
-        renderSettings();
         // The idle badge ships as static English in the markup; render it so
         // the first paint is in the chosen language, not just after a solve.
         renderPhaseBadge();

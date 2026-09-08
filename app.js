@@ -1124,8 +1124,18 @@
         } else {
             handleHashRoute();
         }
+        // The pre-paint rule in index.html has done its job: a real view is
+        // now active. Leaving it would pin the page to the boot view.
+        dropBootViewStyle();
 
         window.addEventListener('hashchange', handleHashRoute);
+    }
+
+    // Removes the boot-time "show only the routed view" rule injected by the
+    // inline script in index.html. Safe to call more than once.
+    function dropBootViewStyle() {
+        const st = document.getElementById('boot-view-style');
+        if (st && st.parentNode) st.parentNode.removeChild(st);
     }
 
     // ========== THEME ==========
@@ -1149,10 +1159,10 @@
     // ========== NAVIGATION (Hash-based Routing) ==========
     const VIEW_TO_HASH = {
         'home': '#home', 'setup': '#simulation', 'dashboard': '#simulation',
-        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle', 'friends': '#friends'
+        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle', 'friends': '#friends', 'sor': '#sor'
     };
     const HASH_TO_VIEW = {
-        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '#friends': 'friends', '': 'home'
+        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '#friends': 'friends', '#sor': 'sor', '': 'home'
     };
 
     function switchView(viewName, updateHash = true) {
@@ -1166,6 +1176,7 @@
             resetTrainerState();
         }
 
+        dropBootViewStyle();
         $$('.view').forEach(v => v.classList.remove('active'));
         $(`#${viewName}-view`).classList.add('active');
         state.currentView = viewName;
@@ -1186,6 +1197,8 @@
             if ($('#nav-profile-btn')) $('#nav-profile-btn').classList.add('active');
         } else if (viewName === 'records') {
             $('#nav-records-btn').classList.add('active');
+        } else if (viewName === 'sor') {
+            if ($('#nav-sor-btn')) $('#nav-sor-btn').classList.add('active');
         } else if (viewName === 'history') {
             $('#nav-history-btn').classList.add('active');
         } else if (viewName === 'competitions') {
@@ -1218,6 +1231,7 @@
             switchView(targetView, false);
             if (targetView === 'history') renderHistory();
             if (targetView === 'records') loadWorldRecords();
+            if (targetView === 'sor') initSorView();
             if (targetView === 'competitions' && !state.upcomingCompsFetched) fetchUpcomingCompetitions();
             if (targetView === 'algorithms') initializeAlgorithmsUI();
             if (targetView === 'battle') initBattle();
@@ -1477,6 +1491,12 @@
             switchView('records');
             loadWorldRecords();
         });
+        if ($('#nav-sor-btn')) {
+            $('#nav-sor-btn').addEventListener('click', () => {
+                switchView('sor');
+                initSorView();
+            });
+        }
         $('#nav-competitions-btn').addEventListener('click', () => {
             switchView('competitions');
             if (!state.upcomingCompsFetched) fetchUpcomingCompetitions();
@@ -1974,7 +1994,10 @@
 
             let algData = ALGORITHMS[event] && ALGORITHMS[event][subset];
             if (!algData) return;
-            if (!Array.isArray(algData)) {
+            // A set stored as a flat list has no subgroups to name, so it is
+            // "Pyraminx L4E" rather than "Pyraminx L4E — All".
+            const flatSet = Array.isArray(algData);
+            if (!flatSet) {
                 if (subgroupVal === ALL_SUBGROUP) algData = Object.values(algData).flat();
                 else if (subgroupVal) algData = algData[subgroupVal];
             }
@@ -1986,7 +2009,9 @@
             trainerState.currentSubset = subset;
             trainerState.currentSubgroup = (subgroupVal === ALL_SUBGROUP) ? null : subgroupVal;
 
-            const label = (subgroupVal && subgroupVal !== ALL_SUBGROUP) ? `${subset} ${subgroupVal}` : `${subset} — All`;
+            const label = flatSet ? subset
+                : (subgroupVal && subgroupVal !== ALL_SUBGROUP) ? `${subset} ${subgroupVal}`
+                : `${subset} — All`;
             trainerState.currentSetName = `${event} ${label}`;
 
             // Select all by default
@@ -7127,15 +7152,395 @@
         showToast(`${i18nT('toast.solveRecorded', 'Solve recorded')}: ${battleFormatTime(elapsedMs)}`, 'success');
     }
 
-    // ========== START ==========
-    document.addEventListener('DOMContentLoaded', async () => {
+    // ========== SUM OF RANKS ==========
+    // A competitor's WCA ranking in every event, added up: the lower the
+    // total, the more complete the cuber. The WCA publishes each person's
+    // world / continental / national rank per event on /persons/:id, so
+    // this is computed per person and needs no ranking dump.
+    //
+    // What it deliberately does NOT do is invent a rank for an event
+    // someone has never competed. The published leaderboards substitute
+    // "last place + 1", which needs the number of ranked competitors in
+    // every event — a figure the API does not publish. So unranked events
+    // are left out of the sum and shown as unranked, and the board is
+    // ordered by how many events are ranked first, total second. Ordering
+    // on the raw total alone would put someone with three events above
+    // someone ranked in all seventeen.
+    const SOR_STORAGE_KEY = 'sor-people';
+    const SOR_RANK_KEY = { world: 'world_rank', continent: 'continent_rank', country: 'country_rank' };
+
+    const sorState = {
+        people: [],          // [{ wcaId, name, countryId, countryIso2, continentId, records }]
+        region: 'world',
+        type: 'single',
+        selected: null,      // wcaId whose breakdown is shown
+        cache: new Map(),    // wcaId -> person object, or null when not found
+        bound: false,
+        pending: 0,
+    };
+
+    function sorSavePeople() {
         try {
-            const res = await fetch('https://simulatecubing-default-rtdb.firebaseio.com/algorithms.json');
-            window.ALGORITHMS = await res.json();
-        } catch (e) {
-            console.error('Failed to load algorithms from Firebase', e);
-            window.ALGORITHMS = {};
+            localStorage.setItem(SOR_STORAGE_KEY,
+                JSON.stringify(sorState.people.map(p => p.wcaId)));
+        } catch (e) { /* private mode */ }
+    }
+
+    function sorStoredIds() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(SOR_STORAGE_KEY) || '[]');
+            return Array.isArray(raw) ? raw.filter(x => typeof x === 'string').slice(0, 12) : [];
+        } catch (e) { return []; }
+    }
+
+    // Full person payload (name and country as well as the records), which
+    // is more than fetchWcaPersonalRecords keeps for the friends table.
+    async function fetchWcaPerson(wcaId) {
+        const id = String(wcaId || '').trim().toUpperCase();
+        if (!id) return null;
+        if (sorState.cache.has(id)) return sorState.cache.get(id);
+        let person = null;
+        try {
+            const res = await fetch(`${WCA_API}/persons/${encodeURIComponent(id)}`);
+            if (res.ok) {
+                const data = await res.json();
+                const p = data.person || {};
+                const country = p.country || {};
+                const W = window.WcaCountries;
+                const fromTable = W && country.id ? W.get(country.id) : null;
+                person = {
+                    wcaId: p.wca_id || id,
+                    name: p.name || id,
+                    countryId: country.id || country.name || '',
+                    countryName: country.name || country.id || '',
+                    countryIso2: country.iso2 || p.country_iso2 || (fromTable ? fromTable.iso2 : ''),
+                    continentId: country.continentId || (fromTable ? fromTable.continent : ''),
+                    records: data.personal_records || {},
+                };
+            }
+        } catch (e) { /* treated as "not found" below */ }
+        sorState.cache.set(id, person);
+        return person;
+    }
+
+    // The rank this person holds in one event, for the selected region and
+    // result type, or null when they have no ranked result there.
+    function sorRankFor(person, eventId) {
+        const pr = person.records && person.records[eventId];
+        const side = pr && pr[sorState.type];
+        if (!side) return null;
+        const rank = side[SOR_RANK_KEY[sorState.region]];
+        return typeof rank === 'number' && rank > 0 ? rank : null;
+    }
+
+    function computeSor(person) {
+        const rows = WCA_EVENT_ORDER.map(eventId => {
+            const pr = person.records && person.records[eventId];
+            const side = pr && pr[sorState.type];
+            return {
+                eventId,
+                rank: sorRankFor(person, eventId),
+                best: side ? side.best : null,
+            };
+        });
+        const ranked = rows.filter(r => r.rank !== null);
+        const total = ranked.reduce((sum, r) => sum + r.rank, 0);
+        return {
+            rows,
+            total,
+            rankedCount: ranked.length,
+            eventCount: WCA_EVENT_ORDER.length,
+            avgRank: ranked.length ? Math.round(total / ranked.length) : null,
+        };
+    }
+
+    function sorRegionLabel() {
+        if (sorState.region === 'world') return i18nT('sor.region.world', 'World');
+        if (sorState.region === 'continent') return i18nT('sor.region.continent', 'Continent');
+        return i18nT('sor.region.country', 'Country');
+    }
+
+    function sorTypeLabel() {
+        return sorState.type === 'single'
+            ? i18nT('records.type.single', 'Single')
+            : i18nT('records.type.average', 'Average');
+    }
+
+    function renderSor() {
+        const results = $('#sor-results');
+        const empty = $('#sor-empty');
+        if (!results || !empty) return;
+
+        const has = sorState.people.length > 0;
+        results.style.display = has ? 'block' : 'none';
+        empty.style.display = has ? 'none' : 'block';
+
+        const title = $('#sor-board-title');
+        if (title) {
+            title.textContent = `${i18nT('sor.board.title', 'Sum of Ranks')} — ${sorRegionLabel()} · ${sorTypeLabel()}`;
         }
+        const resultTh = $('#sor-th-result');
+        if (resultTh) resultTh.textContent = sorTypeLabel();
+
+        if (!has) return;
+        renderSorBoard();
+        renderSorDetail();
+    }
+
+    function renderSorBoard() {
+        const body = $('#sor-board-body');
+        if (!body) return;
+
+        const scored = sorState.people.map(p => ({ person: p, sor: computeSor(p) }));
+        // Most events ranked first, then the lowest total. See the note on
+        // sorState above for why the total alone is not the ordering.
+        scored.sort((a, b) =>
+            (b.sor.rankedCount - a.sor.rankedCount) || (a.sor.total - b.sor.total));
+
+        if (!sorState.selected || !scored.some(s => s.person.wcaId === sorState.selected)) {
+            sorState.selected = scored[0].person.wcaId;
+        }
+
+        body.innerHTML = '';
+        scored.forEach((entry, i) => {
+            const { person, sor } = entry;
+            const tr = document.createElement('tr');
+            tr.className = 'sor-board-row' + (person.wcaId === sorState.selected ? ' selected' : '');
+            tr.dataset.wcaId = person.wcaId;
+            tr.innerHTML = `
+                <td class="sor-pos">${i + 1}</td>
+                <td>
+                    <span class="sor-competitor">
+                        ${countryFlagImg(person.countryIso2, 18)}
+                        <span>
+                            <span class="sor-competitor-name">${esc(person.name)}</span>
+                            <span class="sor-competitor-id"> ${esc(person.wcaId)}</span>
+                        </span>
+                    </span>
+                </td>
+                <td class="sor-num sor-total">${sor.total.toLocaleString()}</td>
+                <td class="sor-num">${sor.rankedCount}/${sor.eventCount}</td>
+                <td class="sor-num sor-col-avg">${sor.avgRank === null ? '—' : sor.avgRank.toLocaleString()}</td>
+                <td class="sor-num"><button type="button" class="sor-remove" data-remove="${esc(person.wcaId)}" aria-label="${esc(i18nT('sor.remove', 'Remove competitor'))}">&times;</button></td>
+            `;
+            tr.addEventListener('click', (e) => {
+                if (e.target.closest('[data-remove]')) return;
+                sorState.selected = person.wcaId;
+                renderSor();
+            });
+            body.appendChild(tr);
+        });
+
+        body.querySelectorAll('[data-remove]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sorState.people = sorState.people.filter(p => p.wcaId !== btn.dataset.remove);
+                if (sorState.selected === btn.dataset.remove) sorState.selected = null;
+                sorSavePeople();
+                renderSor();
+            });
+        });
+    }
+
+    function renderSorDetail() {
+        const card = $('#sor-detail-card');
+        const body = $('#sor-detail-body');
+        if (!card || !body) return;
+
+        const person = sorState.people.find(p => p.wcaId === sorState.selected);
+        if (!person) { card.style.display = 'none'; return; }
+        card.style.display = 'block';
+
+        const sor = computeSor(person);
+        const flag = $('#sor-detail-flag');
+        if (flag) flag.innerHTML = countryFlagImg(person.countryIso2, 30);
+        const name = $('#sor-detail-name');
+        if (name) name.textContent = person.name;
+
+        const W = window.WcaCountries;
+        const continent = W && person.continentId ? W.continent(person.continentId) : null;
+        const region = sorState.region === 'world'
+            ? i18nT('sor.region.world', 'World')
+            : sorState.region === 'continent'
+                ? (continent ? continent.name : i18nT('sor.region.continent', 'Continent'))
+                : (person.countryName || i18nT('sor.region.country', 'Country'));
+        const meta = $('#sor-detail-meta');
+        if (meta) {
+            meta.textContent = `${person.wcaId} · ${region} · ${sorTypeLabel()} · ` +
+                i18nT('sor.rankedOf', '{n} of {total} events ranked')
+                    .replace('{n}', sor.rankedCount).replace('{total}', sor.eventCount);
+        }
+        const total = $('#sor-detail-total');
+        if (total) total.textContent = sor.total.toLocaleString();
+        const totalLabel = $('#sor-detail-total-label');
+        if (totalLabel) totalLabel.textContent = `${sorRegionLabel()} · ${sorTypeLabel()}`;
+
+        const isAverage = sorState.type === 'average';
+        body.innerHTML = '';
+        sor.rows.forEach(row => {
+            const tr = document.createElement('tr');
+            const eventName = EVENT_NAMES[row.eventId] || row.eventId;
+            if (row.rank === null) {
+                tr.className = 'sor-unranked';
+                tr.innerHTML = `
+                    <td>${esc(eventName)}</td>
+                    <td class="sor-num">—</td>
+                    <td class="sor-num">${esc(i18nT('sor.unranked', 'Not ranked'))}</td>
+                    <td class="sor-bar-cell"></td>
+                `;
+            } else {
+                const share = sor.total > 0 ? Math.max(1, Math.round((row.rank / sor.total) * 100)) : 0;
+                const best = formatWcaBest(row.eventId, row.best, isAverage) || '—';
+                tr.innerHTML = `
+                    <td>${esc(eventName)}</td>
+                    <td class="sor-num">${esc(best)}</td>
+                    <td class="sor-num">${row.rank.toLocaleString()}</td>
+                    <td class="sor-bar-cell">
+                        <div class="sor-bar-track" title="${share}%"><div class="sor-bar" style="width: ${share}%"></div></div>
+                    </td>
+                `;
+            }
+            body.appendChild(tr);
+        });
+    }
+
+    function sorSetState(el, message) {
+        const loading = $('#sor-loading');
+        const error = $('#sor-error');
+        if (loading) loading.style.display = el === 'loading' ? 'flex' : 'none';
+        if (error) error.style.display = el === 'error' ? 'flex' : 'none';
+        if (el === 'error' && $('#sor-error-text')) $('#sor-error-text').textContent = message;
+    }
+
+    async function addSorPerson(rawId) {
+        const wcaId = String(rawId || '').trim().toUpperCase();
+        if (!/^\d{4}[A-Z]{4}\d{2}$/.test(wcaId)) {
+            sorSetState('error', i18nT('sor.badId', 'That is not a WCA ID. They look like 2023CARV02.'));
+            return;
+        }
+        if (sorState.people.some(p => p.wcaId === wcaId)) {
+            sorState.selected = wcaId;
+            sorSetState(null);
+            renderSor();
+            return;
+        }
+
+        sorState.pending++;
+        sorSetState('loading');
+        const person = await fetchWcaPerson(wcaId);
+        sorState.pending--;
+
+        if (!person) {
+            sorSetState('error', i18nT('sor.notFound', 'No WCA competitor with that ID.'));
+            return;
+        }
+        if (!Object.keys(person.records || {}).length) {
+            sorSetState('error', i18nT('sor.noResults', '{name} has no official results yet.').replace('{name}', person.name));
+            return;
+        }
+        sorState.people.push(person);
+        sorState.selected = person.wcaId;
+        sorSavePeople();
+        if (!sorState.pending) sorSetState(null);
+        renderSor();
+    }
+
+    function bindSorChips(containerId, key, onPick) {
+        const row = $('#' + containerId);
+        if (!row) return;
+        row.addEventListener('click', (e) => {
+            const chip = e.target.closest('.records-filter-chip');
+            if (!chip) return;
+            row.querySelectorAll('.records-filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            onPick(chip.dataset[key]);
+        });
+    }
+
+    let _sorRestored = false;
+    function initSorView() {
+        if (!sorState.bound) {
+            sorState.bound = true;
+
+            const input = $('#sor-wca-id');
+            const search = $('#sor-search-btn');
+            if (search && input) {
+                search.addEventListener('click', () => {
+                    const value = input.value;
+                    input.value = '';
+                    addSorPerson(value);
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter') return;
+                    const value = input.value;
+                    input.value = '';
+                    addSorPerson(value);
+                });
+            }
+
+            const mine = $('#sor-me-btn');
+            if (mine) {
+                mine.addEventListener('click', () => {
+                    const id = state.userProfile && state.userProfile.wca_id;
+                    if (id) addSorPerson(id);
+                });
+            }
+
+            const clear = $('#sor-clear-btn');
+            if (clear) {
+                clear.addEventListener('click', () => {
+                    sorState.people = [];
+                    sorState.selected = null;
+                    sorSavePeople();
+                    sorSetState(null);
+                    renderSor();
+                });
+            }
+
+            bindSorChips('sor-region-chips', 'region', (region) => {
+                sorState.region = region;
+                renderSor();
+            });
+            bindSorChips('sor-type-chips', 'type', (type) => {
+                sorState.type = type;
+                renderSor();
+            });
+
+            // The board and the breakdown are built in JS, so the language
+            // switch has to come back through here — applyTranslations only
+            // reaches the markup that shipped with the page.
+            document.addEventListener('app-language-changed', () => {
+                if (state.currentView === 'sor') renderSor();
+            });
+        }
+
+        // The button only makes sense once we know their WCA ID, which
+        // arrives with the profile — so this is re-checked on every visit.
+        const mine = $('#sor-me-btn');
+        if (mine) {
+            const id = state.userProfile && state.userProfile.wca_id;
+            mine.style.display = id ? '' : 'none';
+        }
+
+        renderSor();
+
+        if (_sorRestored) return;
+        _sorRestored = true;
+        const stored = sorStoredIds();
+        if (stored.length) {
+            (async () => {
+                for (const id of stored) await addSorPerson(id);
+            })();
+        }
+    }
+
+    // ========== START ==========
+    // Boots synchronously on purpose. This used to await an algorithm dump
+    // from Firebase before doing anything, which held routing — and every
+    // click handler on the page — behind a network round trip. Nothing read
+    // the result: `ALGORITHMS` is the const declared by algorithms.js, and a
+    // global lexical binding wins over a window property of the same name,
+    // so the fetched copy was never the one the algorithms view rendered.
+    document.addEventListener('DOMContentLoaded', () => {
         init();
     });
     // =========================================================================

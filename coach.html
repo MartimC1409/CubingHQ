@@ -47,7 +47,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=8ca4e91d">
-    <link rel="stylesheet" href="launch-ui.css?v=a21f46ee">
+    <link rel="stylesheet" href="launch-ui.css?v=5eb3c118">
     <link rel="stylesheet" href="coach.css?v=4e903281">
 
     <style>
@@ -103,6 +103,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
             Records
         </button>
+        <button class="nav-btn" id="nav-sor-btn" title="Sum of Ranks" data-i18n="nav.sor" data-i18n-title="sor.navTitle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="20" x2="4" y2="13"/><line x1="10" y1="20" x2="10" y2="9"/><line x1="16" y1="20" x2="16" y2="5"/><line x1="20" y1="20" x2="4" y2="20"/></svg>
+            Sum of Ranks
+        </button>
         <button class="nav-btn" id="nav-competitions-btn" title="Competitions" data-i18n="nav.competitions" data-i18n-title="common.competitions">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Competitions
@@ -152,7 +156,7 @@
     </main>
 
     <!-- Shared site scripts, in dependency order. -->
-    <script src="i18n.js?v=fc69502f"></script>
+    <script src="i18n.js?v=65e27b62"></script>
     <script src="theme.js?v=db71e576"></script>
     <script src="cube-stats.js?v=b80cf414"></script>
     <script src="scramble-engine.js?v=b4dfd5f7"></script>
@@ -174,6 +178,7 @@
                 'nav-timer-btn':        'timer.html',
                 'nav-simulation-btn':   'index.html#simulation',
                 'nav-records-btn':      'index.html#records',
+                'nav-sor-btn':          'index.html#sor',
                 'nav-competitions-btn': 'index.html#competitions',
                 'nav-algorithms-btn':   'index.html#algorithms',
                 'nav-history-btn':      'index.html#history',
