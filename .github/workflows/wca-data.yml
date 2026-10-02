@@ -1,0 +1,39 @@
+# Rebuilds data/ (record holders and Sum of Ranks boards) from the WCA
+# results export once a day, and commits it if anything changed. The site
+# is static, so a commit here is what puts new records and ranks live.
+name: WCA data
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # daily, after the mirror's own nightly rebuild
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wca-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build data
+        run: node --max-old-space-size=6144 scripts/build_wca_data.js
+      - name: Commit if changed
+        run: |
+          git add data
+          if git diff --cached --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update WCA records and Sum of Ranks data"
+          git push

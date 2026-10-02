@@ -1,22 +1,14 @@
-/* Tests the Sum of Ranks view (app.js): the maths, the ordering of the
-   board, and how a WCA ID that is malformed, unknown or resultless is
-   handled.
+/* Tests the Sum of Ranks view (app.js) and the data it reads.
 
-   Sum of Ranks adds a competitor's WCA rank in every event. The rank
-   depends on two choices — world / continent / country and single /
-   average — so the same person has four different totals, and reading
-   the wrong key would still produce a plausible-looking number. These
-   tests pin all of them.
+   Sum of Ranks is the WCA statistic cubing.com publishes: a competitor's
+   rank in every event, added up, lowest first, where an event they are
+   not ranked in counts as (people ranked in it, in that region) + 1.
+   That penalty is the whole point — without it a total rewards competing
+   less — so it is pinned here twice: in the generator's output, and in
+   the page's scoring of a competitor looked up live.
 
-   The second thing pinned here is the ordering. Unranked events are
-   left out of the sum (the WCA publishes no way to score an event
-   nobody has competed), which means a total on its own rewards having
-   competed less: three events beat seventeen. The board therefore
-   orders on events ranked first and the total second, and that is
-   asserted rather than assumed.
-
-   The code is extracted from app.js rather than copied here, so a
-   change to the shipped file cannot silently escape this test.
+   The code is extracted from app.js rather than copied here, so a change
+   to the shipped file cannot silently escape this test.
 
    Run: node scripts/test_sor.js */
 
@@ -50,18 +42,12 @@ const BLOB = [
     slice('    const EVENT_NAMES = {', "'444bf': '4x4 BLD', '555bf': '5x5 BLD'\n    };"),
     slice('    function esc(s) {', "        .replace(/'/g, '&#39;');\n    }"),
     slice('    function countryFlagImg(iso2, size = 20, altText) {', '\n    }'),
-    slice('    function decodeMBLD(value) {', '\n    }'),
-    slice('    function formatTime(seconds) {', '        return `${mins}:${secs}`;\n    }'),
-    slice("    const WCA_EVENT_ORDER = ['333',", '        return formatTime(best / 100);\n    }'),
-    slice('    // ========== SUM OF RANKS ==========', '        }\n    }\n\n    // ========== START'),
+    slice('    // ========== SUM OF RANKS ==========', '\n    // ========== START'),
 ].join('\n\n');
 
-/** The handful of nodes the SoR renderers reach for, as inert stand-ins.
-    Assigning innerHTML drops the children, as it does in a browser —
-    without that the rows of every render pile up on top of each other. */
 function fakeEl() {
     const el = {
-        textContent: '', className: '', style: {},
+        textContent: '', className: '', style: {}, value: '', disabled: false,
         dataset: {}, children: [],
         appendChild(c) { this.children.push(c); return c; },
         addEventListener() {},
@@ -76,158 +62,184 @@ function fakeEl() {
     return el;
 }
 
-function newHarness(wcaData) {
-    const els = {};
-    [
-        '#sor-results', '#sor-empty', '#sor-board-title', '#sor-th-result',
-        '#sor-board-body', '#sor-detail-card', '#sor-detail-body',
-        '#sor-detail-flag', '#sor-detail-name', '#sor-detail-meta',
-        '#sor-detail-total', '#sor-detail-total-label', '#sor-loading',
-        '#sor-error', '#sor-error-text', '#sor-wca-id', '#sor-search-btn',
-        '#sor-me-btn', '#sor-clear-btn', '#sor-region-chips', '#sor-type-chips',
-    ].forEach(sel => { els[sel] = fakeEl(); });
+const W_SRC = fs.readFileSync(path.join(ROOT, 'wca-countries.js'), 'utf8');
 
-    const store = {};
+function newHarness({ files = {}, wca = {} } = {}) {
+    const els = {};
+    const fetched = [];
+    const win = {};
+    vm.runInNewContext(W_SRC, { window: win });
     const ctx = {
         console, JSON, Object, Math, String, Number, Array, Map, Set, Promise,
-        state: { userProfile: null },
+        state: { userProfile: null, currentView: 'sor' },
         i18nT: (key, fallback) => fallback,
-        $: (sel) => els[sel] || null,
-        document: { createElement: () => fakeEl() },
-        localStorage: {
-            getItem: (k) => (k in store ? store[k] : null),
-            setItem: (k, v) => { store[k] = String(v); },
-        },
-        window: { WcaCountries: null },
+        $: (sel) => els[sel] || (els[sel] = fakeEl()),
+        document: { createElement: () => fakeEl(), querySelector: () => null, addEventListener() {} },
+        window: win,
         fetch: async (url) => {
+            fetched.push(url);
+            if (url in files) return { ok: true, json: async () => JSON.parse(JSON.stringify(files[url])) };
             const m = /\/persons\/([^/]+)$/.exec(url);
-            const data = m && wcaData[m[1]];
+            const data = m && wca[m[1]];
             return { ok: !!data, json: async () => data };
         },
     };
     vm.runInNewContext(BLOB + `
         this.sorState = sorState;
         this.computeSor = computeSor;
-        this.addSorPerson = addSorPerson;
+        this.sorPositionFor = sorPositionFor;
+        this.sorBoardUrl = sorBoardUrl;
+        this.showSorBoard = showSorBoard;
+        this.findSorCompetitor = findSorCompetitor;
         this.renderSor = renderSor;
     `, ctx, { filename: 'app.js:sor' });
-    return { ctx, els, store };
+    return { ctx, els, fetched };
 }
 
-/** A /persons/:id payload with the ranks spelled out per region. */
-function person(name, wcaId, records) {
+function board(rows, extra = {}) {
+    return Object.assign({
+        region: 'world', type: 'single', exportDate: '2026-10-02T00:00:00Z',
+        events: ['333', '222', 'pyram'], penalties: [1001, 501, 301], competitors: 1000, rows,
+    }, extra);
+}
+
+/** A /persons/:id payload. */
+function person(name, wcaId, records, countryId = 'Portugal') {
     return {
-        person: { wca_id: wcaId, name, country: { id: 'Portugal', name: 'Portugal', iso2: 'PT', continentId: '_Europe' } },
+        person: { wca_id: wcaId, name, country: { id: countryId, name: countryId, iso2: 'PT', continentId: '_Europe' } },
         personal_records: records,
     };
 }
-
-/** single/average sides carrying a different rank for each region. */
 function ranks(best, world, continent, country) {
     return { best, world_rank: world, continent_rank: continent, country_rank: country };
 }
 
 (async () => {
-    /* ---- the maths, per region and per type ---------------------- */
-    const records = {
+    /* ---- where each board lives ---------------------------------- */
+    let h = newHarness();
+    check('world single', h.ctx.sorBoardUrl('world', 'single') === 'data/sor/world-single.json');
+    check('a continent', h.ctx.sorBoardUrl('_North America', 'average') === 'data/sor/north-america-average.json',
+        h.ctx.sorBoardUrl('_North America', 'average'));
+    check('a country', h.ctx.sorBoardUrl('Portugal', 'single') === 'data/sor/pt-single.json');
+
+    /* ---- the penalty, for a competitor scored live ---------------- */
+    const ana = person('Ana', '2015TEST01', {
         '333': { single: ranks(800, 100, 20, 3), average: ranks(900, 150, 30, 4) },
-        '222': { single: ranks(200, 500, 60, 9), average: ranks(250, 550, 70, 11) },
-        'pyram': { single: ranks(300, 1000, 90, 12) },   // no average at all
-    };
-    let h = newHarness({ '2015TEST01': person('Ana', '2015TEST01', records) });
-    await h.ctx.addSorPerson('2015TEST01');
-
-    ok('the competitor was added', h.ctx.sorState.people.length === 1);
-
-    let sor = h.ctx.computeSor(h.ctx.sorState.people[0]);
-    check('world single sums the world ranks', sor.total === 1600, String(sor.total));
-    check('world single counts three ranked events', sor.rankedCount === 3, String(sor.rankedCount));
-    check('all seventeen WCA events are considered', sor.eventCount === 17, String(sor.eventCount));
-    check('the average rank is the mean of the ranks', sor.avgRank === 533, String(sor.avgRank));
-
-    h.ctx.sorState.region = 'continent';
-    check('continent single reads continent_rank', h.ctx.computeSor(h.ctx.sorState.people[0]).total === 170);
-
-    h.ctx.sorState.region = 'country';
-    check('country single reads country_rank', h.ctx.computeSor(h.ctx.sorState.people[0]).total === 24);
-
-    h.ctx.sorState.region = 'world';
-    h.ctx.sorState.type = 'average';
-    sor = h.ctx.computeSor(h.ctx.sorState.people[0]);
-    check('world average sums the average ranks', sor.total === 700, String(sor.total));
-    check('an event with no average is not counted', sor.rankedCount === 2, String(sor.rankedCount));
-
-    /* An event the person has never competed contributes nothing and is
-       reported as unranked, rather than being scored with a made-up rank. */
-    h.ctx.sorState.type = 'single';
-    sor = h.ctx.computeSor(h.ctx.sorState.people[0]);
-    const unranked = sor.rows.filter(r => r.rank === null).map(r => r.eventId);
-    check('every uncompeted event is listed unranked', unranked.length === 14, unranked.join(', '));
-    ok('4x4 is among them', unranked.includes('444'));
-    ok('3x3 is not', !unranked.includes('333'));
-
-    /* ---- board ordering ------------------------------------------ */
-    // Bea is ranked in one event with a very low rank; Ana in three with
-    // a higher total. Ordering on the total alone would put Bea first.
-    h = newHarness({
-        '2015TEST01': person('Ana', '2015TEST01', records),
-        '2015TEST02': person('Bea', '2015TEST02', {
-            '333': { single: ranks(700, 5, 1, 1) },
-        }),
+        '222': { single: ranks(200, 500, 60, 9) },
     });
-    await h.ctx.addSorPerson('2015TEST01');
-    await h.ctx.addSorPerson('2015TEST02');
-    h.ctx.renderSor();
+    const b = board([]);
+    let sor = h.ctx.computeSor({ records: ana.personal_records }, b, 'world');
+    check('ranked events add their rank, unranked ones the penalty', sor.sum === 100 + 500 + 301, String(sor.sum));
+    check('the unranked event is recorded as 0', sor.ranks[2] === 0);
+    check('ranked count', sor.ranked === 2);
+    sor = h.ctx.computeSor({ records: ana.personal_records }, b, '_Europe');
+    check('a continent reads continent_rank', sor.sum === 20 + 60 + 301, String(sor.sum));
+    sor = h.ctx.computeSor({ records: ana.personal_records }, b, 'Portugal');
+    check('a country reads country_rank', sor.sum === 3 + 9 + 301, String(sor.sum));
+    sor = h.ctx.computeSor({ records: ana.personal_records }, board([], { type: 'average' }), 'world');
+    check('average reads the average ranks', sor.sum === 150 + 501 + 301, String(sor.sum));
+    check('nobody with no rank of the type is scored',
+        h.ctx.computeSor({ records: {} }, b, 'world') === null);
 
-    let rows = h.els['#sor-board-body'].children.map(c => c.innerHTML);
-    check('both competitors are on the board', rows.length === 2, String(rows.length));
-    ok('the competitor ranked in more events is first', rows[0].includes('Ana'), rows[0]);
-    ok('the shorter list is second', rows[1].includes('Bea'), rows[1]);
+    /* ---- position on a board ------------------------------------- */
+    const rows = [
+        [1, 'A', 'A', 'PT', 10, [1, 1, 8]],
+        [2, 'B', 'B', 'PT', 20, [1, 1, 18]],
+        [2, 'C', 'C', 'PT', 20, [1, 1, 18]],
+        [4, 'D', 'D', 'PT', 30, [1, 1, 28]],
+    ];
+    check('a better total goes first', h.ctx.sorPositionFor(5, rows) === 1);
+    check('a tie shares the position', h.ctx.sorPositionFor(20, rows) === 2);
+    check('between rows', h.ctx.sorPositionFor(25, rows) === 4);
+    check('past the last row is unplaced', h.ctx.sorPositionFor(31, rows) === null);
 
-    // With the event count level, the lower total wins.
+    /* ---- the board renders, paged -------------------------------- */
+    const many = Array.from({ length: 250 }, (_, i) =>
+        [i + 1, `2020ZZZZ${String(i).padStart(2, '0')}`, `Person ${i}`, 'PT', 100 + i, [i + 1, 0, 3]]);
+    h = newHarness({ files: { 'data/sor/world-single.json': board(many) } });
+    await h.ctx.showSorBoard();
+    check('the board loaded', h.ctx.sorState.board && h.ctx.sorState.board.rows.length === 250);
+    let body = h.els['#sor-board-body'];
+    check('a page is 100 rows', body.children.length === 100, String(body.children.length));
+    ok('a penalty cell is drawn faded', body.children[0].innerHTML.includes('sor-pen'));
+    ok('and shows the penalty', body.children[0].innerHTML.includes('>501<'), body.children[0].innerHTML);
+    ok('the head names the events', h.els['#sor-board-head'].innerHTML.includes('Pyra'));
+    ok('the meta line says how many are ranked', h.els['#sor-board-meta'].textContent.includes('1,000'),
+        h.els['#sor-board-meta'].textContent);
+
+    // Finding someone on page 3 turns to it.
+    await h.ctx.findSorCompetitor('person 220');
+    check('a name search turns to their page', h.ctx.sorState.page === 2, String(h.ctx.sorState.page));
+    check('and highlights them', h.ctx.sorState.highlight === '2020ZZZZ220');
+    check('the last page is short', h.els['#sor-board-body'].children.length === 50);
+
+    /* ---- a competitor outside the board -------------------------- */
     h = newHarness({
-        '2015TEST01': person('Ana', '2015TEST01', { '333': { single: ranks(800, 100, 20, 3) } }),
-        '2015TEST02': person('Bea', '2015TEST02', { '333': { single: ranks(700, 5, 1, 1) } }),
+        files: { 'data/sor/world-single.json': board(rows.map(r => r.slice())) },
+        wca: { '2015TEST01': ana },
     });
-    await h.ctx.addSorPerson('2015TEST01');
-    await h.ctx.addSorPerson('2015TEST02');
-    h.ctx.renderSor();
-    rows = h.els['#sor-board-body'].children.map(c => c.innerHTML);
-    ok('at equal event counts the lower total leads', rows[0].includes('Bea'), rows[0]);
+    await h.ctx.showSorBoard();
+    await h.ctx.findSorCompetitor('2015test01');
+    ok('they are scored live', h.ctx.sorState.found && h.ctx.sorState.found.person.wcaId === '2015TEST01');
+    ok('and shown with their total', h.els['#sor-found-body'].innerHTML.includes('901'),
+        h.els['#sor-found-body'].innerHTML);
+    ok('and told they are outside the board', /Outside the top 4/.test(h.els['#sor-found-note'].textContent),
+        h.els['#sor-found-note'].textContent);
+
+    // On a board for a region they do not compete for, say so.
+    h = newHarness({
+        files: { 'data/sor/es-single.json': board(rows.map(r => r.slice()), { region: 'Spain' }) },
+        wca: { '2015TEST01': ana },
+    });
+    h.ctx.sorState.region = 'Spain';
+    await h.ctx.showSorBoard();
+    await h.ctx.findSorCompetitor('2015TEST01');
+    ok('another region is refused', /does not compete for Spain/.test(h.els['#sor-found-note'].textContent),
+        h.els['#sor-found-note'].textContent);
 
     /* ---- rejected input ------------------------------------------ */
-    h = newHarness({ '2015TEST01': person('Ana', '2015TEST01', records) });
-    await h.ctx.addSorPerson('not-an-id');
-    check('a malformed WCA ID adds nobody', h.ctx.sorState.people.length === 0);
-    ok('and says so', h.els['#sor-error'].style.display === 'flex');
+    h = newHarness({ files: { 'data/sor/world-single.json': board(rows) } });
+    await h.ctx.showSorBoard();
+    await h.ctx.findSorCompetitor('nobody');
+    ok('an unknown name says so', /Nobody by that name/.test(h.els['#sor-error-text'].textContent));
+    await h.ctx.findSorCompetitor('2015NOPE99');
+    ok('an unknown WCA ID says so', /No WCA competitor/.test(h.els['#sor-error-text'].textContent));
 
-    await h.ctx.addSorPerson('2015NOPE99');
-    check('an unknown WCA ID adds nobody', h.ctx.sorState.people.length === 0);
-    ok('and says so', h.els['#sor-error-text'].textContent.includes('No WCA competitor'),
-        h.els['#sor-error-text'].textContent);
+    // A board that cannot be loaded is an error, not an empty page.
+    h = newHarness();
+    await h.ctx.showSorBoard();
+    ok('a missing board reports an error', h.els['#sor-error'].style.display === 'flex');
 
-    h = newHarness({ '2015TEST03': person('Cid', '2015TEST03', {}) });
-    await h.ctx.addSorPerson('2015TEST03');
-    check('someone with no official results adds nobody', h.ctx.sorState.people.length === 0);
-    ok('and is named in the message', h.els['#sor-error-text'].textContent.includes('Cid'),
-        h.els['#sor-error-text'].textContent);
-
-    /* ---- persistence --------------------------------------------- */
-    h = newHarness({ '2015TEST01': person('Ana', '2015TEST01', records) });
-    await h.ctx.addSorPerson('2015test01');           // lower case is fine
-    check('the ID is normalised to upper case',
-        h.ctx.sorState.people[0].wcaId === '2015TEST01', h.ctx.sorState.people[0].wcaId);
-    check('the board is remembered for next time',
-        JSON.parse(h.store['sor-people'] || '[]')[0] === '2015TEST01', h.store['sor-people']);
-
-    await h.ctx.addSorPerson('2015TEST01');
-    check('adding the same person twice does not duplicate them',
-        h.ctx.sorState.people.length === 1, String(h.ctx.sorState.people.length));
+    /* ---- the generated data -------------------------------------- */
+    const file = (name) => JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'sor', name), 'utf8'));
+    for (const name of ['world-single.json', 'world-average.json', 'europe-single.json', 'pt-single.json']) {
+        const exists = fs.existsSync(path.join(ROOT, 'data', 'sor', name));
+        check(`data/sor/${name} exists`, exists);
+        if (!exists) continue;
+        const d = file(name);
+        check(`${name}: a penalty per event`, d.penalties.length === d.events.length);
+        let sorted = true, sumsRight = true, positionsRight = true;
+        d.rows.forEach((r, i) => {
+            const [pos, , , , sum, rk] = r;
+            const expect = rk.reduce((s, x, e) => s + (x || d.penalties[e]), 0);
+            if (expect !== sum) sumsRight = false;
+            if (i && d.rows[i - 1][4] > sum) sorted = false;
+            const wantPos = i && d.rows[i - 1][4] === sum ? d.rows[i - 1][0] : i + 1;
+            if (pos !== wantPos) positionsRight = false;
+        });
+        check(`${name}: every total is ranks + penalties`, sumsRight);
+        check(`${name}: lowest total first`, sorted);
+        check(`${name}: ties share a position`, positionsRight);
+    }
+    const ws = file('world-single.json');
+    check('single covers all seventeen events', ws.events.length === 17);
+    check('average has no multi-blind', !file('world-average.json').events.includes('333mbf'));
 
     /* ---- the view is actually reachable -------------------------- */
     ok('index.html carries the Sum of Ranks view', INDEX.includes('id="sor-view"'));
     ok('...and a nav button for it', INDEX.includes('id="nav-sor-btn"'));
     ok('...and the home grid links to it', INDEX.includes('bento-sor'));
+    ok('...and a region picker', INDEX.includes('id="sor-region"'));
     ok('app.js routes #sor to the view', SRC.includes("'#sor': 'sor'"));
     ok('...and the view back to #sor', SRC.includes("'sor': '#sor'"));
     ok('...and initialises it on arrival', SRC.includes("if (targetView === 'sor') initSorView();"));

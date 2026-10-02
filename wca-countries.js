@@ -261,5 +261,20 @@
             const c = String(code || '').toUpperCase();
             return (byIso2.get(c) || {}).name || '';
         },
+        /** ISO2 ("PT") -> { id, iso2, continent, name }, or null. */
+        byIso2: code => byIso2.get(String(code || '').toUpperCase()) || null,
+        /**
+         * The file name a region's generated data is published under
+         * (data/sor/<key>-single.json, data/records/<key>.json): "world",
+         * a continent slug ("north-america") or a lower-case ISO2 ("pt").
+         * Shared with scripts/build_wca_data.js so the generator and the
+         * page cannot disagree on where a region lives.
+         */
+        fileKey: id => {
+            if (!id || id === 'world') return 'world';
+            if (id.startsWith('_')) return id.slice(1).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            const c = byId.get(id);
+            return c && c.iso2 ? c.iso2.toLowerCase() : '';
+        },
     };
 })();

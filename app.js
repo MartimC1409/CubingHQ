@@ -2985,66 +2985,119 @@
         return region.startsWith('_') ? 'CR' : 'NR';
     }
 
+    // Record holders by region, from data/records/<region>.json — built
+    // daily from the WCA results export by scripts/build_wca_data.js. The
+    // WCA records API gives times only; this is where the names come from,
+    // for continental and national records as well as world ones.
+    // regionId -> { eventId: { single: [holder], average: [holder] } }, or
+    // null when the file could not be loaded.
+    const recordHolders = new Map();
+
+    async function loadRecordHolders(region) {
+        const id = region || 'world';
+        if (recordHolders.has(id)) return recordHolders.get(id);
+        const W = window.WcaCountries;
+        const key = W && W.fileKey ? W.fileKey(id) : (id === 'world' ? 'world' : '');
+        let records = null;
+        if (key) {
+            try {
+                const res = await fetch(`data/records/${key}.json`);
+                if (res.ok) records = (await res.json()).records || null;
+            } catch (e) { /* fall back to the curated list below */ }
+        }
+        recordHolders.set(id, records);
+        return records;
+    }
+
+    // One side of a generated record as the table's { time, holder, ... }
+    // shape. Ties are real (FMC single has several holders), so every
+    // holder is kept and the first one fills the single-name fields.
+    function holderSide(eventId, list, isAverage) {
+        if (!Array.isArray(list) || !list.length) return null;
+        const display = wcaRawToDisplay(eventId, list[0].value, isAverage);
+        if (!display) return null;
+        return Object.assign(display, {
+            raw: list[0].value,
+            holder: list[0].name,
+            country: list[0].iso2 || '',
+            competition: list[0].competition || '',
+            holders: list.map(h => ({
+                name: h.name, country: h.iso2 || '', wcaId: h.id || '',
+                competition: h.competition || '',
+            })),
+        });
+    }
+
     // Build the record for one event in the active region: live times from the
-    // WCA overlaid on our curated holder/competition metadata. Holder metadata
-    // only applies worldwide — the API gives no names for regional records.
-    function buildRecordFor(eventId, regionRecords, isWorld) {
+    // WCA overlaid on holder/competition metadata. The metadata comes from the
+    // generated holder files first, and — worldwide only — from the admin
+    // overrides and the curated world-records.js after that.
+    function buildRecordFor(eventId, regionRecords, isWorld, holders) {
+        const generated = holders && holders[eventId];
+        const fromData = generated ? {
+            single: holderSide(eventId, generated.single, false),
+            average: holderSide(eventId, generated.average, true),
+        } : null;
         const stored = (fetchedWorldRecords && fetchedWorldRecords[eventId])
             ? fetchedWorldRecords[eventId]
             : WORLD_RECORDS[eventId];
 
+        // Every source that could name the holder, best first.
+        const sources = [fromData, isWorld ? stored : null].filter(Boolean);
+
         const live = regionRecords && regionRecords[eventId];
         if (!live) {
-            // No live data for this region/event. Worldwide we can still show
-            // the curated record; regionally we have nothing to show.
-            return isWorld ? stored : null;
+            // No live data for this region/event. Show what the generated
+            // file (or, worldwide, the curated list) says.
+            const fallback = sources.find(src => src.single || src.average);
+            return fallback ? { single: fallback.single || null, average: fallback.average || null } : null;
         }
 
-        const meta = isWorld ? stored : null;
         const rec = { single: null, average: null };
         const liveS = liveSide(live.single);
         const liveA = liveSide(live.average);
         const liveSingle = liveS ? wcaRawToDisplay(eventId, liveS.raw, false) : null;
         const liveAvg = liveA ? wcaRawToDisplay(eventId, liveA.raw, true) : null;
 
-        // The live feed carries times but no names — the v0 endpoint has none —
-        // so holder and competition can only come from the stored list. That is
-        // fine right up until a record changes hands: the time updates, the
-        // name does not, and the page credits the previous holder with somebody
-        // else's result. On a page headed "Official WCA records" that is the
-        // worst kind of wrong, because it is specific and plausible.
-        //
-        // So the stored metadata is only trusted while it still describes the
-        // time being shown. When the two disagree the record has moved on: show
-        // the live time with no name rather than the wrong name. Self-correcting
-        // for every event, instead of relying on someone noticing.
-        const metaFor = (side, liveVal) => {
-            const stale = !side || typeof side.time !== 'number'
-                || Math.abs(side.time - liveVal.time) > 0.005;
-            return stale ? {} : side;
+        // The live feed carries times but no names, so holder and competition
+        // come from the sources above. Those are only trusted while they still
+        // describe the time being shown: when a record changes hands before
+        // the data catches up, the live time is shown with no name rather
+        // than credit the previous holder with somebody else's result.
+        const matches = (side, liveVal, liveRaw) => {
+            if (!side) return false;
+            if (typeof side.raw === 'number') return side.raw === liveRaw;
+            if (liveVal.isMulti) return side.time === liveVal.time;
+            return typeof side.time === 'number' && Math.abs(side.time - liveVal.time) <= 0.005;
+        };
+        const metaFor = (key, liveVal, liveRaw) => {
+            const src = sources.find(s => matches(s[key], liveVal, liveRaw));
+            if (!src) return {};
+            const { holder, country, competition, holders: all } = src[key];
+            return all ? { holder, country, competition, holders: all } : { holder, country, competition };
         };
 
-        // A live name, where one exists, is layered over the curated one:
+        // A live name, where one exists, is layered over the stored one:
         // it cannot be stale, so it always wins.
         if (liveSingle) {
             rec.single = Object.assign(
                 { holder: '—', country: '', competition: '' },
-                metaFor(meta && meta.single, liveSingle),
+                metaFor('single', liveSingle, liveS.raw),
                 (liveS && liveS.meta) || {},
                 liveSingle,
             );
-        } else if (isWorld) {
-            rec.single = meta && meta.single;
+        } else if (sources[0]) {
+            rec.single = sources[0].single || null;
         }
         if (liveAvg) {
             rec.average = Object.assign(
                 { holder: '—', country: '', competition: '' },
-                metaFor(meta && meta.average, liveAvg),
+                metaFor('average', liveAvg, liveA.raw),
                 (liveA && liveA.meta) || {},
                 liveAvg,
             );
-        } else if (isWorld) {
-            rec.average = meta && meta.average;
+        } else if (sources[0]) {
+            rec.average = sources[0].average || null;
         }
         return (rec.single || rec.average) ? rec : null;
     }
@@ -3055,7 +3108,8 @@
             $('#records-table').style.display = 'none';
             const [customRes] = await Promise.allSettled([
                 fetch('https://simulatecubing-default-rtdb.firebaseio.com/records.json').then(r => r.json()),
-                fetchLiveWcaRecords()
+                fetchLiveWcaRecords(),
+                loadRecordHolders(recordsFilter.region),
             ]);
             if (customRes.status === 'fulfilled' && customRes.value) {
                 fetchedWorldRecords = customRes.value;
@@ -3126,8 +3180,14 @@
             recordsFilter.event = eventSel.value;
             renderRecordsTable();
         });
-        regionSel.addEventListener('change', () => {
-            recordsFilter.region = regionSel.value;
+        regionSel.addEventListener('change', async () => {
+            const region = regionSel.value;
+            recordsFilter.region = region;
+            if (!recordHolders.has(region)) {
+                renderRecordsTable();                 // times first, names when they land
+                await loadRecordHolders(region);
+                if (recordsFilter.region !== region) return;
+            }
             renderRecordsTable();
         });
         $$('.records-filter-chip').forEach(chip => {
@@ -3208,7 +3268,12 @@
                 'The time is live from the WCA. The holder is confirmed by hand and has not caught up yet.'))}">`
                 + `${esc(i18nT('records.pending', 'new record — holder not confirmed'))}</span>`;
         }
-        return `${countryFlagImg(rec.country)} ${rec.holder}`;
+        // Tied records have several holders; name them all.
+        const list = Array.isArray(rec.holders) && rec.holders.length
+            ? rec.holders
+            : [{ name: rec.holder, country: rec.country }];
+        return list.map(h => `<span class="rec-holder-person">${countryFlagImg(h.country)} ${esc(h.name)}</span>`)
+            .join('<span class="rec-holder-sep">, </span>');
     }
 
     function renderRecordsTable() {
@@ -3220,16 +3285,17 @@
         const region = recordsFilter.region;
         const isWorld = !region || region === 'world';
         const regionRecords = recordsForRegion(region);
+        const holders = recordHolders.get(isWorld ? 'world' : region) || null;
         const showSingle = recordsFilter.type !== 'average';
         const showAverage = recordsFilter.type !== 'single';
 
-        // Column visibility follows the type filter, and holder columns only
-        // carry names worldwide.
+        // Column visibility follows the type filter. Holder columns need
+        // names, which a region only has once its holder file has loaded.
         const table = $('#records-table');
         if (table) {
             table.classList.toggle('hide-single', !showSingle);
             table.classList.toggle('hide-average', !showAverage);
-            table.classList.toggle('hide-holders', !isWorld);
+            table.classList.toggle('hide-holders', !isWorld && !holders);
         }
 
         // Column headings follow the region: WR / CR / NR.
@@ -3246,7 +3312,7 @@
         const rendered = [];
         events.forEach(eventId => {
             if (!EVENT_NAMES[eventId]) return;
-            const rec = buildRecordFor(eventId, regionRecords, isWorld);
+            const rec = buildRecordFor(eventId, regionRecords, isWorld, holders);
             if (!rec) return;
             // Respect the type filter: a row with nothing to show is dropped.
             if (!showSingle && !rec.average) return;
@@ -3275,7 +3341,7 @@
         const empty = $('#records-empty');
         if (empty) empty.style.display = rendered.length ? 'none' : 'flex';
         const note = $('#records-holder-note');
-        if (note) note.style.display = (!isWorld && rendered.length) ? 'flex' : 'none';
+        if (note) note.style.display = (!isWorld && !holders && rendered.length) ? 'flex' : 'none';
 
         $('#records-loading').style.display = 'none';
         // Empty string, not 'table': an inline display would beat the mobile
@@ -3428,22 +3494,25 @@
         // Holder and competition only exist for world records; regional rows
         // carry the time alone.
         const detailMeta = (side) => {
-            let html = '';
-            if (side.holder && side.holder !== '—') {
-                html += `
+            if (!side.holder || side.holder === '—') return '';
+            const list = Array.isArray(side.holders) && side.holders.length
+                ? side.holders
+                : [{ name: side.holder, country: side.country, competition: side.competition }];
+            return list.map(h => {
+                let html = `
                     <div class="record-detail-holder">
-                        <span class="record-detail-flag">${countryFlagImg(side.country, 28)}</span>
-                        <span class="record-detail-name">${esc(side.holder)}</span>
+                        <span class="record-detail-flag">${countryFlagImg(h.country, 28)}</span>
+                        <span class="record-detail-name">${esc(h.name)}</span>
                     </div>`;
-            }
-            if (side.competition) {
-                html += `
+                if (h.competition) {
+                    html += `
                     <div class="record-detail-comp">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        ${esc(side.competition)}
+                        ${esc(h.competition)}
                     </div>`;
-            }
-            return html;
+                }
+                return html;
+            }).join('');
         };
 
         let singleCard = '';
@@ -7254,48 +7323,68 @@
     }
 
     // ========== SUM OF RANKS ==========
-    // A competitor's WCA ranking in every event, added up: the lower the
-    // total, the more complete the cuber. The WCA publishes each person's
-    // world / continental / national rank per event on /persons/:id, so
-    // this is computed per person and needs no ranking dump.
+    // The WCA's "sum of ranks" statistic, as cubing.com publishes it: a
+    // competitor's rank in every event, added up, lowest total first. An
+    // event someone is not ranked in counts as (number of people ranked in
+    // it, in that region) + 1 — without that penalty a total would reward
+    // competing in fewer events.
     //
-    // What it deliberately does NOT do is invent a rank for an event
-    // someone has never competed. The published leaderboards substitute
-    // "last place + 1", which needs the number of ranked competitors in
-    // every event — a figure the API does not publish. So unranked events
-    // are left out of the sum and shown as unranked, and the board is
-    // ordered by how many events are ranked first, total second. Ordering
-    // on the raw total alone would put someone with three events above
-    // someone ranked in all seventeen.
-    const SOR_STORAGE_KEY = 'sor-people';
+    // A board needs every ranked competitor in every event, which no API
+    // serves, so the boards are built daily from the WCA results export by
+    // scripts/build_wca_data.js into data/sor/<region>-<type>.json:
+    //   { events, penalties, competitors, exportDate,
+    //     rows: [[pos, wcaId, name, iso2, sum, [rank per event, 0 = unranked]]] }
+    // A competitor outside the published rows is looked up on the WCA API
+    // and scored against the same penalties.
+    const SOR_PAGE_SIZE = 100;
     const SOR_RANK_KEY = { world: 'world_rank', continent: 'continent_rank', country: 'country_rank' };
-
-    const sorState = {
-        people: [],          // [{ wcaId, name, countryId, countryIso2, continentId, records }]
-        region: 'world',
-        type: 'single',
-        selected: null,      // wcaId whose breakdown is shown
-        cache: new Map(),    // wcaId -> person object, or null when not found
-        bound: false,
-        pending: 0,
+    const SOR_EVENT_SHORT = {
+        '333': '3x3', '222': '2x2', '444': '4x4', '555': '5x5', '666': '6x6', '777': '7x7',
+        '333bf': '3BLD', '333fm': 'FMC', '333oh': 'OH', 'clock': 'Clock', 'minx': 'Mega',
+        'pyram': 'Pyra', 'skewb': 'Skewb', 'sq1': 'SQ1', '444bf': '4BLD', '555bf': '5BLD', '333mbf': 'MBLD',
     };
 
-    function sorSavePeople() {
-        try {
-            localStorage.setItem(SOR_STORAGE_KEY,
-                JSON.stringify(sorState.people.map(p => p.wcaId)));
-        } catch (e) { /* private mode */ }
+    const sorState = {
+        region: 'world',     // 'world', a continent id ('_Europe') or a WCA country id ('Portugal')
+        type: 'single',
+        page: 0,
+        board: null,         // the loaded board for region + type
+        boards: new Map(),   // 'region|type' -> board, or null when it could not be loaded
+        highlight: null,     // wcaId to highlight on the board
+        found: null,         // a looked-up competitor outside the board: { person, sor }
+        cache: new Map(),    // wcaId -> WCA person, or null when not found
+        bound: false,
+        seq: 0,
+    };
+
+    function sorLevel(region) {
+        if (!region || region === 'world') return 'world';
+        return region.startsWith('_') ? 'continent' : 'country';
     }
 
-    function sorStoredIds() {
-        try {
-            const raw = JSON.parse(localStorage.getItem(SOR_STORAGE_KEY) || '[]');
-            return Array.isArray(raw) ? raw.filter(x => typeof x === 'string').slice(0, 12) : [];
-        } catch (e) { return []; }
+    function sorBoardUrl(region, type) {
+        const W = window.WcaCountries;
+        const key = W && W.fileKey ? W.fileKey(region) : (region === 'world' ? 'world' : '');
+        return key ? `data/sor/${key}-${type}.json` : null;
     }
 
-    // Full person payload (name and country as well as the records), which
-    // is more than fetchWcaPersonalRecords keeps for the friends table.
+    async function loadSorBoard(region, type) {
+        const id = `${region}|${type}`;
+        if (sorState.boards.has(id)) return sorState.boards.get(id);
+        let board = null;
+        const url = sorBoardUrl(region, type);
+        if (url) {
+            try {
+                const res = await fetch(url);
+                if (res.ok) board = await res.json();
+            } catch (e) { /* reported by the caller */ }
+        }
+        if (board && (!Array.isArray(board.rows) || !Array.isArray(board.events))) board = null;
+        sorState.boards.set(id, board);
+        return board;
+    }
+
+    // Full person payload from the WCA API: name, country and the ranks.
     async function fetchWcaPerson(wcaId) {
         const id = String(wcaId || '').trim().toUpperCase();
         if (!id) return null;
@@ -7312,7 +7401,7 @@
                 person = {
                     wcaId: p.wca_id || id,
                     name: p.name || id,
-                    countryId: country.id || country.name || '',
+                    countryId: country.id || '',
                     countryName: country.name || country.id || '',
                     countryIso2: country.iso2 || p.country_iso2 || (fromTable ? fromTable.iso2 : ''),
                     continentId: country.continentId || (fromTable ? fromTable.continent : ''),
@@ -7324,41 +7413,44 @@
         return person;
     }
 
-    // The rank this person holds in one event, for the selected region and
-    // result type, or null when they have no ranked result there.
-    function sorRankFor(person, eventId) {
-        const pr = person.records && person.records[eventId];
-        const side = pr && pr[sorState.type];
-        if (!side) return null;
-        const rank = side[SOR_RANK_KEY[sorState.region]];
-        return typeof rank === 'number' && rank > 0 ? rank : null;
-    }
-
-    function computeSor(person) {
-        const rows = WCA_EVENT_ORDER.map(eventId => {
+    /**
+     * Scores one WCA person against a board: their rank in each of the
+     * board's events for its region level, the board's penalty where they
+     * have none. Returns null when they have no ranked result at all.
+     */
+    function computeSor(person, board, region) {
+        const key = SOR_RANK_KEY[sorLevel(region)];
+        const type = board.type || sorState.type;
+        let sum = 0, ranked = 0;
+        const ranks = board.events.map((eventId, i) => {
             const pr = person.records && person.records[eventId];
-            const side = pr && pr[sorState.type];
-            return {
-                eventId,
-                rank: sorRankFor(person, eventId),
-                best: side ? side.best : null,
-            };
+            const side = pr && pr[type];
+            const rank = side && typeof side[key] === 'number' && side[key] > 0 ? side[key] : 0;
+            if (rank) { sum += rank; ranked++; } else sum += board.penalties[i];
+            return rank;
         });
-        const ranked = rows.filter(r => r.rank !== null);
-        const total = ranked.reduce((sum, r) => sum + r.rank, 0);
-        return {
-            rows,
-            total,
-            rankedCount: ranked.length,
-            eventCount: WCA_EVENT_ORDER.length,
-            avgRank: ranked.length ? Math.round(total / ranked.length) : null,
-        };
+        return ranked ? { sum, ranks, ranked } : null;
     }
 
-    function sorRegionLabel() {
-        if (sorState.region === 'world') return i18nT('sor.region.world', 'World');
-        if (sorState.region === 'continent') return i18nT('sor.region.continent', 'Continent');
-        return i18nT('sor.region.country', 'Country');
+    /** Where a total would place on a board, or null if past its last row. */
+    function sorPositionFor(sum, rows) {
+        if (!rows.length || sum > rows[rows.length - 1][4]) return null;
+        let pos = 1;
+        for (const row of rows) { if (row[4] < sum) pos++; else break; }
+        return pos;
+    }
+
+    function sorInRegion(person, region) {
+        const level = sorLevel(region);
+        if (level === 'world') return true;
+        if (level === 'continent') return person.continentId === region;
+        return person.countryId === region;
+    }
+
+    function sorRegionName(region) {
+        if (!region || region === 'world') return i18nT('records.world', 'World');
+        const W = window.WcaCountries;
+        return W ? W.name(region) : region;
     }
 
     function sorTypeLabel() {
@@ -7367,141 +7459,34 @@
             : i18nT('records.type.average', 'Average');
     }
 
-    function renderSor() {
-        const results = $('#sor-results');
-        const empty = $('#sor-empty');
-        if (!results || !empty) return;
-
-        const has = sorState.people.length > 0;
-        results.style.display = has ? 'block' : 'none';
-        empty.style.display = has ? 'none' : 'block';
-
-        const title = $('#sor-board-title');
-        if (title) {
-            title.textContent = `${i18nT('sor.board.title', 'Sum of Ranks')} — ${sorRegionLabel()} · ${sorTypeLabel()}`;
-        }
-        const resultTh = $('#sor-th-result');
-        if (resultTh) resultTh.textContent = sorTypeLabel();
-
-        if (!has) return;
-        renderSorBoard();
-        renderSorDetail();
+    function sorHeadHtml(board) {
+        const cells = board.events.map(e =>
+            `<th class="sor-th-num sor-th-event" title="${esc(EVENT_NAMES[e] || e)}">${esc(SOR_EVENT_SHORT[e] || e)}</th>`).join('');
+        return `<tr>
+            <th class="sor-th-pos">#</th>
+            <th class="sor-th-name">${esc(i18nT('sor.col.competitor', 'Competitor'))}</th>
+            <th class="sor-th-num sor-th-sum">${esc(i18nT('sor.col.sum', 'Sum'))}</th>
+            ${cells}
+        </tr>`;
     }
 
-    function renderSorBoard() {
-        const body = $('#sor-board-body');
-        if (!body) return;
-
-        const scored = sorState.people.map(p => ({ person: p, sor: computeSor(p) }));
-        // Most events ranked first, then the lowest total. See the note on
-        // sorState above for why the total alone is not the ordering.
-        scored.sort((a, b) =>
-            (b.sor.rankedCount - a.sor.rankedCount) || (a.sor.total - b.sor.total));
-
-        if (!sorState.selected || !scored.some(s => s.person.wcaId === sorState.selected)) {
-            sorState.selected = scored[0].person.wcaId;
-        }
-
-        body.innerHTML = '';
-        scored.forEach((entry, i) => {
-            const { person, sor } = entry;
-            const tr = document.createElement('tr');
-            tr.className = 'sor-board-row' + (person.wcaId === sorState.selected ? ' selected' : '');
-            tr.dataset.wcaId = person.wcaId;
-            tr.innerHTML = `
-                <td class="sor-pos">${i + 1}</td>
-                <td>
-                    <span class="sor-competitor">
-                        ${countryFlagImg(person.countryIso2, 18)}
-                        <span>
-                            <span class="sor-competitor-name">${esc(person.name)}</span>
-                            <span class="sor-competitor-id"> ${esc(person.wcaId)}</span>
-                        </span>
-                    </span>
-                </td>
-                <td class="sor-num sor-total">${sor.total.toLocaleString()}</td>
-                <td class="sor-num">${sor.rankedCount}/${sor.eventCount}</td>
-                <td class="sor-num sor-col-avg">${sor.avgRank === null ? '—' : sor.avgRank.toLocaleString()}</td>
-                <td class="sor-num"><button type="button" class="sor-remove" data-remove="${esc(person.wcaId)}" aria-label="${esc(i18nT('sor.remove', 'Remove competitor'))}">&times;</button></td>
-            `;
-            tr.addEventListener('click', (e) => {
-                if (e.target.closest('[data-remove]')) return;
-                sorState.selected = person.wcaId;
-                renderSor();
-            });
-            body.appendChild(tr);
-        });
-
-        body.querySelectorAll('[data-remove]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                sorState.people = sorState.people.filter(p => p.wcaId !== btn.dataset.remove);
-                if (sorState.selected === btn.dataset.remove) sorState.selected = null;
-                sorSavePeople();
-                renderSor();
-            });
-        });
-    }
-
-    function renderSorDetail() {
-        const card = $('#sor-detail-card');
-        const body = $('#sor-detail-body');
-        if (!card || !body) return;
-
-        const person = sorState.people.find(p => p.wcaId === sorState.selected);
-        if (!person) { card.style.display = 'none'; return; }
-        card.style.display = 'block';
-
-        const sor = computeSor(person);
-        const flag = $('#sor-detail-flag');
-        if (flag) flag.innerHTML = countryFlagImg(person.countryIso2, 30);
-        const name = $('#sor-detail-name');
-        if (name) name.textContent = person.name;
-
-        const W = window.WcaCountries;
-        const continent = W && person.continentId ? W.continent(person.continentId) : null;
-        const region = sorState.region === 'world'
-            ? i18nT('sor.region.world', 'World')
-            : sorState.region === 'continent'
-                ? (continent ? continent.name : i18nT('sor.region.continent', 'Continent'))
-                : (person.countryName || i18nT('sor.region.country', 'Country'));
-        const meta = $('#sor-detail-meta');
-        if (meta) {
-            meta.textContent = `${person.wcaId} · ${region} · ${sorTypeLabel()} · ` +
-                i18nT('sor.rankedOf', '{n} of {total} events ranked')
-                    .replace('{n}', sor.rankedCount).replace('{total}', sor.eventCount);
-        }
-        const total = $('#sor-detail-total');
-        if (total) total.textContent = sor.total.toLocaleString();
-        const totalLabel = $('#sor-detail-total-label');
-        if (totalLabel) totalLabel.textContent = `${sorRegionLabel()} · ${sorTypeLabel()}`;
-
-        const isAverage = sorState.type === 'average';
-        body.innerHTML = '';
-        sor.rows.forEach(row => {
-            const tr = document.createElement('tr');
-            const eventName = EVENT_NAMES[row.eventId] || row.eventId;
-            if (row.rank === null) {
-                tr.className = 'sor-unranked';
-                tr.innerHTML = `
-                    <td>${esc(eventName)}</td>
-                    <td class="sor-num">—</td>
-                    <td class="sor-num">${esc(i18nT('sor.unranked', 'Not ranked'))}</td>
-                    <td class="sor-bar-cell"></td>
-                `;
-            } else {
-                const share = sor.total > 0 ? Math.max(1, Math.round((row.rank / sor.total) * 100)) : 0;
-                const best = formatWcaBest(row.eventId, row.best, isAverage) || '—';
-                tr.innerHTML = `
-                    <td>${esc(eventName)}</td>
-                    <td class="sor-num">${esc(best)}</td>
-                    <td class="sor-num">${row.rank.toLocaleString()}</td>
-                    <td class="sor-bar-cell">
-                        <div class="sor-bar-track" title="${share}%"><div class="sor-bar" style="width: ${share}%"></div></div>
-                    </td>
-                `;
-            }
-            body.appendChild(tr);
-        });
+    function sorRowHtml(board, pos, wcaId, name, iso2, sum, ranks) {
+        const notRanked = i18nT('sor.unrankedHint', 'Not ranked — counts as {n}');
+        const cells = ranks.map((rank, i) => rank
+            ? `<td class="sor-num">${rank.toLocaleString()}</td>`
+            : `<td class="sor-num sor-pen" title="${esc(notRanked.replace('{n}', board.penalties[i].toLocaleString()))}">${board.penalties[i].toLocaleString()}</td>`
+        ).join('');
+        const href = `https://www.worldcubeassociation.org/persons/${encodeURIComponent(wcaId)}`;
+        return `
+            <td class="sor-pos">${pos === null ? '—' : pos.toLocaleString()}</td>
+            <td class="sor-name-cell">
+                <span class="sor-competitor">
+                    ${countryFlagImg(iso2, 18)}
+                    <a class="sor-competitor-name" href="${href}" target="_blank" rel="noopener">${esc(name)}</a>
+                </span>
+            </td>
+            <td class="sor-num sor-total">${sum.toLocaleString()}</td>
+            ${cells}`;
     }
 
     function sorSetState(el, message) {
@@ -7512,24 +7497,155 @@
         if (el === 'error' && $('#sor-error-text')) $('#sor-error-text').textContent = message;
     }
 
-    async function addSorPerson(rawId) {
-        const wcaId = String(rawId || '').trim().toUpperCase();
-        if (!/^\d{4}[A-Z]{4}\d{2}$/.test(wcaId)) {
-            sorSetState('error', i18nT('sor.badId', 'That is not a WCA ID. They look like 2023CARV02.'));
+    function renderSor() {
+        const results = $('#sor-results');
+        const board = sorState.board;
+        if (results) results.style.display = board ? 'block' : 'none';
+        renderSorFound();
+        if (!board) return;
+
+        const title = $('#sor-board-title');
+        if (title) {
+            title.textContent = `${i18nT('sor.board.title', 'Sum of Ranks')} — ${sorRegionName(sorState.region)} · ${sorTypeLabel()}`;
+        }
+        const meta = $('#sor-board-meta');
+        if (meta) {
+            const date = board.exportDate ? String(board.exportDate).slice(0, 10) : '';
+            meta.textContent = i18nT('sor.meta', '{n} competitors ranked').replace('{n}', (board.competitors || 0).toLocaleString())
+                + (date ? ` · ${i18nT('sor.asOf', 'WCA results as of {date}').replace('{date}', date)}` : '');
+        }
+
+        const head = $('#sor-board-head');
+        if (head) head.innerHTML = sorHeadHtml(board);
+
+        const pages = Math.max(1, Math.ceil(board.rows.length / SOR_PAGE_SIZE));
+        sorState.page = Math.min(Math.max(0, sorState.page), pages - 1);
+        const start = sorState.page * SOR_PAGE_SIZE;
+
+        const body = $('#sor-board-body');
+        if (body) {
+            body.innerHTML = '';
+            board.rows.slice(start, start + SOR_PAGE_SIZE).forEach(([pos, wcaId, name, iso2, sum, ranks]) => {
+                const tr = document.createElement('tr');
+                tr.className = 'sor-board-row' + (wcaId === sorState.highlight ? ' selected' : '');
+                tr.dataset.wcaId = wcaId;
+                tr.innerHTML = sorRowHtml(board, pos, wcaId, name, iso2, sum, ranks);
+                body.appendChild(tr);
+            });
+            if (!board.rows.length) {
+                body.innerHTML = `<tr><td colspan="${board.events.length + 3}" class="sor-empty-row">${esc(i18nT('sor.noneHere', 'No ranked competitors in this region yet.'))}</td></tr>`;
+            }
+        }
+
+        const label = $('#sor-page-label');
+        if (label) {
+            const end = Math.min(board.rows.length, start + SOR_PAGE_SIZE);
+            label.textContent = board.rows.length
+                ? i18nT('sor.pageOf', '{from}–{to} of {total}')
+                    .replace('{from}', (start + 1).toLocaleString())
+                    .replace('{to}', end.toLocaleString())
+                    .replace('{total}', board.rows.length.toLocaleString())
+                : '';
+        }
+        const prev = $('#sor-prev');
+        const next = $('#sor-next');
+        if (prev) prev.disabled = sorState.page === 0;
+        if (next) next.disabled = sorState.page >= pages - 1;
+        const pager = $('#sor-pager');
+        if (pager) pager.style.display = pages > 1 ? 'flex' : 'none';
+    }
+
+    // A competitor looked up by WCA ID who is not on the published board.
+    function renderSorFound() {
+        const card = $('#sor-found');
+        if (!card) return;
+        const found = sorState.found;
+        const board = sorState.board;
+        if (!found || !board) { card.style.display = 'none'; return; }
+        card.style.display = 'block';
+
+        const { person } = found;
+        const title = $('#sor-found-title');
+        if (title) title.textContent = person.name;
+        const head = $('#sor-found-head');
+        if (head) head.innerHTML = sorHeadHtml(board);
+
+        const body = $('#sor-found-body');
+        const note = $('#sor-found-note');
+        if (!sorInRegion(person, sorState.region)) {
+            if (body) body.innerHTML = '';
+            if (note) {
+                note.textContent = i18nT('sor.otherRegion', '{name} does not compete for {region}.')
+                    .replace('{name}', person.name).replace('{region}', sorRegionName(sorState.region));
+            }
             return;
         }
-        if (sorState.people.some(p => p.wcaId === wcaId)) {
-            sorState.selected = wcaId;
+        const sor = computeSor(person, board, sorState.region);
+        if (!sor) {
+            if (body) body.innerHTML = '';
+            if (note) {
+                note.textContent = i18nT('sor.noneOfType', '{name} has no ranked {type} result.')
+                    .replace('{name}', person.name).replace('{type}', sorTypeLabel().toLowerCase());
+            }
+            return;
+        }
+        const pos = sorPositionFor(sor.sum, board.rows);
+        if (body) {
+            body.innerHTML = `<tr class="sor-board-row selected">${sorRowHtml(board, pos, person.wcaId, person.name, person.countryIso2, sor.sum, sor.ranks)}</tr>`;
+        }
+        if (note) {
+            note.textContent = pos === null
+                ? i18nT('sor.outside', 'Outside the top {n} shown here, out of {total} ranked competitors.')
+                    .replace('{n}', board.rows.length.toLocaleString())
+                    .replace('{total}', (board.competitors || 0).toLocaleString())
+                : i18nT('sor.liveNote', 'Scored from their live WCA profile, so it may be a little ahead of the board.');
+        }
+    }
+
+    async function showSorBoard() {
+        const seq = ++sorState.seq;
+        const cached = sorState.boards.has(`${sorState.region}|${sorState.type}`);
+        if (!cached) sorSetState('loading');
+        const board = await loadSorBoard(sorState.region, sorState.type);
+        if (seq !== sorState.seq) return;   // a newer selection won
+        sorState.board = board;
+        if (!board) {
+            sorSetState('error', i18nT('sor.loadFailed', 'The rankings could not be loaded. Try again in a moment.'));
+        } else {
             sorSetState(null);
-            renderSor();
+        }
+        renderSor();
+    }
+
+    /** Name or WCA ID. Jumps to them on the board, or scores them live. */
+    async function findSorCompetitor(raw) {
+        const query = String(raw || '').trim();
+        if (!query) return;
+        const board = sorState.board;
+        const asId = query.toUpperCase();
+        const isId = /^\d{4}[A-Z]{4}\d{2}$/.test(asId);
+
+        if (board) {
+            const needle = query.toLowerCase();
+            const idx = board.rows.findIndex(r => isId ? r[1] === asId : String(r[2]).toLowerCase().includes(needle));
+            if (idx !== -1) {
+                sorState.highlight = board.rows[idx][1];
+                sorState.found = null;
+                sorState.page = Math.floor(idx / SOR_PAGE_SIZE);
+                sorSetState(null);
+                renderSor();
+                const row = document.querySelector(`#sor-board-body tr[data-wca-id="${board.rows[idx][1]}"]`);
+                if (row && row.scrollIntoView) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                return;
+            }
+        }
+        if (!isId) {
+            sorSetState('error', i18nT('sor.nameNotFound', 'Nobody by that name on this board. Try their WCA ID, like 2023CARV02.'));
             return;
         }
 
-        sorState.pending++;
         sorSetState('loading');
-        const person = await fetchWcaPerson(wcaId);
-        sorState.pending--;
-
+        const person = await fetchWcaPerson(asId);
         if (!person) {
             sorSetState('error', i18nT('sor.notFound', 'No WCA competitor with that ID.'));
             return;
@@ -7538,43 +7654,57 @@
             sorSetState('error', i18nT('sor.noResults', '{name} has no official results yet.').replace('{name}', person.name));
             return;
         }
-        sorState.people.push(person);
-        sorState.selected = person.wcaId;
-        sorSavePeople();
-        if (!sorState.pending) sorSetState(null);
+        sorSetState(null);
+        sorState.highlight = person.wcaId;
+        sorState.found = { person };
         renderSor();
+        const card = $('#sor-found');
+        if (card && card.scrollIntoView) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
-    function bindSorChips(containerId, key, onPick) {
-        const row = $('#' + containerId);
-        if (!row) return;
-        row.addEventListener('click', (e) => {
-            const chip = e.target.closest('.records-filter-chip');
-            if (!chip) return;
-            row.querySelectorAll('.records-filter-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            onPick(chip.dataset[key]);
-        });
+    function buildSorRegionSelect() {
+        const sel = $('#sor-region');
+        if (!sel) return;
+        const W = window.WcaCountries;
+        sel.innerHTML = '';
+        const world = document.createElement('option');
+        world.value = 'world';
+        world.textContent = i18nT('records.world', 'World');
+        sel.appendChild(world);
+        if (W) {
+            const contGroup = document.createElement('optgroup');
+            contGroup.label = i18nT('records.continents', 'Continents');
+            W.continents.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c.id;
+                o.textContent = c.name;
+                contGroup.appendChild(o);
+            });
+            sel.appendChild(contGroup);
+            const countryGroup = document.createElement('optgroup');
+            countryGroup.label = i18nT('records.countries', 'Countries');
+            W.countries.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c.id;
+                o.textContent = c.name;
+                countryGroup.appendChild(o);
+            });
+            sel.appendChild(countryGroup);
+        }
+        sel.value = sorState.region;
     }
 
-    let _sorRestored = false;
     function initSorView() {
         if (!sorState.bound) {
             sorState.bound = true;
+            buildSorRegionSelect();
 
             const input = $('#sor-wca-id');
             const search = $('#sor-search-btn');
             if (search && input) {
-                search.addEventListener('click', () => {
-                    const value = input.value;
-                    input.value = '';
-                    addSorPerson(value);
-                });
+                search.addEventListener('click', () => findSorCompetitor(input.value));
                 input.addEventListener('keydown', (e) => {
-                    if (e.key !== 'Enter') return;
-                    const value = input.value;
-                    input.value = '';
-                    addSorPerson(value);
+                    if (e.key === 'Enter') findSorCompetitor(input.value);
                 });
             }
 
@@ -7582,34 +7712,56 @@
             if (mine) {
                 mine.addEventListener('click', () => {
                     const id = state.userProfile && state.userProfile.wca_id;
-                    if (id) addSorPerson(id);
+                    if (id) findSorCompetitor(id);
                 });
             }
 
-            const clear = $('#sor-clear-btn');
-            if (clear) {
-                clear.addEventListener('click', () => {
-                    sorState.people = [];
-                    sorState.selected = null;
-                    sorSavePeople();
-                    sorSetState(null);
+            const close = $('#sor-found-close');
+            if (close) {
+                close.addEventListener('click', () => {
+                    sorState.found = null;
                     renderSor();
                 });
             }
 
-            bindSorChips('sor-region-chips', 'region', (region) => {
-                sorState.region = region;
-                renderSor();
-            });
-            bindSorChips('sor-type-chips', 'type', (type) => {
-                sorState.type = type;
-                renderSor();
-            });
+            const region = $('#sor-region');
+            if (region) {
+                region.addEventListener('change', () => {
+                    sorState.region = region.value;
+                    sorState.page = 0;
+                    showSorBoard();
+                });
+            }
 
-            // The board and the breakdown are built in JS, so the language
-            // switch has to come back through here — applyTranslations only
-            // reaches the markup that shipped with the page.
+            const typeRow = $('#sor-type-chips');
+            if (typeRow) {
+                typeRow.addEventListener('click', (e) => {
+                    const chip = e.target.closest('.records-filter-chip');
+                    if (!chip) return;
+                    typeRow.querySelectorAll('.records-filter-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    sorState.type = chip.dataset.type;
+                    sorState.page = 0;
+                    showSorBoard();
+                });
+            }
+
+            const prev = $('#sor-prev');
+            const next = $('#sor-next');
+            const turn = (delta) => {
+                sorState.page += delta;
+                renderSor();
+                const card = document.querySelector('.sor-board-card');
+                if (card && card.scrollIntoView) card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            };
+            if (prev) prev.addEventListener('click', () => turn(-1));
+            if (next) next.addEventListener('click', () => turn(1));
+
+            // The board is built in JS, so the language switch has to come
+            // back through here — applyTranslations only reaches the markup
+            // that shipped with the page.
             document.addEventListener('app-language-changed', () => {
+                buildSorRegionSelect();
                 if (state.currentView === 'sor') renderSor();
             });
         }
@@ -7622,16 +7774,8 @@
             mine.style.display = id ? '' : 'none';
         }
 
-        renderSor();
-
-        if (_sorRestored) return;
-        _sorRestored = true;
-        const stored = sorStoredIds();
-        if (stored.length) {
-            (async () => {
-                for (const id of stored) await addSorPerson(id);
-            })();
-        }
+        if (!sorState.board) showSorBoard();
+        else renderSor();
     }
 
     // ========== START ==========
@@ -7643,6 +7787,32 @@
     // so the fetched copy was never the one the algorithms view rendered.
     document.addEventListener('DOMContentLoaded', () => {
         init();
+    });
+
+    // The home page's world-record ticker ships with the records as they
+    // were when the page was written. Bring it up to date from the same
+    // generated file the records view reads, once the page is idle.
+    async function refreshWrTicker() {
+        const items = document.querySelectorAll('.wr-item[data-event]');
+        if (!items.length) return;
+        const holders = await loadRecordHolders('world');
+        if (!holders) return;
+        items.forEach(item => {
+            const list = holders[item.dataset.event] && holders[item.dataset.event].single;
+            if (!list || !list.length) return;
+            const rec = wcaRawToDisplay(item.dataset.event, list[0].value, false);
+            const time = item.querySelector('b') && item.querySelector('b').nextSibling;
+            const who = item.querySelector('i');
+            if (!rec || !time || !who) return;
+            time.textContent = ` ${formatRecordValue(rec, false, item.dataset.event)} `;
+            // "Ziyu Wu (吴子钰)" -> "Ziyu Wu": the ticker is one line of Latin text.
+            who.textContent = list[0].name.replace(/\s*\(.*\)\s*$/, '');
+        });
+    }
+    window.addEventListener('load', () => {
+        const run = () => refreshWrTicker().catch(() => {});
+        if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 4000 });
+        else setTimeout(run, 1500);
     });
     // =========================================================================
     // csTimer Clone navigation hook (delegates to timer.js)

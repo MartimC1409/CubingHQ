@@ -28,10 +28,10 @@
     return {
         '333': {
             single: { time: 2.76, holder: 'Teodor Zajder', country: 'PL', competition: 'GLS Big Cubes Gdańsk 2026' },
-            average: { time: 3.51, holder: 'Yiheng Wang', country: 'CN', competition: 'Hefei Cubing League 3x3 III 2026' }
+            average: { time: 3.51, holder: 'Yiheng Wang (王艺衡)', country: 'CN', competition: 'Hefei Cubing League 3x3 III 2026' }
         },
         '222': {
-            single: { time: 0.39, holder: 'Ziyu Ye', country: 'CN', competition: 'Hefei Open 2025' },
+            single: { time: 0.39, holder: 'Ziyu Ye (叶梓渝)', country: 'CN', competition: 'Hefei Open 2025' },
             average: { time: 0.86, holder: 'Sujan Feist', country: 'US', competition: 'Kids America Christmas Clash OH 2025' }
         },
         '444': {
@@ -44,47 +44,47 @@
         },
         '666': {
             single: { time: 57.69, holder: 'Max Park', country: 'US', competition: 'Burbank Big Cubes 2025' },
-            average: { time: 64.94, holder: 'Lim Hung', country: 'MY', competition: 'UniKL MIAT Cube Open 2026' }
+            average: { time: 63.63, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Kuala Lumpur Cubing Challenge 2026' }
         },
         '777': {
-            single: { time: 92.07, holder: 'Max Park', country: 'US', competition: 'West Coast Cubing Western Championship 2026' },
-            average: { time: 96.86, holder: 'Max Park', country: 'US', competition: 'Nub Open Trabuco Hills Fall 2025' }
+            single: { time: 90.59, holder: 'Max Park', country: 'US', competition: 'Rubik\'s WCA North American Championship 2026' },
+            average: { time: 96.80, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Hanoi Big Cubes 2026' }
         },
         '333oh': {
-            single: { time: 5.66, holder: 'Dhruva Sai Meruva', country: 'IN', competition: 'Swiss Nationals 2024' },
-            average: { time: 6.99, holder: 'Zhen Chen', country: 'CN', competition: 'Wuhu Open 2026' }
+            single: { time: 5.62, holder: 'Patrick Ponce', country: 'US', competition: 'Mid-Atlantic Speedcubing Championship 2026' },
+            average: { time: 6.99, holder: 'Zhen Chen (陈震)', country: 'CN', competition: 'Wuhu Open 2026' }
         },
         '333bf': {
-            single: { time: 11.67, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' },
-            average: { time: 14.05, holder: 'Charlie Eggins', country: 'AU', competition: 'Cubing at The Cube 2026' }
+            single: { time: 11.56, holder: 'Tommy Cherry', country: 'US', competition: 'Mid-Atlantic Quiet Championship 2026' },
+            average: { time: 13.97, holder: 'Tommy Cherry', country: 'US', competition: 'Hefei August Open 2026' }
         },
         '333fm': {
             single: { time: 16, holder: 'Sebastiano Tronto', country: 'IT', competition: 'FMC 2019', isMoves: true },
             average: { time: 19.00, holder: 'Brian Johnson', country: 'US', competition: 'Evanston FMC Spring 2026', isMoves: true }
         },
         '333mbf': {
-            single: { time: '63/65 58:23', holder: 'Graham Siggins', country: 'US', competition: 'Cubing in a Corn Maze 2025', isMulti: true },
+            single: { time: '63/65 58:23', holder: 'Graham Siggins', country: 'US', competition: 'Please Be Quiet Reno 2025', isMulti: true },
             average: null
         },
         'pyram': {
             single: { time: 0.73, holder: 'Simon Kellum', country: 'US', competition: 'Middleton Meetup Thursday 2023' },
-            average: { time: 1.14, holder: 'Lingkun Jiang', country: 'CN', competition: 'Zhengzhou Zest 2025' }
+            average: { time: 1.14, holder: 'Lingkun Jiang (姜凌坤)', country: 'CN', competition: 'Zhengzhou Zest 2025' }
         },
         'skewb': {
             single: { time: 0.73, holder: 'Vojtěch Grohmann', country: 'CZ', competition: 'Głuszyca Open 2026' },
-            average: { time: 1.52, holder: 'Carter Kucala', country: 'US', competition: 'CubingUSA Heartland Championship 2024' }
+            average: { time: 1.37, holder: 'Ignacy Samselski', country: 'PL', competition: 'Cube Factory League Justynów 2025' }
         },
         'sq1': {
             single: { time: 2.85, holder: 'Brian Johnson', country: 'US', competition: 'Evanston Qualifier 2026' },
             average: { time: 4.63, holder: 'Sameer Aggarwal', country: 'US', competition: 'Cubing in Southern Oregon 2025' }
         },
         'minx': {
-            single: { time: 21.85, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Start of Summer Beijing 2026' },
-            average: { time: 24.38, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Tashkent Open 2025' }
+            single: { time: 21.04, holder: 'Ziyu Wu (吴子钰)', country: 'CN', competition: 'Quanzhou Summer 2026' },
+            average: { time: 23.40, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Kuala Lumpur Cubing Challenge 2026' }
         },
         'clock': {
-            single: { time: 1.53, holder: 'Lachlan Gibson', country: 'AU', competition: 'Shepplife Open 2025' },
-            average: { time: 2.26, holder: 'Lachie Gibson', country: 'AU', competition: 'Lachie Gibson Clock Average 2025' }
+            single: { time: 1.53, holder: 'Lachlan Gibson', country: 'NZ', competition: 'Hasty Hastings 2025' },
+            average: { time: 2.14, holder: 'Lachlan Gibson', country: 'NZ', competition: 'GAN New Zealand Nationals 2026' }
         },
         '444bf': {
             single: { time: 51.96, holder: 'Stanley Chapel', country: 'US', competition: '4BLD in a Madison Hall 2023' },
