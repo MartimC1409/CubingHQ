@@ -2548,10 +2548,12 @@ select.form-select {
 /* ============================================================
    Sum of Ranks
    ------------------------------------------------------------
-   A competitor's rank in every event, added up. The board is the
-   comparison (several people, lowest total first); the breakdown
-   below it is one person, event by event, with a bar showing how
-   much of the total each event is carrying.
+   The WCA sum-of-ranks board: one row per competitor, their total,
+   then their rank in each of the seventeen events. Unranked events
+   carry the penalty (ranked count + 1) and are drawn faded, so a
+   gap reads as a gap rather than a real rank. The table is wider
+   than any phone, so it scrolls sideways with the position, name
+   and total pinned on the left.
    ============================================================ */
 
 .sor-search-card {
@@ -2575,9 +2577,8 @@ select.form-select {
 
 .sor-input {
     flex: 1 1 220px;
-    max-width: 280px;
+    max-width: 320px;
     text-align: center;
-    text-transform: uppercase;
     background-color: var(--clr-surface-alt, var(--clr-surface));
     border: 1px solid var(--clr-border);
 }
@@ -2586,6 +2587,7 @@ select.form-select {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: flex-end;
     gap: 1.5rem;
 }
 
@@ -2596,8 +2598,9 @@ select.form-select {
     gap: 5px;
 }
 
-/* Loading / error strip. Deliberately its own class rather than the
-   competitions view's unstyled .comp-info-state. */
+.sor-controls select.form-input { min-width: 220px; }
+
+/* Loading / error strip. */
 .sor-state {
     display: flex;
     align-items: center;
@@ -2618,81 +2621,57 @@ select.form-select {
     color: #e5484d;
 }
 
-.sor-empty {
-    max-width: 620px;
-    margin: 0 auto var(--space-xl);
-    padding: 2rem 1.5rem;
-    text-align: center;
-    color: var(--clr-text-muted);
-}
-
-.sor-empty-icon { font-size: 2.4rem; line-height: 1; margin-bottom: 0.6rem; }
-.sor-empty-title { font-weight: 700; color: var(--clr-text); margin-bottom: 0.35rem; }
-.sor-empty-desc { font-size: 0.9rem; }
-
 .sor-board-card,
 .sor-detail-card {
-    max-width: 900px;
+    max-width: 1280px;
     margin: 0 auto var(--space-lg);
     padding: 1.25rem 1.4rem 1.4rem;
 }
 
-.sor-board-head,
-.sor-detail-head {
+.sor-board-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.5rem 1rem;
     flex-wrap: wrap;
     margin-bottom: 1rem;
 }
 
-.sor-detail-id { display: flex; align-items: center; gap: 0.75rem; }
-.sor-detail-flag { display: inline-flex; }
-.sor-detail-name { font-size: 1.05rem; margin: 0; }
-.sor-detail-meta { font-size: 0.82rem; color: var(--clr-text-muted); margin: 2px 0 0; }
-
-.sor-detail-total { text-align: right; }
-.sor-detail-total-num {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 1.7rem;
-    font-weight: 700;
-    line-height: 1.1;
-    color: var(--clr-primary);
-}
-.sor-detail-total-label {
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+.sor-board-meta {
+    font-size: 0.8rem;
     color: var(--clr-text-muted);
 }
 
-.sor-table-wrap { overflow-x: auto; }
+.sor-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
 
 .sor-table {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85rem;
 }
 
 .sor-table th {
-    padding: 0.55rem 0.6rem;
+    padding: 0.55rem 0.5rem;
     text-align: left;
     font-size: 0.68rem;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--clr-text-muted);
     border-bottom: 1px solid var(--clr-border);
     white-space: nowrap;
+    background: var(--clr-surface);
 }
 
 .sor-table td {
-    padding: 0.6rem;
+    padding: 0.5rem;
     border-bottom: 1px solid color-mix(in oklab, var(--clr-border) 55%, transparent);
     vertical-align: middle;
+    background: var(--clr-surface);
 }
 
 .sor-table tbody tr:last-child td { border-bottom: 0; }
@@ -2704,54 +2683,78 @@ select.form-select {
 }
 
 .sor-th-pos, .sor-table td.sor-pos {
-    width: 2.5rem;
     text-align: center;
     font-family: var(--font-mono);
     color: var(--clr-text-muted);
 }
 
+/* Position, name and total stay put while the events scroll. Fixed
+   border-box widths, so each pinned column's left offset is exactly the
+   sum of the ones before it. */
+.sor-board { --sor-pos-w: 3.2rem; --sor-name-w: 14rem; --sor-sum-w: 4.6rem; }
+.sor-board th:nth-child(-n+3),
+.sor-board td:nth-child(-n+3) {
+    position: sticky;
+    z-index: 1;
+    box-sizing: border-box;
+}
+.sor-board th:nth-child(1), .sor-board td:nth-child(1) {
+    left: 0;
+    width: var(--sor-pos-w); min-width: var(--sor-pos-w); max-width: var(--sor-pos-w);
+}
+.sor-board th:nth-child(2), .sor-board td:nth-child(2) {
+    left: var(--sor-pos-w);
+    width: var(--sor-name-w); min-width: var(--sor-name-w); max-width: var(--sor-name-w);
+}
+.sor-board th:nth-child(3), .sor-board td:nth-child(3) {
+    left: calc(var(--sor-pos-w) + var(--sor-name-w));
+    width: var(--sor-sum-w); min-width: var(--sor-sum-w); max-width: var(--sor-sum-w);
+    box-shadow: inset -1px 0 0 var(--clr-border);
+}
+.sor-board td.sor-num:not(:nth-child(-n+3)) { min-width: 3.6rem; }
+
 .sor-table td.sor-total { font-weight: 700; color: var(--clr-primary); }
+.sor-table td.sor-pen { color: var(--clr-text-muted); opacity: 0.55; }
 
-.sor-board-row { cursor: pointer; }
-.sor-board-row:hover td { background: var(--clr-surface-alt, transparent); }
-.sor-board-row.selected td { background: color-mix(in oklab, var(--clr-primary) 12%, transparent); }
-
-.sor-competitor { display: flex; align-items: center; gap: 0.55rem; }
-.sor-competitor-name { font-weight: 600; }
-.sor-competitor-id {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--clr-text-muted);
+.sor-board-row:hover td { background: var(--clr-surface-alt, var(--clr-surface)); }
+.sor-board-row.selected td {
+    background: color-mix(in oklab, var(--clr-primary) 14%, var(--clr-surface));
 }
 
-.sor-remove {
-    border: 0;
-    background: transparent;
-    color: var(--clr-text-muted);
-    font-size: 1.05rem;
-    line-height: 1;
-    padding: 0.2rem 0.4rem;
-    border-radius: 6px;
-    cursor: pointer;
+.sor-competitor {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
 }
-.sor-remove:hover { color: #e5484d; background: color-mix(in oklab, #e5484d 12%, transparent); }
-
-.sor-bar-cell { width: 34%; min-width: 120px; }
-.sor-bar {
-    height: 6px;
-    border-radius: 999px;
-    background: var(--clr-primary);
-    min-width: 2px;
-}
-.sor-bar-track {
-    height: 6px;
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--clr-border) 70%, transparent);
+.sor-competitor-name {
+    font-weight: 600;
+    color: var(--clr-text);
+    text-decoration: none;
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sor-competitor-name:hover { text-decoration: underline; }
+
+.sor-empty-row {
+    text-align: center;
+    color: var(--clr-text-muted);
+    padding: 1.5rem !important;
 }
 
-.sor-unranked td { color: var(--clr-text-muted); }
-.sor-unranked .sor-num { opacity: 0.65; }
+.sor-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    margin-top: 1rem;
+}
+.sor-page-label {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--clr-text-muted);
+}
 
 .sor-note {
     margin: 0.9rem 0 0;
@@ -2760,18 +2763,18 @@ select.form-select {
     color: var(--clr-text-muted);
 }
 
+/* Record tables: tied records list every holder. */
+.rec-holder-person { white-space: nowrap; }
+
 @media (max-width: 640px) {
     .sor-search-card { padding: 1.1rem; }
-    .sor-controls { gap: 1rem; }
-    .sor-table { font-size: 0.82rem; }
-    .sor-table th, .sor-table td { padding: 0.5rem 0.35rem; }
-    .sor-table th { font-size: 0.6rem; letter-spacing: 0.03em; }
-    .sor-competitor-id { display: block; }
-    .sor-bar-cell { display: none; }
-    .sor-table th.sor-th-bar { display: none; }
-    /* The board has to fit without sideways scrolling: the average rank
-       is the total divided by the event count, both of which stay. */
-    .sor-col-avg { display: none; }
+    .sor-controls { gap: 1rem; width: 100%; }
+    .sor-controls .records-filter-field { flex: 1 1 100%; }
+    .sor-controls select.form-input { width: 100%; min-width: 0; }
+    .sor-board-card, .sor-detail-card { padding: 1rem 0.75rem; }
+    .sor-board { --sor-pos-w: 2.6rem; --sor-name-w: 8.5rem; --sor-sum-w: 3.9rem; }
+    .sor-table { font-size: 0.78rem; }
+    .sor-table th, .sor-table td { padding: 0.45rem 0.35rem; }
 }
 
 /* Consent boxes on the sign-up form (index.html #auth-consent-field).

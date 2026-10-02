@@ -44,7 +44,8 @@ function slice(startsWith, endsWith) {
 const CODE = [
     slice('    function liveSide(entry) {', '\n    }\n'),
     slice('    function wcaRawToDisplay(eventId, raw, isAverage) {', '\n    }\n'),
-    slice('    function buildRecordFor(eventId, regionRecords, isWorld) {', '\n        return (rec.single || rec.average) ? rec : null;\n    }\n'),
+    slice('    function holderSide(eventId, list, isAverage) {', '\n    }\n'),
+    slice('    function buildRecordFor(eventId, regionRecords, isWorld, holders) {', '\n        return (rec.single || rec.average) ? rec : null;\n    }\n'),
     slice('    const NO_AVERAGE_EVENTS =', '\n    }\n'),          // through formatRecordValue
     slice('    function formatRecordHolder(rec, eventId, isAverage) {', '\n    }\n'),
 ].join('\n');
@@ -68,18 +69,18 @@ const A = ctx.api;
 
 /* ---------- the reported symptom, and why ----------------------- */
 
-// 6x6 average: stored 64.94, live 1:03.63. The record moved on, so the
+// 6x6 average: stored 1:03.63, live 1:02.00. The record moved on, so the
 // stored name no longer describes the time and must not be shown.
-let rec = A.buildRecordFor('666', { '666': { single: 5769, average: 6363 } }, true);
-eq('a moved record keeps the live time', rec.average.time, 63.63);
+let rec = A.buildRecordFor('666', { '666': { single: 5769, average: 6200 } }, true);
+eq('a moved record keeps the live time', rec.average.time, 62);
 eq('and drops the stale holder', rec.average.holder, '—');
 eq('and its competition', rec.average.competition, '');
 
-// 7x7 average: stored 96.86, live 1:36.86 — unchanged, so the name stands.
-rec = A.buildRecordFor('777', { '777': { single: 9059, average: 9686 } }, true);
-eq('an unchanged record keeps its holder', rec.average.holder, 'Max Park');
+// 7x7 average: stored 1:36.80, live 1:36.80 — unchanged, so the name stands.
+rec = A.buildRecordFor('777', { '777': { single: 8800, average: 9680 } }, true);
+eq('an unchanged record keeps its holder', rec.average.holder, 'Timofei Tarasenko');
 eq('while the single that DID move loses its name', rec.single.holder, '—');
-eq('and still shows the live single', rec.single.time, 90.59);
+eq('and still shows the live single', rec.single.time, 88);
 
 // The tolerance is real: floating-point noise must not blank a name.
 rec = A.buildRecordFor('333', { '333': { single: 276, average: 351 } }, true);
@@ -140,7 +141,7 @@ eq('while the time still comes from the feed', rec.average.time, 63.63);
 // It must also beat a curated name that happens to still match, since a
 // live name cannot be stale and a curated one can.
 rec = A.buildRecordFor('777', {
-    '777': { single: 9059, average: { value: 9686, name: 'Newer Name', country: 'AU' } },
+    '777': { single: 9059, average: { value: 9680, name: 'Newer Name', country: 'AU' } },
 }, true);
 eq('a live name beats a matching curated one', rec.average.holder, 'Newer Name');
 
@@ -157,6 +158,69 @@ eq('a region with no entry for the event renders nothing',
 // Worldwide, an event the feed omits still falls back to the curated row.
 rec = A.buildRecordFor('333', {}, true);
 eq('worldwide falls back to the stored record', rec.single.holder, 'Teodor Zajder');
+
+/* ---------- generated holders (data/records/<region>.json) ------- */
+
+const H = (name, iso2, value, competition) => ({ id: 'X', name, iso2, value, competition });
+const holders = {
+    '333': { single: [H('Fresh Holder', 'PL', 250, 'New Comp 2026')], average: [H('Avg Holder', 'CN', 351, 'Hefei')] },
+    '333fm': { single: [H('Tie One', 'IT', 16, 'FMC 2019'), H('Tie Two', 'US', 16, 'Ashfield 2024')] },
+    '333mbf': { single: [H('Graham Siggins', 'US', 380350302, 'Reno 2025')] },
+};
+
+// The generated file names a holder the curated list has never heard of.
+rec = A.buildRecordFor('333', { '333': { single: 250, average: 351 } }, true, holders);
+eq('a generated holder beats the curated list', rec.single.holder, 'Fresh Holder');
+eq('and carries its competition', rec.single.competition, 'New Comp 2026');
+
+// ...but only while it matches the live time.
+rec = A.buildRecordFor('333', { '333': { single: 240, average: 351 } }, true, holders);
+eq('a generated holder is dropped once the record moves', rec.single.holder, '—');
+
+// Regional rows finally have names.
+rec = A.buildRecordFor('333', { '333': { single: 250, average: 351 } }, false, holders);
+eq('a regional record gets its generated holder', rec.single.holder, 'Fresh Holder');
+// ...and a region still never borrows the curated WORLD holder.
+rec = A.buildRecordFor('333', { '333': { single: 260 } }, false, holders);
+eq('a regional mismatch shows no name', rec.single.holder, '—');
+
+// Ties keep every holder.
+rec = A.buildRecordFor('333fm', { '333fm': { single: 16 } }, true, holders);
+eq('a tied record keeps both holders', rec.single.holders.length, 2);
+const tied = A.formatRecordHolder(rec.single, '333fm', false);
+check('and the cell names them both', /Tie One/.test(tied) && /Tie Two/.test(tied), tied);
+
+// Multi-blind is matched on the raw value, not a float compare that a
+// string time can never pass.
+rec = A.buildRecordFor('333mbf', { '333mbf': { single: 380350302 } }, true, holders);
+eq('the MBLD record keeps its holder', rec.single.holder, 'Graham Siggins');
+// And the curated MBLD entry matches too, by its decoded string.
+ctx.decodeMBLD = () => '63/65 58:23';
+rec = A.buildRecordFor('333mbf', { '333mbf': { single: 380350302 } }, true);
+eq('the curated MBLD holder survives a live time', rec.single.holder, 'Graham Siggins');
+
+// No live feed at all: a region falls back to its generated file.
+rec = A.buildRecordFor('333', null, false, holders);
+eq('offline, a region shows its generated record', rec.single.time, 2.5);
+
+/* ---------- the generated data on disk --------------------------- */
+
+const worldFile = path.join(ROOT, 'data', 'records', 'world.json');
+check('data/records/world.json exists', fs.existsSync(worldFile));
+if (fs.existsSync(worldFile)) {
+    const world = JSON.parse(fs.readFileSync(worldFile, 'utf8')).records;
+    const events = Object.keys(WORLD_RECORDS);
+    check('it covers every event', events.every(e => world[e] && world[e].single), events.filter(e => !world[e]).join(','));
+    // The curated fallback must agree with the generated data it backs up.
+    for (const e of events) {
+        const gen = world[e].single[0];
+        const cur = WORLD_RECORDS[e].single;
+        const shown = A.wcaRawToDisplay(e, gen.value, false);
+        if (e === '333mbf') continue;
+        check(`world-records.js ${e} single matches the data`, Math.abs(shown.time - cur.time) < 0.005,
+            `${cur.time} vs ${shown.time}`);
+    }
+}
 
 /* ---------- the shared table ------------------------------------- */
 
