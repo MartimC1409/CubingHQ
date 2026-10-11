@@ -46,7 +46,7 @@
                 '#records': 'records', '#history': 'history',
                 '#competitions': 'competitions', '#algorithms': 'algorithms',
                 '#practice': 'practice', '#battle': 'battle',
-                '#friends': 'friends', '#sor': 'sor', '': 'home'
+                '#friends': 'friends', '#sor': 'sor', '#fights': 'fights', '': 'home'
             };
             try {
                 // A WCA OAuth redirect comes back with the token in the hash.
@@ -54,6 +54,7 @@
                 var hash = window.location.hash || '';
                 if (hash.indexOf('access_token=') !== -1) return;
                 var view = HASH_TO_VIEW[hash];
+                if (!view && /^#fight\//.test(hash)) view = 'fights';   // invite link
                 if (!view || view === 'home') return;
                 var st = document.createElement('style');
                 st.id = 'boot-view-style';
@@ -85,6 +86,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3f026ab2">
     <link rel="stylesheet" href="launch-ui.css?v=ef07f5b5">
+    <link rel="stylesheet" href="fight.css?v=1f5f0007">
     <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TwistyPlayer for native algorithm rendering -->
@@ -178,6 +180,11 @@
         <button class="nav-btn" id="nav-history-btn" title="History" data-i18n="nav.history" data-i18n-title="nav.history">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 14"/></svg>
             History
+        </button>
+        <!-- Cube Fights Button -->
+        <button class="nav-btn nav-btn--fights" id="nav-fights-btn" title="Cube Fights" data-i18n="nav.fights" data-i18n-title="fight.navTitle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/></svg>
+            Fights
         </button>
         <!-- Battle Button -->
         <button class="nav-btn nav-btn--battle" id="nav-battle-btn" title="Battle" data-i18n="nav.battle" data-i18n-title="nav.battle">
@@ -1746,6 +1753,91 @@
 
 
         <!-- ====== BATTLE VIEW ====== -->
+        <!-- ====== CUBE FIGHTS VIEW ====== -->
+        <div id="fights-view" class="view">
+            <div class="container fights-home" id="fights-home">
+                <div class="setup-hero" style="text-align: center; margin-bottom: var(--space-lg); margin-top: var(--space-xl);">
+                    <div class="hero-badge" data-i18n="fight.badge">CUBE FIGHTS</div>
+                    <h1 class="hero-title"><span data-i18n="fight.headA">Cube</span> <span class="gradient-text" data-i18n="fight.headB">Fights</span></h1>
+                    <p class="hero-subtitle" data-i18n="fight.subtitle">Head to head: the same scramble, two cubers, fastest solve takes the round.</p>
+                </div>
+
+                <div class="setup-card fights-settings">
+                    <label class="records-filter-field">
+                        <span class="records-filter-label" data-i18n="fight.puzzle">Puzzle</span>
+                        <select id="fight-event" class="form-input" aria-label="Puzzle" data-i18n-aria="fight.puzzle"></select>
+                    </label>
+                    <div class="records-filter-field">
+                        <span class="records-filter-label" id="fight-bestof-label" data-i18n="fight.bestOf">Best of</span>
+                        <div class="records-chip-group" id="fight-bestof" role="group" aria-labelledby="fight-bestof-label">
+                            <button type="button" class="records-filter-chip" data-bestof="1">1</button>
+                            <button type="button" class="records-filter-chip" data-bestof="3">3</button>
+                            <button type="button" class="records-filter-chip" data-bestof="5">5</button>
+                            <button type="button" class="records-filter-chip" data-bestof="7">7</button>
+                        </div>
+                    </div>
+                    <div class="records-filter-field">
+                        <span class="records-filter-label" id="fight-inspection-label" data-i18n="fight.inspection">Inspection (15s)</span>
+                        <div class="records-chip-group" id="fight-inspection" role="group" aria-labelledby="fight-inspection-label">
+                            <button type="button" class="records-filter-chip" data-inspection="on" data-i18n="fight.on">On</button>
+                            <button type="button" class="records-filter-chip" data-inspection="off" data-i18n="fight.off">Off</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fights-modes">
+                    <article class="setup-card fights-mode-card" aria-labelledby="fight-local-title">
+                        <div class="fights-mode-icon" aria-hidden="true">📱</div>
+                        <h2 class="fights-mode-title" id="fight-local-title" data-i18n="fight.sameDevice">Same device</h2>
+                        <p class="fights-mode-desc" data-i18n="fight.sameDeviceDesc">Split the screen and sit face to face. No account or connection needed.</p>
+                        <div class="fights-names">
+                            <label class="fights-name-field">
+                                <span data-i18n="fight.player1">Player 1</span>
+                                <input type="text" id="fight-p1-name" class="form-input" maxlength="24" autocomplete="off" placeholder="Player 1">
+                            </label>
+                            <label class="fights-name-field">
+                                <span data-i18n="fight.player2">Player 2</span>
+                                <input type="text" id="fight-p2-name" class="form-input" maxlength="24" autocomplete="off" placeholder="Player 2" data-i18n-placeholder="fight.player2">
+                            </label>
+                        </div>
+                        <button type="button" class="btn btn-primary fights-mode-btn" id="fight-local-start" data-i18n="fight.startLocal">Start split screen</button>
+                    </article>
+
+                    <article class="setup-card fights-mode-card" id="fight-online-card" aria-labelledby="fight-online-title">
+                        <div class="fights-mode-icon" aria-hidden="true">🌐</div>
+                        <h2 class="fights-mode-title" id="fight-online-title" data-i18n="fight.online1v1">Online 1v1</h2>
+                        <p class="fights-mode-desc" data-i18n="fight.onlineDesc">Fight a friend on another device. You get a room code and a link to send them.</p>
+                        <div id="fight-online-signed-out" class="fights-online-block">
+                            <p class="fights-online-note" data-i18n="fight.signInNeeded">Online fights need an account, for both players.</p>
+                            <button type="button" class="btn btn-primary fights-mode-btn" id="fight-signin-btn" data-i18n="fight.signIn">Sign in to fight online</button>
+                        </div>
+                        <div id="fight-online-signed-in" class="fights-online-block" hidden>
+                            <button type="button" class="btn btn-primary fights-mode-btn" id="fight-create-btn" data-i18n="fight.create">Create a fight</button>
+                            <div class="fights-join">
+                                <input type="text" id="fight-join-code" class="form-input fights-code-input" maxlength="6" autocomplete="off" spellcheck="false" placeholder="CODE" aria-label="Room code" data-i18n-aria="fight.codeAria" data-i18n-placeholder="fight.codePh">
+                                <button type="button" class="btn btn-secondary" id="fight-join-btn" data-i18n="fight.join">Join</button>
+                            </div>
+                        </div>
+                        <p class="fights-online-error" id="fight-online-error" role="alert" hidden></p>
+                    </article>
+                </div>
+
+                <div class="setup-card fights-history">
+                    <div class="fights-history-head">
+                        <h2 class="card-title" style="margin: 0;"><span class="icon" aria-hidden="true">📜</span> <span data-i18n="fight.yourFights">Your fights</span></h2>
+                        <span class="fights-stats" id="fight-stats"></span>
+                    </div>
+                    <p class="fights-history-empty" id="fight-history-empty" data-i18n="fight.historyEmpty">Finished fights show up here.</p>
+                    <ul class="fights-history-list" id="fight-history-list"></ul>
+                </div>
+            </div>
+
+            <!-- Online fight (built by fight-online.js) -->
+            <div class="container fight-online" id="fight-online" hidden></div>
+        </div>
+        <!-- Same-device fight: full screen, above everything (built by fight-ui.js) -->
+        <div class="fight-local" id="fight-local" hidden></div>
+
         <div id="battle-view" class="view">
             <!-- Battle Lobby -->
             <div id="battle-lobby" class="battle-lobby-container" style="display:none;">
@@ -2288,7 +2380,7 @@
     <div class="toast-container" id="toast-container">    </div>
     
     
-    <script src="i18n.js?v=14f7d389"></script>
+    <script src="i18n.js?v=6e4aa77f"></script>
     <!-- Before app.js: it checks for window.AppTheme to avoid double-binding
          the theme button. -->
     <script src="theme.js?v=db71e576"></script>
@@ -2315,8 +2407,13 @@
     <script src="content-filter.js?v=a5e71610"></script>
     <!-- Must precede app.js: WORLD_RECORDS is read at IIFE init. Shared with
          admin_records.html so the two can never drift apart again. -->
-    <script src="world-records.js?v=558b6950"></script>
-    <script src="app.js?v=62832b16"></script>
+    <script src="world-records.js?v=46c5562a"></script>
+    <!-- Cube Fights: the engine and the timer core are shared with the
+         server; the transport and UI only run here. -->
+    <script src="fight-engine.js?v=93231b3e"></script>
+    <script src="fight-transport.js?v=14dc9654"></script>
+    <script src="fight-ui.js?v=1fc90ba7"></script>
+    <script src="app.js?v=94fb1159"></script>
     <script src="mobile-nav.js?v=9c5da4eb"></script>
 
     <!-- Offline support / installability. Never allowed to break the page. -->

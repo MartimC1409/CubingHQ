@@ -314,6 +314,7 @@
 
     function updateUIAfterLogin() {
         if (!state.userProfile) return;
+        announceAuthChange();
         // Only an email account has a link to undo. A WCA sign-in has
         // nothing to unlink — it IS the WCA account, and offering it
         // there would read as a way to delete something.
@@ -385,6 +386,20 @@
     }
 
     function isSignedIn() { return !!state.userProfile; }
+
+    // What Cube Fights (fight-ui.js, fight-online.js) needs from the app,
+    // and nothing more: who is signed in, their token, a way to ask them
+    // to sign in, and the toast.
+    window.CubingHQApp = {
+        authToken: () => authToken(),
+        profile: () => state.userProfile,
+        isSignedIn: () => isSignedIn(),
+        openLogin: () => openLoginModal(),
+        toast: (message, type) => showToast(message, type),
+    };
+    function announceAuthChange() {
+        document.dispatchEvent(new CustomEvent('chq-auth-changed', { detail: { signedIn: isSignedIn() } }));
+    }
 
     function setAccountProfile(user, extra) {
         state.userProfile = Object.assign({
@@ -791,6 +806,7 @@
         localStorage.removeItem('wca_access_token');
         try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* private mode */ }
         state.userProfile = null;
+        announceAuthChange();
         closeAccountModal();
         restoreLoginNavButton();
         switchView('home');
@@ -1225,10 +1241,10 @@
     // ========== NAVIGATION (Hash-based Routing) ==========
     const VIEW_TO_HASH = {
         'home': '#home', 'setup': '#simulation', 'dashboard': '#simulation',
-        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle', 'friends': '#friends', 'sor': '#sor'
+        'statistics': '#stats', 'records': '#records', 'history': '#history', 'competitions': '#competitions', 'algorithms': '#algorithms', 'practice': '#practice', 'battle': '#battle', 'friends': '#friends', 'sor': '#sor', 'fights': '#fights'
     };
     const HASH_TO_VIEW = {
-        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '#friends': 'friends', '#sor': 'sor', '': 'home'
+        '#home': 'home', '#simulation': 'setup', '#stats': 'statistics', '#records': 'records', '#history': 'history', '#competitions': 'competitions', '#algorithms': 'algorithms', '#practice': 'practice', '#battle': 'battle', '#friends': 'friends', '#sor': 'sor', '#fights': 'fights', '': 'home'
     };
 
     function switchView(viewName, updateHash = true) {
@@ -1240,6 +1256,11 @@
         // Stop algorithm trainer when leaving practice view to prevent ghost timers
         if (viewName !== 'practice' && trainerState.active) {
             resetTrainerState();
+        }
+
+        // A fight in progress belongs to its view: leaving it ends the fight.
+        if (viewName !== 'fights' && state.currentView === 'fights' && window.CubeFights) {
+            window.CubeFights.leave();
         }
 
         dropBootViewStyle();
@@ -1271,6 +1292,8 @@
             $('#nav-competitions-btn').classList.add('active');
         } else if (viewName === 'algorithms' || viewName === 'practice') {
             $('#nav-algorithms-btn').classList.add('active');
+        } else if (viewName === 'fights') {
+            if ($('#nav-fights-btn')) $('#nav-fights-btn').classList.add('active');
         } else if (viewName === 'battle') {
             if ($('#nav-battle-btn')) $('#nav-battle-btn').classList.add('active');
         } else if (viewName === 'friends') {
@@ -1288,6 +1311,13 @@
 
     function handleHashRoute() {
         const hash = window.location.hash || '#home';
+        // An invite link: #fight/K7P4QX opens Cube Fights and joins that room.
+        const invite = /^#fight\/([A-Za-z0-9]{4,8})$/.exec(hash);
+        if (invite) {
+            switchView('fights', false);
+            if (window.CubeFights) window.CubeFights.enter({ join: invite[1].toUpperCase() });
+            return;
+        }
         const targetView = HASH_TO_VIEW[hash] || 'setup';
 
         // If navigating to #home and simulation is active, show dashboard
@@ -1302,6 +1332,7 @@
             if (targetView === 'algorithms') initializeAlgorithmsUI();
             if (targetView === 'battle') initBattle();
             if (targetView === 'friends') initFriends();
+            if (targetView === 'fights' && window.CubeFights) window.CubeFights.enter({});
         }
     }
 
@@ -1606,6 +1637,12 @@
             switchView('algorithms');
             initializeAlgorithmsUI();
         });
+        if ($('#nav-fights-btn')) {
+            $('#nav-fights-btn').addEventListener('click', () => {
+                switchView('fights');
+                if (window.CubeFights) window.CubeFights.enter({});
+            });
+        }
         if ($('#nav-battle-btn')) {
             $('#nav-battle-btn').addEventListener('click', () => {
                 switchView('battle');
