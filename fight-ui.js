@@ -208,10 +208,22 @@
         return out;
     }
 
-    /** Round or match outcome for a seat: 'win' | 'loss' | 'tie' | null. */
+    /** "Best of 3", or "Infinite" for a fight with no target score. */
+    function formatLabel(settings) {
+        return E.isInfinite(settings)
+            ? t('fight.infinite', 'Infinite')
+            : fill(t('fight.bestOfN', 'Best of {bo}'), { bo: settings.bestOf });
+    }
+
+    function roundLabel(settings, n) {
+        return fill(t('fight.roundFormat', 'Round {n} · {format}'), { n: n || 1, format: formatLabel(settings) });
+    }
+
+    /** Round or match outcome for a seat: 'win' | 'loss' | 'tie' | 'draw' | null. */
     function outcomeFor(view, seat) {
         if (view.phase === 'ended' && view.result) {
-            if (!view.result.winner) return null;
+            // An infinite fight ended level.
+            if (!view.result.winner) return view.result.reason === 'ended' ? 'draw' : null;
             return view.result.winner === seat ? 'win' : 'loss';
         }
         if (view.phase === 'review') {
@@ -231,6 +243,9 @@
         }
         if (outcome === 'tie') {
             return `<span class="fight-badge fight-badge--tie"><span aria-hidden="true">=</span> ${esc(t('fight.tie', 'Tie — replay'))}</span>`;
+        }
+        if (outcome === 'draw') {
+            return `<span class="fight-badge fight-badge--tie"><span aria-hidden="true">=</span> ${esc(t('fight.draw', 'Draw'))}</span>`;
         }
         return `<span class="fight-badge fight-badge--loss"><span aria-hidden="true">✕</span> ${esc(isMatch ? t('fight.lost', 'Lost') : t('fight.roundLoss', 'Round lost'))}</span>`;
     }
@@ -371,6 +386,7 @@
         lastPhase: '',
         lastRound: 0,
         confirmExit: false,
+        confirmEnd: false,
         savedMatch: 0,
         armAt: 0,
     };
@@ -389,6 +405,7 @@
         local.lastPhase = '';
         local.lastRound = 0;
         local.confirmExit = false;
+        local.confirmEnd = false;
         local.savedMatch = 0;
 
         const root = $('#fight-local');
@@ -498,7 +515,7 @@
         if (!tr || !local.root) return;
         const view = viewArg || localView();
         const round = E.current(view) || {};
-        const key = JSON.stringify([view.phase, view.seq, round.n, round.scramble, local.confirmExit,
+        const key = JSON.stringify([view.phase, view.seq, round.n, round.scramble, local.confirmExit, local.confirmEnd,
             view.players.p1 && view.players.p1.ready, view.players.p2 && view.players.p2.ready,
             local.seats.p1 && local.seats.p1.timer.phase, local.seats.p2 && local.seats.p2.timer.phase]);
         if (!force && key === local.lastKey) return;
@@ -514,7 +531,9 @@
             $('.fl-name', half).textContent = p.name;
             const score = $('.fl-score', half);
             score.textContent = String(view.score[seat]);
-            score.setAttribute('aria-label', fill(t('fight.scoreOf', '{n} of {need} wins'), { n: view.score[seat], need }));
+            score.setAttribute('aria-label', E.isInfinite(view.settings)
+                ? fill(t('fight.scoreWins', '{n} wins'), { n: view.score[seat] })
+                : fill(t('fight.scoreOf', '{n} of {need} wins'), { n: view.score[seat], need }));
 
             const scr = $('.fl-scramble', half);
             const showScramble = ['prepare', 'countdown', 'inspection', 'solving'].includes(view.phase);
@@ -538,18 +557,28 @@
 
         $('.fl-round', arena).textContent = view.phase === 'ended'
             ? t('fight.matchOver', 'Match over')
-            : fill(t('fight.roundOf', 'Round {n} · Best of {bo}'), { n: round.n || 1, bo: view.settings.bestOf });
+            : roundLabel(view.settings, round.n);
         $('.fl-bar-score', arena).textContent = `${view.score.p1} – ${view.score.p2}`;
         $('.fl-bar-score', arena).setAttribute('aria-label',
             `${view.players.p1.name} ${view.score.p1}, ${view.players.p2.name} ${view.score.p2}`);
 
         let barHtml = '';
-        if (local.confirmExit) {
+        const canEnd = E.isInfinite(view.settings) && (view.phase === 'prepare' || view.phase === 'review');
+        const endBtn = canEnd
+            ? `<button type="button" class="btn btn-secondary" data-act="end">${esc(t('fight.endFight', 'End fight'))}</button>`
+            : '';
+        if (local.confirmEnd && canEnd) {
+            barHtml = `<span class="fl-confirm-text">${esc(t('fight.endConfirm', 'End the fight here? The leader wins.'))}</span>
+                <button type="button" class="btn btn-sm btn-primary" data-act="end-yes">${esc(t('fight.endFight', 'End fight'))}</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-act="end-no">${esc(t('fight.keepPlaying', 'Keep playing'))}</button>`;
+        } else if (local.confirmExit) {
             barHtml = `<span class="fl-confirm-text">${esc(t('fight.leaveConfirm', 'Leave this fight?'))}</span>
                 <button type="button" class="btn btn-sm fight-btn-danger" data-act="exit-yes">${esc(t('fight.leave', 'Leave'))}</button>
                 <button type="button" class="btn btn-sm btn-secondary" data-act="exit-no">${esc(t('fight.stay', 'Stay'))}</button>`;
         } else if (view.phase === 'review') {
-            barHtml = `<button type="button" class="btn btn-primary" data-act="next">${esc(t('fight.nextRound', 'Next round'))}</button>`;
+            barHtml = `<button type="button" class="btn btn-primary" data-act="next">${esc(t('fight.nextRound', 'Next round'))}</button>${endBtn}`;
+        } else if (view.phase === 'prepare') {
+            barHtml = endBtn;
         } else if (view.phase === 'ended') {
             barHtml = `<button type="button" class="btn btn-primary" data-act="rematch">${esc(t('fight.rematch', 'Rematch'))}</button>
                 <button type="button" class="btn btn-secondary" data-act="new">${esc(t('fight.newFight', 'New fight'))}</button>`;
@@ -588,6 +617,8 @@
                     t1: round.winner === 'p1' ? t1 : t2,
                     t2: round.winner === 'p1' ? t2 : t1,
                 });
+        } else if (view.phase === 'ended' && view.result && !view.result.winner && view.result.reason === 'ended') {
+            msg = fill(t('fight.sayDraw', 'The fight ends level, {a} to {b}.'), { a: view.score.p1, b: view.score.p2 });
         } else if (view.phase === 'ended' && view.result && view.result.winner) {
             msg = fill(t('fight.sayMatch', '{name} wins the match {a} to {b}.'), {
                 name: view.players[view.result.winner].name,
@@ -634,6 +665,12 @@
             case 'exit-yes': closeLocal(); break;
             case 'exit-no': local.confirmExit = false; renderLocal(true); break;
             case 'next': tr.dispatch({ type: 'CONTINUE', seat: 'p1', both: true }); break;
+            case 'end': local.confirmEnd = true; renderLocal(true); break;
+            case 'end-no': local.confirmEnd = false; renderLocal(true); break;
+            case 'end-yes':
+                local.confirmEnd = false;
+                tr.dispatch({ type: 'END', seat: 'p1' });
+                break;
             case 'rematch': tr.dispatch({ type: 'REMATCH', seat: 'p1', both: true }); break;
             case 'new': closeLocal(); break;
             default: break;
@@ -731,18 +768,19 @@
         if (r.mode === 'online' && mine) {
             const opp = r.players[E.other(mine)] || '?';
             title = fill(t('fight.vs', 'vs {name}'), { name: opp });
-            outcome = !r.winner ? 'none' : (r.winner === mine ? 'win' : 'loss');
+            outcome = !r.winner ? (r.reason === 'ended' ? 'draw' : 'none') : (r.winner === mine ? 'win' : 'loss');
         } else {
             title = `${r.players.p1} – ${r.players.p2}`;
-            outcome = r.winner ? 'local' : 'none';
+            outcome = r.winner ? 'local' : (r.reason === 'ended' ? 'draw' : 'none');
         }
         const a = mine ? r.score[mine] : r.score.p1;
         const b = mine ? r.score[E.other(mine)] : r.score.p2;
         const label = outcome === 'win' ? t('fight.histWin', 'Win')
             : outcome === 'loss' ? t('fight.histLoss', 'Loss')
             : outcome === 'local' ? fill(t('fight.histWinner', '{name} won'), { name: r.players[r.winner] })
+            : outcome === 'draw' ? t('fight.draw', 'Draw')
             : t('fight.histNoResult', 'No result');
-        const reason = r.reason && r.reason !== 'score'
+        const reason = r.reason && r.reason !== 'score' && r.reason !== 'ended'
             ? ` · ${esc({ disconnect: t('fight.reasonDisconnect', 'opponent disconnected'), left: t('fight.reasonLeft', 'opponent left') }[r.reason] || r.reason)}`
             : '';
         const rounds = (r.rounds || []).map(x => {
@@ -755,7 +793,7 @@
                     <span class="fight-hist-title">${esc(title)}</span>
                     <span class="fight-hist-score">${a}–${b}</span>
                     <span class="fight-hist-outcome">${esc(label)}</span>
-                    <span class="fight-hist-meta">${esc(ev)} · Bo${r.bestOf} · ${r.mode === 'online' ? esc(t('fight.online', 'Online')) : esc(t('fight.sameDevice', 'Same device'))} · ${esc(date)}${reason}</span>
+                    <span class="fight-hist-meta">${esc(ev)} · ${r.bestOf === E.INFINITE ? '∞' : `Bo${r.bestOf}`} · ${r.mode === 'online' ? esc(t('fight.online', 'Online')) : esc(t('fight.sameDevice', 'Same device'))} · ${esc(date)}${reason}</span>
                 </summary>
                 <ol class="fight-hist-rounds">${rounds}</ol>
             </details>
@@ -795,7 +833,7 @@
         leave,
         // Shared with the online arena (FightOnline) and the tests.
         _shared: {
-            t, fill, esc, $, $$, EVENT_LABELS, haptic, seatView, outcomeFor, badgeHtml,
+            t, fill, esc, $, $$, EVENT_LABELS, haptic, seatView, outcomeFor, badgeHtml, formatLabel, roundLabel,
             penaltyButtonsHtml, solveText, createSeatTimer, setHtml, bindZone, recordFor,
             saveLocalRecord, renderHistory, settings, saveSettings, fightSettings,
         },

@@ -208,11 +208,21 @@ async function transact(store, p, fn, tries = 8) {
 
 /* ======================= scrambles ======================= */
 
+// The two browser files the server borrows, named with require.resolve so
+// the deployment bundler (Vercel's file tracer) sees and ships them. It
+// cannot follow a path built at runtime: when this read them through a
+// computed path, the deployed function did not have them, and every online
+// fight failed to start with ENOENT.
+const SCRAMBLE_FILES = [
+    // square1-drawer.js first: ScrambleEngine formats Square-1 with it.
+    require.resolve('../../square1-drawer.js'),
+    require.resolve('../../scramble-engine.js'),
+];
+
 let scrambleEngine = null;
 /** ScrambleEngine (the browser file) loaded for its formatter and fallback. */
 function loadScrambleEngine() {
     if (scrambleEngine) return scrambleEngine;
-    const root = path.join(__dirname, '..', '..');
     const sandbox = {
         window: { requestIdleCallback: () => {} },   // no prewarm: it would reach for a CDN
         console,
@@ -220,9 +230,8 @@ function loadScrambleEngine() {
         Math,
     };
     vm.createContext(sandbox);
-    // square1-drawer.js first: ScrambleEngine formats Square-1 with it.
-    for (const file of ['square1-drawer.js', 'scramble-engine.js']) {
-        vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), sandbox, { filename: file });
+    for (const file of SCRAMBLE_FILES) {
+        vm.runInContext(fs.readFileSync(file, 'utf8'), sandbox, { filename: path.basename(file) });
     }
     scrambleEngine = sandbox.window.ScrambleEngine;
     return scrambleEngine;
@@ -239,21 +248,54 @@ async function cubing() {
     return cubingScramble;
 }
 
-/** A WCA random-state scramble for an event, as ScrambleEngine would show it. */
+function withTimeout(promise, ms, what) {
+    let timer;
+    return Promise.race([
+        promise,
+        new Promise((_, rej) => { timer = setTimeout(() => rej(new Error(`${what} timed out after ${ms}ms`)), ms); }),
+    ]).finally(() => clearTimeout(timer));
+}
+
+// The last resort if even ScrambleEngine cannot be loaded: a plain
+// random-move 3x3-style scramble. Never expected to run; it exists so a
+// fight is never stuck without a scramble.
+function emergencyScramble() {
+    const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
+    const mods = ['', "'", '2'];
+    const out = [];
+    let last = '';
+    while (out.length < 20) {
+        const f = faces[crypto.randomInt(faces.length)];
+        if (f === last) continue;
+        last = f;
+        out.push(f + mods[crypto.randomInt(mods.length)]);
+    }
+    return out.join(' ');
+}
+
+/**
+ * A WCA random-state scramble for an event, as ScrambleEngine would show it.
+ * Never throws: if the scramble program cannot run (or hangs — the whole
+ * load is under a timeout, not only the search), ScrambleEngine's offline
+ * generator stands in, as it does in the browser.
+ */
 async function generateScramble(eventId, opts = {}) {
-    const SE = loadScrambleEngine();
-    const wcaId = SE.wcaEventId(eventId);
+    let SE = null;
+    try { SE = loadScrambleEngine(); } catch (err) {
+        console.error('[fights] could not load scramble-engine.js:', err.message);
+    }
+    const wcaId = SE ? SE.wcaEventId(eventId) : String(eventId || '333');
     if (opts.generator) return opts.generator(wcaId);
     try {
-        const { randomScrambleForEvent } = await cubing();
-        const alg = await Promise.race([
-            randomScrambleForEvent(wcaId),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('scramble timeout')), 12000)),
-        ]);
-        return SE.formatForEvent(wcaId, alg.toString());
+        const text = await withTimeout((async () => {
+            const { randomScrambleForEvent } = await cubing();
+            return (await randomScrambleForEvent(wcaId)).toString();
+        })(), opts.timeoutMs || 9000, 'random-state scramble');
+        return SE ? SE.formatForEvent(wcaId, text) : text;
     } catch (err) {
         console.error(`[fights] random-state scramble failed for ${wcaId}, using the fallback:`, err.message);
-        return SE.fallbackScramble(wcaId);
+        try { if (SE) return SE.fallbackScramble(wcaId); } catch (e) { /* fall through */ }
+        return emergencyScramble();
     }
 }
 
@@ -315,24 +357,32 @@ function createFightService({ store, now = () => Date.now(), scrambleGenerator =
         return { pub, next };
     }
 
-    /** Fills whatever scramble the state is waiting on. */
+    /**
+     * Fills whatever scramble the state is waiting on. A failure leaves the
+     * gap for the next request (every heartbeat comes through here) rather
+     * than failing the action that happened to need it.
+     */
     async function fillScrambles(state, t) {
         let s = state;
-        const need = Engine.needsScramble(s);
-        if (need.current) {
-            const text = await scramble(s.settings.event);
-            s = Engine.reduce(s, { type: 'SCRAMBLE', target: 'current', scramble: text }, t).state;
-        }
-        // A round that took its scramble from a queue the previous request
-        // had not finished refilling would repeat an old one. Never.
-        const round = Engine.current(s);
-        if (round && round.scramble && Object.values(s.rounds).some(r => r !== round && r.scramble === round.scramble)
-            && s.phase === 'prepare') {
-            round.scramble = await scramble(s.settings.event);
-        }
-        if (Engine.needsScramble(s).next) {
-            const text = await scramble(s.settings.event);
-            s = Engine.reduce(s, { type: 'SCRAMBLE', target: 'next', scramble: text }, t).state;
+        try {
+            const need = Engine.needsScramble(s);
+            if (need.current) {
+                const text = await scramble(s.settings.event);
+                s = Engine.reduce(s, { type: 'SCRAMBLE', target: 'current', scramble: text }, t).state;
+            }
+            // A round that took its scramble from a queue the previous request
+            // had not finished refilling would repeat an old one. Never.
+            const round = Engine.current(s);
+            if (round && round.scramble && s.phase === 'prepare'
+                && Object.values(s.rounds).some(r => r !== round && r.scramble === round.scramble)) {
+                round.scramble = await scramble(s.settings.event);
+            }
+            if (Engine.needsScramble(s).next) {
+                const text = await scramble(s.settings.event);
+                s = Engine.reduce(s, { type: 'SCRAMBLE', target: 'next', scramble: text }, t).state;
+            }
+        } catch (err) {
+            console.error('[fights] could not fill a scramble, will retry on the next request:', err.message);
         }
         return s;
     }
@@ -454,7 +504,7 @@ function createFightService({ store, now = () => Date.now(), scrambleGenerator =
             throw new FightError(400, 'bad_fight', 'That is not a fight id.');
         }
         const type = String((action && action.type) || '');
-        const allowed = ['SEEN', 'READY', 'START', 'SUBMIT', 'PENALTY', 'PENALTY_REPLY', 'CONTINUE', 'REMATCH', 'LEAVE'];
+        const allowed = ['SEEN', 'READY', 'START', 'SUBMIT', 'PENALTY', 'PENALTY_REPLY', 'CONTINUE', 'REMATCH', 'LEAVE', 'END'];
         if (!allowed.includes(type)) throw new FightError(400, 'bad_action', 'That is not something you can do in a fight.');
 
         const priv = await loadPrivate(fightId);
@@ -554,11 +604,16 @@ function createFightService({ store, now = () => Date.now(), scrambleGenerator =
             if (!uid) continue;
             const record = serverRecord(fightId, after, seat);
             await db.put(`fight_history/${safeKey(uid)}/${historyKey(record.at, record.id)}`, record);
-            if (!after.result.winner) continue;   // abandoned before anything was played
+            // Nothing was played: not a fight worth counting.
+            if (['abandoned', 'expired', 'host_left'].includes(after.result.reason)) continue;
+            if (!after.result.winner && !record.rounds.length) continue;
             await transact(db, `fight_stats/${safeKey(uid)}`, (cur) => {
-                const s = Object.assign({ played: 0, wins: 0, losses: 0, roundsWon: 0, roundsLost: 0, best: null }, cur || {});
+                const s = Object.assign({ played: 0, wins: 0, losses: 0, draws: 0, roundsWon: 0, roundsLost: 0, best: null }, cur || {});
                 s.played += 1;
-                if (after.result.winner === seat) s.wins += 1; else s.losses += 1;
+                // An infinite fight ended level is a draw.
+                if (!after.result.winner) s.draws += 1;
+                else if (after.result.winner === seat) s.wins += 1;
+                else s.losses += 1;
                 for (const r of record.rounds) {
                     if (r.winner === seat) s.roundsWon += 1;
                     else if (r.winner && r.winner !== 'tie') s.roundsLost += 1;
@@ -591,12 +646,14 @@ function createFightService({ store, now = () => Date.now(), scrambleGenerator =
             },
             seat: null,
             winner: r.winner === 'p1' || r.winner === 'p2' ? r.winner : null,
-            reason: 'score',
+            reason: r.reason === 'ended' ? 'ended' : 'score',
+            // Infinite fights have no ceiling on the score; a sane one keeps
+            // a forged record from claiming a thousand wins.
             score: {
-                p1: Math.max(0, Math.min(7, Number(r.score && r.score.p1) || 0)),
-                p2: Math.max(0, Math.min(7, Number(r.score && r.score.p2) || 0)),
+                p1: Math.max(0, Math.min(999, Number(r.score && r.score.p1) || 0)),
+                p2: Math.max(0, Math.min(999, Number(r.score && r.score.p2) || 0)),
             },
-            rounds: (Array.isArray(r.rounds) ? r.rounds : []).slice(0, 30).map((x, i) => ({
+            rounds: (Array.isArray(r.rounds) ? r.rounds : []).slice(0, 200).map((x, i) => ({
                 n: i + 1,
                 p1: cleanSolve(x && x.p1),
                 p2: cleanSolve(x && x.p2),

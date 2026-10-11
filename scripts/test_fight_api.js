@@ -176,6 +176,40 @@ async function round(w, fightId, msA, msB) {
     eq('recorded for both', Object.keys(w.store.data.fight_history.acc_bea).length, 1);
     eq('as a loss for Bea', w.store.data.fight_stats.acc_bea.losses, 1);
 
+    /* ---- infinite fights, ended by a player ------------------------- */
+    w = world();
+    const inf = await w.svc.create(ana, { bestOf: 0, inspection: false });
+    eq('infinite through the API', inf.state.settings.bestOf, 0);
+    await w.svc.join(bea, inf.code);
+    for (let i = 0; i < 6; i++) r = await round(w, inf.fightId, 2000, i < 3 ? 3000 : 1500);
+    eq('six rounds, no end', r.state.phase, 'prepare');
+    eq('3–3', `${r.state.score.p1}-${r.state.score.p2}`, '3-3');
+    r = await w.svc.act(bea, inf.fightId, { type: 'END' });
+    eq('a player can end it', r.state.phase, 'ended');
+    eq('level: a draw', r.state.result.winner, null);
+    eq('recorded for both', Object.keys(w.store.data.fight_history.acc_ana).length, 1);
+    eq('as a draw in the stats', `${w.store.data.fight_stats.acc_ana.draws}/${w.store.data.fight_stats.acc_ana.wins}/${w.store.data.fight_stats.acc_ana.losses}`, '1/0/0');
+    eq('rounds still counted', w.store.data.fight_stats.acc_bea.roundsWon, 3);
+
+    /* ---- a scramble that cannot be made never sinks a request ------- */
+    w = world();
+    const brokenSvc = fights.createFightService({
+        store: w.store, now: () => w.now,
+        scrambleGenerator: () => { throw new Error('scrambler down'); },
+    });
+    const bk = await brokenSvc.create(ana, {});
+    ok('a room is still created', /^[A-Z0-9]{6}$/.test(bk.code));
+    const bj = await brokenSvc.join(bea, bk.code);
+    eq('and joined, with the scramble left to fill', bj.state.rounds.r1.scramble, null);
+    const fixedSvc = fights.createFightService({ store: w.store, now: () => w.now, scrambleGenerator: () => 'R U F' });
+    r = await fixedSvc.act(ana, bk.fightId, { type: 'SEEN' });
+    eq('the next heartbeat fills it', r.state.rounds.r1.scramble, 'R U F');
+
+    /* ---- the deployed bundle carries the scramble files ------------- */
+    const libSrc = require('fs').readFileSync(require('path').join(__dirname, '..', 'api', '_lib', 'fights.js'), 'utf8');
+    ok('scramble-engine.js is named statically (the bundler traces it)', /require\.resolve\('\.\.\/\.\.\/scramble-engine\.js'\)/.test(libSrc));
+    ok('and square1-drawer.js', /require\.resolve\('\.\.\/\.\.\/square1-drawer\.js'\)/.test(libSrc));
+
     /* ---- leaving, expiry ------------------------------------------ */
     w = world();
     const e1 = await w.svc.create(ana, {});
@@ -205,11 +239,11 @@ async function round(w, fightId, msA, msB) {
     w = world();
     const saved = await w.svc.saveLocal(ana, {
         id: 'local-123', at: w.now - 1000, event: '333', bestOf: 3,
-        players: { p1: 'Ana', p2: '<b>Kid</b>' }, winner: 'p1', score: { p1: 2, p2: 99 },
+        players: { p1: 'Ana', p2: '<b>Kid</b>' }, winner: 'p1', score: { p1: 2, p2: 5000 },
         rounds: [{ p1: { ms: 9000, penalty: '' }, p2: { ms: 'x', penalty: '' }, winner: 'p1' }],
     });
     eq('a local fight is kept', saved.mode, 'local');
-    eq('impossible scores are clamped', saved.score.p2, 7);
+    eq('impossible scores are clamped', saved.score.p2, 999);
     eq('a garbage time becomes a DNF', saved.rounds[0].p2.penalty, 'DNF');
     ok('it does not touch the online stats', !w.store.data.fight_stats);
 

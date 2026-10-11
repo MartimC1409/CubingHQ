@@ -19,7 +19,7 @@
     const FT = window.FightTransport;
     const S = window.CubeFights && window.CubeFights._shared;
     if (!E || !FT || !S) return;
-    const { t, fill, esc, $, EVENT_LABELS, haptic, seatView, outcomeFor, badgeHtml,
+    const { t, fill, esc, $, EVENT_LABELS, haptic, seatView, outcomeFor, badgeHtml, formatLabel, roundLabel,
         penaltyButtonsHtml, solveText, createSeatTimer, bindZone, setHtml } = S;
 
     const app = () => window.CubingHQApp || {};
@@ -133,7 +133,7 @@
         el.textContent = st && st.played
             ? fill(t('fight.statsLine', 'Online: {w} W · {l} L · rounds {rw}–{rl}'), {
                 w: st.wins || 0, l: st.losses || 0, rw: st.roundsWon || 0, rl: st.roundsLost || 0,
-            })
+            }) + (st.draws ? ` · ${fill(t('fight.statsDraws', '{d} drawn'), { d: st.draws })}` : '')
             : '';
     }
 
@@ -230,6 +230,7 @@
         online.lastPhase = '';
         online.lastRound = 0;
         online.confirmLeave = false;
+        online.confirmEnd = false;
         rememberCurrent(tr);
         // The invite link is the address while the fight is open, so a
         // reload or a shared tab lands back in it.
@@ -356,7 +357,7 @@
 
         // Everything below is cheap string building; only touch the DOM when
         // something visible changed.
-        const key = JSON.stringify([v.phase, v.seq, r.n, r.scramble, online.confirmLeave, tr.status,
+        const key = JSON.stringify([v.phase, v.seq, r.n, r.scramble, online.confirmLeave, online.confirmEnd, tr.status,
             presence.text, mine.text, online.seatTimer && online.seatTimer.timer.phase,
             v.phase === 'review' ? Math.ceil((r.phaseAt + E.TIMING.REVIEW_AUTO_MS - now) / 1000) : 0,
             v.phase === 'lobby' && v.expiresAt ? Math.ceil((v.expiresAt - now) / 1000) : 0]);
@@ -391,7 +392,14 @@
         // Leave confirmation.
         const confirm = $('.fo-confirm', root);
         const active = ['prepare', 'countdown', 'inspection', 'solving', 'review'].includes(v.phase);
-        if (online.confirmLeave) {
+        const canEnd = E.isInfinite(v.settings) && (v.phase === 'prepare' || v.phase === 'review');
+        if (online.confirmEnd && canEnd) {
+            setHtml(confirm, `<div class="setup-card fo-proposal">
+                <span>${esc(t('fight.endConfirm', 'End the fight here? The leader wins.'))}</span>
+                <button type="button" class="btn btn-primary" data-act="end-yes">${esc(t('fight.endFight', 'End fight'))}</button>
+                <button type="button" class="btn btn-secondary" data-act="end-no">${esc(t('fight.keepPlaying', 'Keep playing'))}</button></div>`);
+            confirm.hidden = false;
+        } else if (online.confirmLeave) {
             setHtml(confirm, `<div class="setup-card fo-proposal">
                 <span>${esc(active && oppP ? t('fight.leaveForfeit', 'Leaving now forfeits the match.') : t('fight.leaveConfirm', 'Leave this fight?'))}</span>
                 <button type="button" class="btn fight-btn-danger" data-act="leave-yes">${esc(t('fight.leave', 'Leave'))}</button>
@@ -474,9 +482,9 @@
     }
 
     function settingsLine(v) {
-        return fill(t('fight.settingsLine', '{event} · Best of {bo} · Inspection {insp}'), {
+        return fill(t('fight.settingsLine', '{event} · {format} · Inspection {insp}'), {
             event: EVENT_LABELS[v.settings.event] || v.settings.event,
-            bo: v.settings.bestOf,
+            format: formatLabel(v.settings),
             insp: v.settings.inspection ? t('fight.on', 'On') : t('fight.off', 'Off'),
         });
     }
@@ -504,8 +512,15 @@
             const ready = !!(v.players[me] && v.players[me].ready);
             actions = `<button type="button" class="btn ${ready ? 'btn-secondary' : 'btn-primary'} fight-ready-btn" data-act="ready" ${r.scramble ? '' : 'disabled'} aria-pressed="${ready}">${esc(ready ? t('fight.notReady', 'Not ready') : t('fight.ready', 'Ready'))}</button>`;
         }
+        if (v.phase === 'prepare') actions += endFightHtml(v);
         setHtml($('.fo-play-actions', main), actions);
-        $('.fo-round', main).textContent = `${fill(t('fight.roundOf', 'Round {n} · Best of {bo}'), { n: r.n || 1, bo: v.settings.bestOf })} · ${EVENT_LABELS[v.settings.event] || v.settings.event}`;
+        $('.fo-round', main).textContent = `${roundLabel(v.settings, r.n)} · ${EVENT_LABELS[v.settings.event] || v.settings.event}`;
+    }
+
+    /** Infinite fights end when a player says so, from between rounds. */
+    function endFightHtml(v) {
+        if (!E.isInfinite(v.settings)) return '';
+        return `<button type="button" class="btn btn-secondary" data-act="end">${esc(t('fight.endFight', 'End fight'))}</button>`;
     }
 
     function renderReview(main, v, r, now) {
@@ -513,7 +528,7 @@
         const me = tr.seat;
         const opp = E.other(me);
         const outcome = outcomeFor(v, me);
-        setHtml($('.fo-review-head', main), `${badgeHtml(outcome, false)} <span class="fo-note">${esc(fill(t('fight.roundOf', 'Round {n} · Best of {bo}'), { n: r.n, bo: v.settings.bestOf }))}</span>`);
+        setHtml($('.fo-review-head', main), `${badgeHtml(outcome, false)} <span class="fo-note">${esc(roundLabel(v.settings, r.n))}</span>`);
 
         const row = (seat) => {
             const p = v.players[seat] || {};
@@ -547,7 +562,7 @@
         const waiting = r.cont && r.cont[me];
         setHtml($('.fo-review-actions', main), waiting
             ? `<span class="fo-note">${esc(fill(t('fight.waitingFor', 'Waiting for {name}…'), { name: (v.players[opp] || {}).name }))}</span>`
-            : `<button type="button" class="btn btn-primary" data-act="continue" ${prop ? 'disabled' : ''}>${esc(t('fight.continue', 'Continue'))}</button>`);
+            : `<button type="button" class="btn btn-primary" data-act="continue" ${prop ? 'disabled' : ''}>${esc(t('fight.continue', 'Continue'))}</button>${endFightHtml(v)}`);
         const left = Math.max(0, Math.ceil((r.phaseAt + E.TIMING.REVIEW_AUTO_MS - now) / 1000));
         $('.fo-auto', main).textContent = Object.keys(r.proposals || {}).length
             ? t('fight.autoPaused', 'Waiting on a penalty answer.')
@@ -573,6 +588,9 @@
                 ? fill(t('fight.endLeftWin', '{name} left the fight.'), { name: oppName })
                 : t('fight.endLeftLoss', 'You left the fight.'),
             abandoned: t('fight.endAbandoned', 'The fight ended before a round was played.'),
+            ended: res.by === me
+                ? t('fight.endedByYou', 'You ended the fight.')
+                : fill(t('fight.endedByThem', '{name} ended the fight.'), { name: oppName }),
             expired: t('fight.endExpired', 'Nobody joined in time, so the room closed.'),
             host_left: t('fight.endHostLeft', 'The room was closed.'),
         };
@@ -613,6 +631,7 @@
         } else if (v.phase === 'ended' && v.result) {
             msg = v.result.winner === me ? t('fight.sayYouWon', 'You won the match.')
                 : v.result.winner ? fill(t('fight.sayTheyWon', '{name} won the match.'), { name: oppName })
+                : v.result.reason === 'ended' ? t('fight.draw', 'Draw')
                 : t('fight.noResult', 'No result');
         }
         if (msg) live.textContent = msg;
@@ -666,6 +685,9 @@
             case 'accept': return run({ type: 'PENALTY_REPLY', accept: true });
             case 'decline': return run({ type: 'PENALTY_REPLY', accept: false });
             case 'continue': return run({ type: 'CONTINUE' });
+            case 'end': online.confirmEnd = true; render(true); return;
+            case 'end-no': online.confirmEnd = false; render(true); return;
+            case 'end-yes': online.confirmEnd = false; return run({ type: 'END' });
             case 'rematch': return run({ type: 'REMATCH' });
             case 'leave': {
                 const phase = view().phase;

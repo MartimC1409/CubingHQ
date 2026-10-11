@@ -25,7 +25,8 @@
      inspection  15s WCA inspection, from startAt, for both at once
      solving     timers running (straight here when inspection is off)
      review      both finished: times, winner, penalties, continue
-     ended       someone won the match (or forfeited); rematch from here
+     ended       someone won the match (or forfeited), or an infinite fight
+                 was ended; rematch from here
      expired     an online room nobody joined in time
 
    State is plain JSON with no numeric keys and no arrays that can
@@ -48,7 +49,10 @@
 
     const SEATS = ['p1', 'p2'];
     const EVENTS = ['333', '222', '444', '555', '666', '777', '333oh', 'pyram', 'skewb', 'sq1', 'minx', 'clock'];
-    const BEST_OF = [1, 3, 5, 7];
+    // 0 is an infinite fight: no target score, rounds go on until a player
+    // ends it (END), and whoever leads then wins.
+    const BEST_OF = [1, 3, 5, 7, 0];
+    const INFINITE = 0;
 
     const T = {
         COUNTDOWN_MS: 3000,
@@ -80,7 +84,8 @@
     function clone(o) { return JSON.parse(JSON.stringify(o)); }
     function other(seat) { return seat === 'p1' ? 'p2' : 'p1'; }
     function roundKey(n) { return 'r' + n; }
-    function winsNeeded(bestOf) { return Math.floor(bestOf / 2) + 1; }
+    function winsNeeded(bestOf) { return bestOf === INFINITE ? Infinity : Math.floor(bestOf / 2) + 1; }
+    function isInfinite(settings) { return !!settings && settings.bestOf === INFINITE; }
 
     function cleanName(name, fallback) {
         const s = String(name || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 24);
@@ -484,6 +489,32 @@
                 return null;
             }
 
+            case 'END': {
+                // Infinite fights only: they have no score that ends them.
+                // Allowed between solves — while a round is being prepared
+                // (it is dropped, nobody has solved it) or reviewed (it
+                // counts, as if both had pressed continue).
+                if (!isInfinite(s.settings)) return fail('not_infinite');
+                if (s.phase === 'review') {
+                    round.final = true;
+                    round.winner = roundWinner(round);
+                    round.proposals = {};
+                    if (round.winner !== 'tie') s.score[round.winner] += 1;
+                } else if (s.phase === 'prepare') {
+                    if (round && !Object.keys(round.solves || {}).length) {
+                        delete s.rounds[roundKey(s.round)];
+                        if (round.scramble && !s.nextScramble) s.nextScramble = round.scramble;
+                        s.round -= 1;
+                    }
+                } else {
+                    return fail('wrong_phase');
+                }
+                const lead = s.score.p1 === s.score.p2 ? null : (s.score.p1 > s.score.p2 ? 'p1' : 'p2');
+                end(s, lead, 'ended', now);
+                s.result.by = seat;
+                return null;
+            }
+
             case 'REMATCH': {
                 if (s.phase !== 'ended') return fail('wrong_phase');
                 if (!s.result || ['expired', 'abandoned', 'left'].includes(s.result.reason)
@@ -590,6 +621,8 @@
         needsScramble,
         roundWinner,
         winsNeeded,
+        isInfinite,
+        INFINITE,
         effective,
         presence: (state, seat, now) => presenceOf(normalize(clone(state)), seat, now),
         countdownLeft,

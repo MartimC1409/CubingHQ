@@ -181,8 +181,15 @@
         return text;
     }
 
-    async function get(eventId) {
-        const wcaId = wcaEventId(eventId);
+    // How long a caller waits for a random-state scramble before taking the
+    // local one. Generous — a phone's first 4x4 or Square-1 scramble builds
+    // its tables and can take several seconds — but finite: a scramble
+    // worker that loads and then never answers (it happens when a browser
+    // cannot start the worker) used to leave the timer and Cube Fights on
+    // "Generating scramble…" forever.
+    const RANDOM_STATE_DEADLINE_MS = 15000;
+
+    async function randomState(wcaId) {
         // Retry transient failures (worker hiccup, first-load race). A module
         // whose lazy solver chunk keeps failing will never succeed, so after
         // two failures on the same CDN roll over to the next one.
@@ -201,6 +208,19 @@
             }
         }
         console.warn(`[ScrambleEngine] all random-state attempts failed for ${wcaId} — using local fallback (offline?)`);
+        return null;
+    }
+
+    async function get(eventId) {
+        const wcaId = wcaEventId(eventId);
+        let timer = null;
+        const deadline = new Promise(resolve => { timer = setTimeout(() => resolve('timeout'), RANDOM_STATE_DEADLINE_MS); });
+        const result = await Promise.race([randomState(wcaId).catch(() => null), deadline]);
+        clearTimeout(timer);
+        if (typeof result === 'string' && result !== 'timeout') return result;
+        if (result === 'timeout') {
+            console.warn(`[ScrambleEngine] no random-state scramble for ${wcaId} after ${RANDOM_STATE_DEADLINE_MS / 1000}s — using local fallback`);
+        }
         return fallbackScramble(wcaId);
     }
 
