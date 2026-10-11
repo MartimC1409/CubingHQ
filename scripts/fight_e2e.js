@@ -187,6 +187,34 @@ async function playRound(a, b, first, inspection) {
         await waitPhase(a, 'prepare');
         ok('a rematch starts a fresh match', (await stateOf(a)).match === 2);
 
+        // An infinite fight, on two fresh phones, ended from the results.
+        console.log('Infinite fight, ended by a player');
+        const a2 = await phone(browser, 'acc_ana', 'Ana');
+        const b2 = await phone(browser, 'acc_bea', 'Bea');
+        await a2.page.goto(`http://localhost:${PORT}/index.html#fights`, { waitUntil: 'domcontentloaded' });
+        await a2.page.waitForSelector('#fight-online-signed-in:not([hidden])', { timeout: 20000 });
+        await a2.page.tap('#fight-bestof [data-bestof="0"]');
+        await a2.page.tap('#fight-create-btn');
+        await a2.page.waitForSelector('.fo-big-code', { timeout: 20000 });
+        const code2 = (await a2.page.textContent('.fo-big-code')).trim();
+        ok('the lobby says it is infinite', /Infinite/.test(await a2.page.textContent('.fo-settings')));
+        await b2.page.goto(`http://localhost:${PORT}/index.html#fight/${code2}`, { waitUntil: 'domcontentloaded' });
+        await waitPhase(a2, 'prepare');
+        for (let i = 0; i < 4; i++) {
+            await playRound(a2, b2, 'a', true);
+            await waitPhase(a2, 'prepare');
+        }
+        ok('four rounds in, an infinite fight is still on', (await phaseOf(a2)) === 'prepare' && (await stateOf(a2)).score.p1 === 4);
+        await a2.page.tap('[data-act="end"]');
+        await a2.page.tap('[data-act="end-yes"]');
+        await waitPhase(b2, 'ended');
+        const inf = await stateOf(b2);
+        ok('ending it gives the leader the win', inf.result.winner === 'p1' && inf.result.reason === 'ended', JSON.stringify(inf.result));
+        await b2.page.waitForTimeout(400);
+        ok('Bea is told who ended it', /Ana ended the fight/.test(await b2.page.textContent('.fo-ended-reason')));
+        await shot(b2, 'online-infinite-ended');
+        await a2.ctx.close(); await b2.ctx.close();
+
         if (!QUICK) {
             console.log('Disconnect: Bea vanishes mid-match (this takes ~45s)');
             await playRound(a, b, 'b', true);

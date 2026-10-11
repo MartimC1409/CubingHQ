@@ -317,6 +317,45 @@ eq('online, "both" is ignored', o.s.phase, 'ended');
 o.act({ type: 'REMATCH', seat: 'p1' });
 eq('both asked: a new match', o.s.phase, 'prepare');
 
+/* ---- infinite fights ---------------------------------------------- */
+eq('infinite is a setting', E.normalizeSettings({ bestOf: 0 }).bestOf, 0);
+eq('with no target score', E.winsNeeded(0), Infinity);
+f = fight({ settings: { bestOf: 0, inspection: false } });
+ok('isInfinite', E.isInfinite(f.s.settings));
+for (let i = 0; i < 9; i++) {
+    f.startRound(); f.wait(9000);
+    f.submit('p1', i % 3 === 2 ? 9000 : 8000); f.submit('p2', 8500);
+    f.continueBoth();
+}
+eq('nine rounds and still going', f.s.phase, 'prepare');
+eq('round 10 is next', f.s.round, 10);
+eq('6–3', `${f.s.score.p1}-${f.s.score.p2}`, '6-3');
+eq('a best-of fight cannot be ended this way', fight().act({ type: 'END', seat: 'p1' }), 'not_infinite');
+f.scramble('X'); f.readyBoth();
+eq('not mid-round', f.act({ type: 'END', seat: 'p2' }), 'wrong_phase');
+f.wait(E.countdownLeft(f.s, f.now)); f.wait(5000);
+f.submit('p1', 4000); f.submit('p2', 3000);
+eq('ending from review counts that round', f.act({ type: 'END', seat: 'p2' }), null);
+eq('ended', f.s.phase, 'ended');
+eq('6–4 with the last round', `${f.s.score.p1}-${f.s.score.p2}`, '6-4');
+eq('the leader wins', f.s.result.winner, 'p1');
+eq('reason: ended', f.s.result.reason, 'ended');
+eq('and who ended it is kept', f.s.result.by, 'p2');
+f.act({ type: 'REMATCH', seat: 'p1', both: true });
+eq('an ended infinite fight can be rematched', f.s.match, 2);
+
+// Ending from prepare drops the unplayed round; level is a draw.
+f = fight({ settings: { bestOf: 0, inspection: false } });
+f.startRound(); f.wait(9000);
+f.submit('p1', 8000); f.submit('p2', 9000); f.continueBoth();
+f.startRound(); f.wait(9000);
+f.submit('p1', 9000); f.submit('p2', 8000); f.continueBoth();
+eq('1–1 going into round 3', f.s.round, 3);
+f.act({ type: 'END', seat: 'p1' });
+eq('a level infinite fight is a draw', f.s.result.winner, null);
+ok('the unplayed round 3 is dropped', !f.s.rounds.r3, Object.keys(f.s.rounds).join(','));
+eq('two rounds on record', Object.values(f.s.rounds).filter(r => r.final).length, 2);
+
 /* ---- a Firebase round trip --------------------------------------- */
 // Firebase drops nulls, empty objects and empty arrays. A state that has
 // been through it must still run.
