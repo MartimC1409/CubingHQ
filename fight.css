@@ -124,7 +124,7 @@
 .fight-hist-row--loss .fight-hist-outcome { color: var(--clr-danger); }
 .fight-hist-row--loss .fight-hist-outcome::before { content: '▼ '; }
 .fight-hist-meta { grid-area: meta; font-size: 0.78rem; color: var(--clr-text-muted); }
-.fight-hist-rounds { margin: 0 0 0.7rem; padding-left: 1.4rem; font-family: var(--font-mono); font-size: 0.82rem; color: var(--clr-text-secondary); }
+.fight-hist-rounds { list-style: none; margin: 0 0 0.7rem; padding-left: 0.2rem; font-family: var(--font-mono); font-size: 0.82rem; color: var(--clr-text-secondary); }
 
 /* ---------- shared pieces ---------- */
 
@@ -310,7 +310,7 @@ body.fight-arena-open { overflow: hidden; }
 /* ---------- online arena ---------- */
 
 .fight-online[hidden] { display: none !important; }
-.fight-online { max-width: 760px; padding-top: var(--space-lg); padding-bottom: var(--space-xl); }
+.fight-online { max-width: 760px; padding-top: calc(var(--space-xl) + 24px); padding-bottom: var(--space-xl); }
 
 .fo-top {
     display: flex;

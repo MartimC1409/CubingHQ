@@ -135,10 +135,19 @@
             return true;
         }
 
+        function holdLength() {
+            return Math.max(0, Number(value(opts.holdMs === undefined ? 300 : opts.holdMs)) || 0);
+        }
+
+        /** Held long enough? Decided from timestamps, not from the timer firing. */
+        function heldEnough(t) {
+            return s.phase === 'holding' && t - s.holdStart >= holdLength();
+        }
+
         function beginHold(t) {
             s.holdStart = t;
             set('holding');
-            const hold = Math.max(0, Number(value(opts.holdMs === undefined ? 300 : opts.holdMs)) || 0);
+            const hold = holdLength();
             if (hold <= 0) { set('ready'); return; }
             s.holdTimer = schedule(() => {
                 s.holdTimer = null;
@@ -194,6 +203,9 @@
             /** Space up / finger up. */
             release(t = now()) {
                 if (checkInspection(t)) return;
+                // A throttled background tab can fire the hold timer late;
+                // the hold itself is measured, so a full hold still counts.
+                if (heldEnough(t)) { clearHold(); set('ready'); }
                 if (s.phase === 'holding') {
                     // Let go too early: back to inspection if it is still
                     // running, otherwise back to rest.
@@ -206,7 +218,8 @@
 
             /** Call from an animation frame: catches inspection running out. */
             tick(t = now()) {
-                checkInspection(t);
+                if (checkInspection(t)) return s.phase;
+                if (heldEnough(t)) { clearHold(); set('ready'); }
                 return s.phase;
             },
 

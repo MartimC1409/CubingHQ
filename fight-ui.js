@@ -128,7 +128,8 @@
      * What one seat's panel shows right now. Shared by the split screen and
      * the online arena, so both describe a moment of the fight the same way.
      */
-    function seatView(view, seat, timer, now) {
+    function seatView(view, seat, timer, now, deviceNow) {
+        const dnow = deviceNow === undefined ? now : deviceNow;
         const round = E.current(view) || {};
         const solve = round.solves && round.solves[seat];
         const opp = E.other(seat);
@@ -169,7 +170,7 @@
                 if (!timer) break;
                 switch (timer.phase) {
                     case 'inspecting': {
-                        const left = timer.inspectionLeft(now);
+                        const left = timer.inspectionLeft(dnow);
                         out.time = left > 0 ? String(Math.ceil(left / 1000)) : (left > -2000 ? '+2' : 'DNF');
                         out.status = t('fight.inspectHold', 'Inspect — hold to start');
                         out.zone = left > 0 ? 'inspecting' : 'warning';
@@ -186,7 +187,7 @@
                         out.zone = 'ready';
                         break;
                     case 'running':
-                        out.time = TC.fmt(timer.elapsed(now));
+                        out.time = TC.fmt(timer.elapsed(dnow));
                         out.status = t('fight.tapToStop', 'Tap to stop');
                         out.zone = 'running';
                         break;
@@ -261,11 +262,16 @@
      * pointer ids, so two thumbs on two halves never interfere.
      */
     function createSeatTimer(seat, transport, hooks) {
+        // Solves are timed on this device's own clock, never the server-
+        // adjusted one: a clock correction mid-solve must not change a time.
+        // Only the round's scheduled start is converted into it.
+        const deviceNow = transport.deviceNow || transport.now;
+        const toDevice = transport.toDevice || (x => x);
         const timer = TC.createSolveTimer({
             holdMs: 300,
             inspection: false,           // inspection is started by the round, not a press
             inspectionRule: 'wca',
-            now: transport.now,
+            now: deviceNow,
             onChange(phase, prev, info) {
                 if (phase === 'ready') haptic(15);
                 if (phase === 'running') {
@@ -273,7 +279,7 @@
                     transport.dispatch({ type: 'START', seat, penalty: timer.startPenalty });
                 } else if (phase === 'stopped') {
                     haptic(45);
-                    lockUntil = transport.now() + 700;
+                    lockUntil = deviceNow() + 700;
                     transport.dispatch({ type: 'SUBMIT', seat, ms: info.ms, penalty: info.penalty });
                 } else if (phase === 'inspection_dnf') {
                     haptic([40, 40, 40]);
@@ -289,6 +295,12 @@
         /** Line the timer up with the fight: a new round resets it, the round's start arms it. */
         function sync(view) {
             const r = E.current(view);
+            // Fingers only count while a round is live. The tap that stops the
+            // last solve swaps the screen to the results, and the element under
+            // that finger can be replaced before it lifts — its pointerup never
+            // arrives, and a finger remembered as down would swallow the next
+            // round's press.
+            if (view.phase !== 'inspection' && view.phase !== 'solving') pointers.clear();
             if (!r) return;
             if (view.phase === 'prepare' || view.phase === 'countdown' || view.phase === 'lobby') {
                 if (timer.phase !== 'idle') timer.reset();
@@ -299,7 +311,7 @@
                 armedRound = r.n;
                 timer.reset();
                 if (view.settings.inspection && !(r.solves && r.solves[seat])) {
-                    timer.startInspection(r.startAt);
+                    timer.startInspection(toDevice(r.startAt));
                 }
             }
         }
@@ -308,7 +320,7 @@
             if (view.phase !== 'inspection' && view.phase !== 'solving') return false;
             const r = E.current(view);
             if (!r || (r.solves && r.solves[seat])) return false;
-            if (transport.now() < lockUntil) return false;
+            if (deviceNow() < lockUntil) return false;
             if (view.settings.inspection && timer.phase === 'idle') return false;
             return !['stopped', 'inspection_dnf'].includes(timer.phase);
         }
@@ -316,15 +328,18 @@
         function down(id, view) {
             if (!canPress(view)) return false;
             pointers.add(id);
-            if (pointers.size === 1) timer.press(transport.now());
+            if (pointers.size === 1) timer.press(deviceNow());
             return true;
         }
         function up(id) {
             if (!pointers.delete(id) || pointers.size) return;
-            timer.release(transport.now());
+            timer.release(deviceNow());
         }
 
-        return { seat, timer, sync, down, up, canPress, reset: () => { timer.reset(); armedRound = 0; pointers.clear(); } };
+        return {
+            seat, timer, sync, down, up, canPress, deviceNow,
+            reset: () => { timer.reset(); armedRound = 0; pointers.clear(); },
+        };
     }
 
     /** Wires a zone element to a seat timer with pointer events. */
@@ -456,8 +471,9 @@
         ['p1', 'p2'].forEach(seat => {
             const st = local.seats[seat];
             st.sync(view);
-            st.timer.tick(now);
-            const sv = seatView(view, seat, st.timer, now);
+            const dnow = st.deviceNow();
+            st.timer.tick(dnow);
+            const sv = seatView(view, seat, st.timer, now, dnow);
             const zone = $(`.fl-zone[data-seat="${seat}"]`, local.root);
             if (!zone) return;
             const timeEl = $('.fl-time', zone);

@@ -82,6 +82,15 @@ eq('with no penalty', h.t.result.penalty, '');
 eq('onChange carries the result', h.trail[h.trail.length - 1].info.ms, 8765);
 ok('runStart is when it started', h.t.runStart === startedAt);
 
+// A hold timer that never fires (a throttled background tab): the hold is
+// measured from timestamps, so releasing after a full hold still starts.
+h = harness({ holdMs: 300, inspection: false, schedule: () => 1, cancel: () => {} });
+h.at(0); h.t.press(); h.at(350); h.t.release();
+eq('a full hold counts even if the timer never fired', h.t.phase, 'running');
+h = harness({ holdMs: 300, inspection: false, schedule: () => 1, cancel: () => {} });
+h.at(0); h.t.press(); h.at(320); h.t.tick();
+eq('tick notices a full hold too', h.t.phase, 'ready');
+
 h = harness({ holdMs: 0, inspection: false });
 h.t.press();
 eq('no hold delay: straight to ready', h.t.phase, 'ready');
