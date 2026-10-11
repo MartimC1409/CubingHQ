@@ -60,16 +60,10 @@
     }
 
     // ========== UTILITIES ==========
-    function fmt(ms) {
-        if (ms === Infinity || ms === null || ms === undefined) return 'DNF';
-        if (ms >= 60000) {
-            const totalSec = ms / 1000;
-            const m = Math.floor(totalSec / 60);
-            const s = (totalSec % 60).toFixed(2);
-            return `${m}:${s.padStart(5, '0')}`;
-        }
-        return (ms / 1000).toFixed(2);
-    }
+    // Formatting and the phase machine live in timer-core.js, shared with
+    // Cube Fights so the two timers cannot disagree about a time or a rule.
+    const Core = window.TimerCore;
+    const fmt = Core.fmt;
 
     function fmtMean(msAvg) {
         if (msAvg === Infinity || isNaN(msAvg)) return 'DNF';
@@ -118,16 +112,11 @@
             timerFont: 'normal',      // 'normal' | 'large' | 'huge'
             // Theme is handled by body[data-theme] attribute (shared with app)
         },
-        // Live runtime
-        phase: 'idle',               // idle | inspecting | holding | ready | running | stopped
-        timerRaf: null,
-        timerStart: 0,
+        // Live runtime. `phase` is read from the solve timer below:
+        // idle | inspecting | holding | ready | running | stopped | inspection_dnf
+        frameRaf: null,
         currentScramble: '',
-        inspectionStart: 0,
         inspectionRemaining: 15,
-        inspectionRaf: null,
-        holdTimeout: null,
-        holdStart: 0,
         voiceSpokenAt: {},           // second -> true if spoken this session
         loaded: false,
     };
@@ -258,19 +247,31 @@
     if (!_stats) console.error('[Timer] cube-stats.js did not load — statistics disabled.');
 
     // ========== PHASE / TIMER LOGIC ==========
+    // The transitions themselves (inspection, hold delay, start, stop) are
+    // TimerCore's. This file reacts to them: classes on the display, the
+    // phase badge, voice cues, and recording the solve.
+    const solveTimer = Core.createSolveTimer({
+        holdMs: () => TSTATE.settings.spacebarHold,
+        inspection: () => TSTATE.settings.inspection === 'on',
+        // The solo timer has always called a solve DNF at 15s.
+        inspectionRule: 'strict',
+        onChange: onPhaseChange,
+    });
+    Object.defineProperty(TSTATE, 'phase', { get: () => solveTimer.phase, enumerable: true });
+
+    function stopFrames() {
+        if (TSTATE.frameRaf) cancelAnimationFrame(TSTATE.frameRaf);
+        TSTATE.frameRaf = null;
+    }
+
     function exitAnyPhase() {
-        if (TSTATE.inspectionRaf) cancelAnimationFrame(TSTATE.inspectionRaf);
-        TSTATE.inspectionRaf = null;
-        if (TSTATE.timerRaf) cancelAnimationFrame(TSTATE.timerRaf);
-        TSTATE.timerRaf = null;
-        if (TSTATE.holdTimeout) clearTimeout(TSTATE.holdTimeout);
-        TSTATE.holdTimeout = null;
+        stopFrames();
+        solveTimer.reset();
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     }
 
     function resetPhaseToIdle() {
         exitAnyPhase();
-        TSTATE.phase = 'idle';
         TSTATE.voiceSpokenAt = {};
     }
 
@@ -283,105 +284,99 @@
         return _timerDisplayEl;
     }
 
-    function startInspection() {
-        if (TSTATE.phase !== 'idle') return;
-        hideSolveActions();
-        if (TSTATE.settings.inspection !== 'on') {
-            // Skip inspection — go straight to hold
-            beginHold();
-            return;
-        }
-        TSTATE.phase = 'inspecting';
-        TSTATE.inspectionStart = performance.now();
-        TSTATE.inspectionRemaining = 15;
-        TSTATE.voiceSpokenAt = {};
-        renderPhaseBadge();
-        inspectionTick();
+    function setDisplayClass(cls) {
+        const display = getTimerDisplay();
+        if (!display) return null;
+        display.classList.remove('cs-holding', 'cs-ready', 'cs-running');
+        if (cls) display.classList.add(cls);
+        return display;
     }
 
-    function inspectionTick() {
-        const elapsedSec = (performance.now() - TSTATE.inspectionStart) / 1000;
-        const remaining = Math.max(0, 15 - elapsedSec);
-        TSTATE.inspectionRemaining = remaining;
-        const display = getTimerDisplay();
-        if (display) display.textContent = remaining > 0 ? remaining.toFixed(2) : '0.00';
-
-        // Voice cues
-        if (TSTATE.settings.voiceCues === 'on') {
-            if (remaining <= 8 && remaining > 7 && !TSTATE.voiceSpokenAt[8]) {
-                speak(T('voice.8s', '8 seconds'));
-                TSTATE.voiceSpokenAt[8] = true;
+    function onPhaseChange(phase, prev, info) {
+        switch (phase) {
+            case 'inspecting':
+                hideSolveActions();
+                setDisplayClass(null);
+                if (prev === 'idle') {
+                    TSTATE.inspectionRemaining = 15;
+                    TSTATE.voiceSpokenAt = {};
+                }
+                renderPhaseBadge();
+                startFrames();
+                break;
+            case 'holding': {
+                hideSolveActions();
+                // The previous solve's time has been on screen until now; this
+                // is the moment the next solve begins, so clear it.
+                const display = setDisplayClass('cs-holding');
+                if (display) display.textContent = '0.00';
+                renderPhaseBadge();
+                break;
             }
-            if (remaining <= 12 && remaining > 11 && !TSTATE.voiceSpokenAt[12]) {
-                speak(T('voice.12s', '12 seconds'));
-                TSTATE.voiceSpokenAt[12] = true;
+            case 'ready':
+                setDisplayClass('cs-ready');
+                renderPhaseBadge('READY');
+                break;
+            case 'running':
+                setDisplayClass('cs-running');
+                renderPhaseBadge();
+                startFrames();
+                break;
+            case 'stopped':
+                stopFrames();
+                setDisplayClass(null);
+                recordSolve(info.ms, info.penalty);
+                break;
+            case 'inspection_dnf': {
+                stopFrames();
+                const display = setDisplayClass(null);
+                renderPhaseBadge('DNF');
+                if (display) display.textContent = 'DNF';
+                break;
+            }
+            case 'idle': {
+                stopFrames();
+                const display = setDisplayClass(null);
+                // Let go during the hold delay with no inspection running.
+                if (prev === 'holding' && display) display.textContent = '0.00';
+                renderPhaseBadge();
+                break;
             }
         }
-
-        if (remaining <= 0) {
-            // DNF
-            cancelAnimationFrame(TSTATE.inspectionRaf);
-            TSTATE.inspectionRaf = null;
-            TSTATE.phase = 'inspection_dnf';
-            renderPhaseBadge('DNF');
-            if (display) display.textContent = 'DNF';
-            return;
-        }
-        TSTATE.inspectionRaf = requestAnimationFrame(inspectionTick);
     }
 
-    function beginHold() {
-        // Start hold OR go straight to ready if hold=0
-        TSTATE.phase = 'holding';
-        TSTATE.holdStart = performance.now();
-        renderPhaseBadge();
-
-        const display = $('#timer-display-text');
-        if (display) {
-            display.classList.add('cs-holding');
-            // The previous solve's time has been on screen until now; this is
-            // the moment the next solve begins, so clear it.
-            display.textContent = '0.00';
-        }
-
-        if (TSTATE.settings.spacebarHold <= 0) {
-            goReady();
-        } else {
-            // Use raf to color red during hold, then transition at holdDelay
-            TSTATE.holdTimeout = setTimeout(() => {
-                if (TSTATE.phase === 'holding') goReady();
-            }, TSTATE.settings.spacebarHold);
-        }
+    // One animation loop for inspection and the running clock.
+    function startFrames() {
+        if (TSTATE.frameRaf) return;
+        const frame = () => {
+            TSTATE.frameRaf = null;
+            const t = performance.now();
+            const phase = solveTimer.tick(t);
+            const display = getTimerDisplay();
+            if (phase === 'inspecting') {
+                const remaining = Math.max(0, solveTimer.inspectionLeft(t) / 1000);
+                TSTATE.inspectionRemaining = remaining;
+                if (display) display.textContent = remaining > 0 ? remaining.toFixed(2) : '0.00';
+                voiceCues(remaining);
+            } else if (phase === 'running') {
+                if (display) display.textContent = fmt(solveTimer.elapsed(t));
+            } else if (phase !== 'holding' && phase !== 'ready') {
+                return;   // stopped, DNF or idle: the loop is done
+            }
+            TSTATE.frameRaf = requestAnimationFrame(frame);
+        };
+        TSTATE.frameRaf = requestAnimationFrame(frame);
     }
 
-    function goReady() {
-        TSTATE.phase = 'ready';
-        const display = $('#timer-display-text');
-        if (display) {
-            display.classList.remove('cs-holding');
-            display.classList.add('cs-ready');
+    function voiceCues(remaining) {
+        if (TSTATE.settings.voiceCues !== 'on') return;
+        if (remaining <= 8 && remaining > 7 && !TSTATE.voiceSpokenAt[8]) {
+            speak(T('voice.8s', '8 seconds'));
+            TSTATE.voiceSpokenAt[8] = true;
         }
-        renderPhaseBadge('READY');
-    }
-
-    function startRunning() {
-        TSTATE.phase = 'running';
-        TSTATE.timerStart = performance.now();
-        const display = getTimerDisplay();
-        if (display) {
-            display.classList.remove('cs-ready', 'cs-holding');
-            display.classList.add('cs-running');
-        }
-        renderPhaseBadge();
-        runningTick();
-    }
-
-    function runningTick() {
-        const elapsed = performance.now() - TSTATE.timerStart;
-        const display = getTimerDisplay();
-        if (display) display.textContent = fmt(elapsed);
-        if (TSTATE.phase === 'running') {
-            TSTATE.timerRaf = requestAnimationFrame(runningTick);
+        if (remaining <= 12 && remaining > 11 && !TSTATE.voiceSpokenAt[12]) {
+            speak(T('voice.12s', '12 seconds'));
+            TSTATE.voiceSpokenAt[12] = true;
         }
     }
 
@@ -450,27 +445,12 @@
     }
 
     function stopTimer() {
-        if (TSTATE.phase !== 'running') return;
-        TSTATE.phase = 'stopped';
-        cancelAnimationFrame(TSTATE.timerRaf);
-        TSTATE.timerRaf = null;
-        const elapsed = performance.now() - TSTATE.timerStart;
-        const display = $('#timer-display-text');
-        if (display) display.classList.remove('cs-running');
+        return solveTimer.stop(performance.now());
+    }
 
-        // Determine penalty default:
-        // If inspection was used and timer started after 15s inspection -> no penalty recorded yet
-        // If inspection was started and not finished: DNF
-        // If started without inspection: no penalty
-        let defaultPenalty = '';
-        const inspected = TSTATE.settings.inspection === 'on';
-        if (inspected) {
-            // If we successfully reached 'ready' from inspection, no penalty default
-            // If inspection timed out, would have gone to inspection_dnf.
-            defaultPenalty = '';
-        }
-
-        // Record solve
+    // The solve is in: store it, then roll the next scramble.
+    function recordSolve(elapsed, penalty) {
+        const display = getTimerDisplay();
         const sess = getSession();
         if (sess) {
             const solve = {
@@ -478,7 +458,7 @@
                 time: Math.round(elapsed),
                 scramble: TSTATE.currentScramble,
                 event: sess.event,
-                penalty: defaultPenalty,
+                penalty: penalty || '',
                 timestamp: Date.now(),
             };
             sess.solves.push(solve);
@@ -506,13 +486,10 @@
     }
 
     function resetToIdleForNext() {
+        // Classes only — the time itself stays put and is cleared when the
+        // next solve actually starts.
         resetPhaseToIdle();
-        const display = $('#timer-display-text');
-        if (display) {
-            // Classes only — the time itself stays put and is cleared by
-            // beginHold() when the next solve actually starts.
-            display.classList.remove('cs-holding', 'cs-ready', 'cs-running');
-        }
+        setDisplayClass(null);
         renderPhaseBadge();
     }
 
@@ -659,38 +636,13 @@
     }
 
     function spaceAction(type) {
+        const t = performance.now();
         if (type === 'down') {
-            if (TSTATE.phase === 'idle') {
-                startInspection();
-            } else if (TSTATE.phase === 'inspecting') {
-                // Skip inspection on early start (after 1s)
-                const elapsed = (performance.now() - TSTATE.inspectionStart) / 1000;
-                cancelAnimationFrame(TSTATE.inspectionRaf);
-                TSTATE.inspectionRaf = null;
-                if (elapsed < 0.5) return; // ignore accidental press
-                beginHold();
-            } else if (TSTATE.phase === 'inspection_dnf') {
-                // Already DNF, ignore
-                return;
-            } else if (TSTATE.phase === 'running') {
-                stopTimer();
-            }
+            // A DNF'd inspection waits for a press to clear it.
+            if (TSTATE.phase === 'inspection_dnf') { resetPhaseToIdle(); return; }
+            solveTimer.press(t);
         } else if (type === 'up') {
-            if (TSTATE.phase === 'holding') {
-                // Released too early (within hold window)
-                if (TSTATE.holdTimeout) clearTimeout(TSTATE.holdTimeout);
-                TSTATE.holdTimeout = null;
-                // Reset to inspection or idle
-                resetPhaseToIdle();
-                renderPhaseBadge();
-                const display = $('#timer-display-text');
-                if (display) {
-                    display.classList.remove('cs-holding');
-                    display.textContent = '0.00';
-                }
-            } else if (TSTATE.phase === 'ready') {
-                startRunning();
-            }
+            solveTimer.release(t);
         }
     }
 
@@ -1394,11 +1346,8 @@
 
     function onExit() {
         resetPhaseToIdle();
-        const display = $('#timer-display-text');
-        if (display) {
-            display.classList.remove('cs-holding', 'cs-ready', 'cs-running');
-            display.textContent = '0.00';
-        }
+        const display = setDisplayClass(null);
+        if (display) display.textContent = '0.00';
     }
 
     // Re-render translated UI when the language changes.
@@ -1414,9 +1363,7 @@
     function smartStart() {
         if (TSTATE.phase !== 'idle') return false;
         hideSolveActions();
-        exitAnyPhase();
-        startRunning();
-        return true;
+        return solveTimer.forceStart(performance.now());
     }
 
     // Stop the timer — the physical cube reached the solved state.

@@ -27,7 +27,7 @@
 
     return {
         '333': {
-            single: { time: 2.76, holder: 'Teodor Zajder', country: 'PL', competition: 'GLS Big Cubes Gdańsk 2026' },
+            single: { time: 2.51, holder: 'Xuanyi Geng (耿暄一)', country: 'CN', competition: 'Guangzhou Grand Open 2026' },
             average: { time: 3.51, holder: 'Yiheng Wang (王艺衡)', country: 'CN', competition: 'Hefei Cubing League 3x3 III 2026' }
         },
         '222': {
@@ -47,7 +47,7 @@
             average: { time: 63.63, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Kuala Lumpur Cubing Challenge 2026' }
         },
         '777': {
-            single: { time: 90.59, holder: 'Max Park', country: 'US', competition: 'Rubik\'s WCA North American Championship 2026' },
+            single: { time: 87.47, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Beijing Autumn Rivalry 2026' },
             average: { time: 96.80, holder: 'Timofei Tarasenko', country: 'RU', competition: 'Hanoi Big Cubes 2026' }
         },
         '333oh': {

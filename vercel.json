@@ -1,16 +1,35 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/**/*.js": {
+    "api/battle.js": {
       "maxDuration": 300
+    },
+    "api/auth/**/*.js": {
+      "maxDuration": 300
+    },
+    "api/coach/**/*.js": {
+      "maxDuration": 300
+    },
+    "api/social/**/*.js": {
+      "maxDuration": 300
+    },
+    "api/fight/**/*.js": {
+      "maxDuration": 60,
+      "includeFiles": "{fight-engine.js,timer-core.js,scramble-engine.js,square1-drawer.js,node_modules/cubing/dist/lib/cubing/**}"
     }
   },
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
       ]
     }
   ]

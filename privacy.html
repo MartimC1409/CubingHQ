@@ -62,7 +62,7 @@
     <p class="page-crumb"><a href="/">Home</a> → Privacy Policy</p>
 
     <h1>Privacy Policy</h1>
-    <p class="page-meta">Last updated: 8 September 2026</p>
+    <p class="page-meta">Last updated: 11 October 2026</p>
 
     <p class="page-lede">CubingHQ is a speedcubing practice site. This page explains what
     happens to your data when you use it — what we keep, what never leaves your device,
@@ -95,6 +95,7 @@
         <li>You can use almost all of the site with no account at all.</li>
         <li>If you create an account, we store your email address, a display name, and a hash of your password — never the password itself.</li>
         <li>Battle rooms are public spaces. Your display name, messages and times there are visible to everyone in the room.</li>
+        <li>An online Cube Fight shows your display name, WCA ID and times to your opponent. Fights on one shared device stay on that device.</li>
         <li>The AI Coach sends your solve <em>statistics</em> to an AI provider. If you upload a video, the video goes to Google to be analysed, and is deleted afterwards.</li>
         <li>We use Google Analytics and Google AdSense. Both set cookies, and neither runs until you agree.</li>
         <li>We do not sell your data, and we do not share it with anyone except the processors listed below.</li>
@@ -107,6 +108,7 @@
 
     <ul>
         <li>Your solve times, sessions, personal bests and simulation history</li>
+        <li>Cube Fights played on one shared device, and their results — the players' names are whatever was typed in</li>
         <li>Your theme, accent colour and language choice</li>
         <li>Timer preferences — inspection, ambient volume, mute state</li>
         <li>The Sum of Ranks board you have built, as a list of WCA IDs</li>
@@ -166,6 +168,18 @@
                 <td>So other people in the room can see them — that is the feature</td>
                 <td>Contract</td>
                 <td>Until the room is cleared; rooms are pruned periodically</td>
+            </tr>
+            <tr>
+                <td>Online Cube Fights: your display name, WCA ID, times, penalties and when your device last checked in; a keyed hash of your account id marks your seat</td>
+                <td>To run the fight between you and your opponent, who sees your name and times — that is the feature</td>
+                <td>Contract</td>
+                <td>The fight itself is deleted within 24 hours</td>
+            </tr>
+            <tr>
+                <td>Your Cube Fights history and record (opponent, score, round times, wins and losses), and same-device fights you played while signed in</td>
+                <td>So you can see your past fights and your record on any device</td>
+                <td>Contract</td>
+                <td>Until you delete the account</td>
             </tr>
             <tr>
                 <td>AI Coach: your solve statistics, chosen event and goals, plus the conversation</td>
@@ -302,7 +316,7 @@
         </thead>
         <tbody>
             <tr><td>Vercel</td><td>Hosting, serverless functions, cookieless analytics</td><td>US / EU</td></tr>
-            <tr><td>Google Firebase</td><td>Accounts, friends, Battle rooms, contact messages, algorithm data</td><td>US</td></tr>
+            <tr><td>Google Firebase</td><td>Accounts, friends, Battle rooms, Cube Fights, contact messages, algorithm data</td><td>US</td></tr>
             <tr><td>Google AdSense &amp; Google Analytics</td><td>Advertising and usage measurement</td><td>US</td></tr>
             <tr><td>Google Gemini</td><td>AI coaching and video analysis</td><td>US</td></tr>
             <tr><td>Anthropic / OpenRouter</td><td>AI coaching text, depending on configuration</td><td>US</td></tr>

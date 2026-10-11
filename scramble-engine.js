@@ -18,6 +18,7 @@
      .puzzleId(eventId) -> string           (twisty-player `puzzle` attribute)
      .wcaEventId(id)    -> string           (normalized WCA event id)
      .prewarm(eventId)  -> void             (warm up the scramble worker)
+     .formatForEvent(wcaId, text) -> string (display notation, shared with the server)
    ============================================================ */
 (function () {
     'use strict';
@@ -170,6 +171,16 @@
         return scramblerModulePromise;
     }
 
+    // Square-1 is displayed in csTimer's compact notation, and Megaminx in
+    // csTimer's seven-line layout. Exported so the server, which generates
+    // online Cube Fights scrambles with the same cubing.js program, shows
+    // them exactly as this page would.
+    function formatForEvent(wcaId, text) {
+        if (wcaId === 'sq1') return toCsTimerSq1(text);
+        if (wcaId === 'minx') return toMegaminxLines(text);
+        return text;
+    }
+
     async function get(eventId) {
         const wcaId = wcaEventId(eventId);
         // Retry transient failures (worker hiccup, first-load race). A module
@@ -180,11 +191,7 @@
             try {
                 const { randomScrambleForEvent } = await loadScrambler();
                 const alg = await randomScrambleForEvent(wcaId);
-                // Square-1 is displayed in csTimer's compact notation, and
-                // Megaminx in csTimer's seven-line layout.
-                if (wcaId === 'sq1') return toCsTimerSq1(alg.toString());
-                if (wcaId === 'minx') return toMegaminxLines(alg.toString());
-                return alg.toString();
+                return formatForEvent(wcaId, alg.toString());
             } catch (e) {
                 console.warn(`[ScrambleEngine] random-state scramble attempt ${attempt} failed for ${wcaId}`, e);
                 if (attempt % 2 === 0 && cdnIndex < SCRAMBLE_PROGRAM_CDNS.length - 1) {
@@ -341,5 +348,5 @@
         }
     }
 
-    window.ScrambleEngine = { get, puzzleId, wcaEventId, prewarm, fallbackScramble, vizFor, applyViz, normalizeAlgFor };
+    window.ScrambleEngine = { get, puzzleId, wcaEventId, prewarm, fallbackScramble, formatForEvent, vizFor, applyViz, normalizeAlgFor };
 })();
