@@ -304,17 +304,47 @@
                         window._justLoggedIn = false;
                     }
                 }
-            } else {
+            } else if (res.status === 401) {
+                // The WCA says the token is no longer valid: that is a
+                // real sign-out. Anything else — a rate limit, a WCA
+                // outage — used to land here too and deleted a perfectly
+                // good sign-in, so every page load during a WCA hiccup
+                // signed people out.
                 localStorage.removeItem('wca_access_token');
+                forgetNavProfile();
+            } else {
+                console.warn(`[auth] WCA profile unavailable (HTTP ${res.status}); keeping the sign-in`);
             }
         } catch (err) {
             console.error('Failed to fetch WCA profile', err);
         }
     }
 
+    // What timer.html and coach.html show in their navbar (nav-session.js):
+    // a name and a picture, never a credential. They cannot restore a
+    // session themselves, so without this they said "Login" to people who
+    // were signed in.
+    const NAV_PROFILE_KEY = 'chq_nav_profile';
+    function rememberNavProfile() {
+        const p = state.userProfile;
+        if (!p) return;
+        try {
+            localStorage.setItem(NAV_PROFILE_KEY, JSON.stringify({
+                name: p.name || '',
+                picture: p.avatarUrl || (p.avatar && p.avatar.url) || null,
+                source: p.source === 'email' ? 'email' : 'wca',
+                wcaId: p.wca_id || null,
+            }));
+        } catch (e) { /* private mode */ }
+    }
+    function forgetNavProfile() {
+        try { localStorage.removeItem(NAV_PROFILE_KEY); } catch (e) { /* private mode */ }
+    }
+
     function updateUIAfterLogin() {
         if (!state.userProfile) return;
         announceAuthChange();
+        rememberNavProfile();
         // Only an email account has a link to undo. A WCA sign-in has
         // nothing to unlink — it IS the WCA account, and offering it
         // there would read as a way to delete something.
@@ -426,7 +456,10 @@
                 // 401 means expired or revoked; anything else is our
                 // problem, and forgetting the token would sign someone out
                 // for a server hiccup.
-                if (res.status === 401) localStorage.removeItem(AUTH_TOKEN_KEY);
+                if (res.status === 401) {
+                    localStorage.removeItem(AUTH_TOKEN_KEY);
+                    forgetNavProfile();
+                }
                 return false;
             }
             const body = await res.json();
@@ -805,6 +838,7 @@
     function signOut() {
         localStorage.removeItem('wca_access_token');
         try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* private mode */ }
+        forgetNavProfile();
         state.userProfile = null;
         announceAuthChange();
         closeAccountModal();
@@ -1188,9 +1222,23 @@
         }
 
         if (storedAuthToken()) {
-            if (await restoreAccountSession()) return;
+            if (await restoreAccountSession()) {
+                openAccountIfAsked();
+                return;
+            }
         }
         fetchWCAProfile();
+    }
+
+    // The account button on timer.html / coach.html (nav-session.js) brings
+    // an email account here asking for its account panel.
+    function openAccountIfAsked() {
+        let asked = false;
+        try {
+            asked = sessionStorage.getItem('chq_open_account') === '1';
+            sessionStorage.removeItem('chq_open_account');
+        } catch (e) { /* private mode */ }
+        if (asked && state.userProfile && state.userProfile.source === 'email') openAccountModal();
     }
 
     function init() {

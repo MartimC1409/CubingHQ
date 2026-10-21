@@ -485,6 +485,10 @@
         });
     </script>
 
+    <!-- Shows the account button instead of "Login" when signed in: this
+         page does not run app.js, which is what does that elsewhere. Must
+         run before the navbar is wired and before mobile-nav.js. -->
+    <script src="nav-session.js?v=b73de7ad"></script>
     <script>
         // Wire up the main-app navbar buttons on this standalone page.
         // - Timer button: stays here (current page), mark as active.
