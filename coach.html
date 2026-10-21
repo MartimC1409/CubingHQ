@@ -196,6 +196,10 @@
          dead weight, and coach-video.js in particular would otherwise
          pull in a WASM-backed encoder for a feature nobody can reach. -->
 
+    <!-- Shows the account button instead of "Login" when signed in: this
+         page does not run app.js, which is what does that elsewhere. Must
+         run before the navbar is wired and before mobile-nav.js. -->
+    <script src="nav-session.js?v=b73de7ad"></script>
     <script>
         // Wire the shared navbar on this standalone page: the Coach button
         // is the current page, everything else goes back to the SPA.
